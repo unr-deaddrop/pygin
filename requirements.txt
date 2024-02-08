@@ -1,9 +1,16 @@
 # Functional
+celery[redis]==5.3.6
 pycryptodome==3.20.0
 pydantic==2.5.2
+python-dotenv==1.0.0
+supervisor==4.2.5
+
 # Linting
 black==24.1.1
 mypy==1.8.0
 flake8==7.0.0
 flake8-bugbear==24.2.6
 tox==4.12.1
+
+types-redis==4.6.0.20240106
+celery-types==0.22.0
