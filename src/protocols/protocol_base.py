@@ -1,0 +1,3 @@
+"""
+Base definitions for protocols.
+"""

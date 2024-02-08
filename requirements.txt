@@ -1,6 +1,6 @@
 # Functional
 pycryptodome==3.20.0
-
+pydantic==2.5.2
 # Linting
 black==24.1.1
 mypy==1.8.0
