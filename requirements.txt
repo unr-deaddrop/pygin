@@ -1,7 +1,7 @@
 # Functional
 celery[redis]==5.3.6
 pycryptodome==3.20.0
-pydantic==2.5.2
+pydantic==2.6.1
 python-dotenv==1.0.0
 supervisor==4.2.5
 
