@@ -1,9 +1,9 @@
 # Functional
-pycryptodome
+pycryptodome==3.20.0
 
 # Linting
-black
-mypy
-flake8
-flake8-bugbear
-tox
+black==24.1.1
+mypy==1.8.0
+flake8==7.0.0
+flake8-bugbear==24.2.6
+tox==4.12.1
