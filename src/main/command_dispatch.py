@@ -1,3 +1,0 @@
-"""
-Command dispatch unit.
-"""

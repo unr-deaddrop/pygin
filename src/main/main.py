@@ -1,3 +1,0 @@
-"""
-Main process loop.
-"""
