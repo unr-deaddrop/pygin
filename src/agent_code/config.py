@@ -6,6 +6,7 @@ startup and remains constant throughout the lifetime of the agent.
 """
 
 from pathlib import Path
+import configparser
 import uuid
 
 from dotenv import dotenv_values
@@ -44,8 +45,9 @@ class Config(BaseModel):
 
     @classmethod
     def from_cfg_file(cls, cfg_path: Path) -> "Config":
-        # TODO: Probably this shouldn't be dotenv, but Python's builtin
-        cfg_obj = Config.model_validate(dotenv_values(cfg_path))
+        cfg_parser = configparser.ConfigParser()
+        cfg_parser.read(cfg_path)
+        cfg_obj = Config.model_validate(cfg_parser['pygin'])
         cfg_obj.create_dirs()
         return cfg_obj
 

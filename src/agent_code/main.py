@@ -52,4 +52,4 @@ if __name__ == "__main__":
     # Create any required directory structure
     cfg_obj.create_dirs()
 
-    entrypoint(cfg_obj, tasks.app)
+    # entrypoint(cfg_obj, tasks.app)
