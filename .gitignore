@@ -8,7 +8,7 @@
 /msgs
 
 # Pygin stores all log information in /logs of the root of the agent by default.
-logs/
+/logs
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
