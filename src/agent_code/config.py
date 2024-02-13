@@ -43,7 +43,8 @@ class Config(BaseModel):
     )
 
     @classmethod
-    def from_env_file(cls, cfg_path: Path) -> "Config":
+    def from_cfg_file(cls, cfg_path: Path) -> "Config":
+        # TODO: Probably this shouldn't be dotenv, but Python's builtin
         cfg_obj = Config.model_validate(dotenv_values(cfg_path))
         cfg_obj.create_dirs()
         return cfg_obj
