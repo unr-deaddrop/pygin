@@ -1,3 +1,15 @@
+# Don't commit any databases or redis dumps. We might have to change this later
+# when we implement the logging system.
+*.db
+*.rdb
+
+# Pygin stores messages, both decoded and encoded, in /msgs in the root of
+# the agent by default.
+/msgs
+
+# Pygin stores all log information in /logs of the root of the agent by default.
+/logs
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
