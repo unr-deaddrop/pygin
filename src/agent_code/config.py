@@ -5,12 +5,16 @@ This module defines a global configuration object that generated at agent
 startup and remains constant throughout the lifetime of the agent.
 """
 
+from base64 import b64decode
 from pathlib import Path
+from typing import Any
 import configparser
 import uuid
 
-from dotenv import dotenv_values
-from pydantic import BaseModel
+# This was originally used for importing configuration files as a dictionary,
+# but we've opted to generalize it to ConfigParser for now
+# from dotenv import dotenv_values
+from pydantic import BaseModel, field_validator
 
 
 class Config(BaseModel):
@@ -27,6 +31,8 @@ class Config(BaseModel):
 
     AGENT_PRIVATE_KEY_PATH: Path
     SERVER_PUBLIC_KEY_PATH: Path
+
+    ENCRPYTION_KEY: bytes
 
     INCOMING_ENCODED_MESSAGE_DIR: Path
     INCOMING_DECODED_MESSAGE_DIR: Path
@@ -47,9 +53,30 @@ class Config(BaseModel):
     def from_cfg_file(cls, cfg_path: Path) -> "Config":
         cfg_parser = configparser.ConfigParser()
         cfg_parser.read(cfg_path)
-        cfg_obj = Config.model_validate(cfg_parser['pygin'])
+        cfg_obj = Config.model_validate(cfg_parser["pygin"])
         cfg_obj.create_dirs()
         return cfg_obj
+
+    @field_validator("ENCRYPTION_KEY", mode="before")
+    @classmethod
+    def validate_encryption_key(cls, v: Any) -> bytes:
+        """
+        If the encryption key passed into the configuration object is not bytes,
+        assume base64.
+
+        Then, check that the encryption key is 16, 24, or 32 bytes in length
+        (AES-128, AES-192, and AES-256 respectively).
+        """
+        if type(v) is not bytes:
+            try:
+                v = b64decode(v)
+            except Exception as e:
+                raise ValueError(f"Assumed b64decode of {v} failed.") from e
+
+        if len(v) not in (16, 24, 32):
+            raise ValueError("Decoded key is of invalid length.")
+
+        return v
 
     def resolve_all_dirs(self) -> None:
         """
