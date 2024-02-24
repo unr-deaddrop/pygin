@@ -1,24 +1,8 @@
 """
-Simple test command used to evaluate connectivity
-
-Ping accepts two optional arguments:
-- A delay before sending the response, in seconds (0 by default)
-- A message to return with the response (nothing by default)
-
-The structure of the payload is as follows:
-```json
-{
-    // The time at which the ping was issued.
-    "ping_timestamp": 000000000
-    // The time at which the ping was received.
-    "pong_timestamp": 000000000
-    // The optional message included with the original ping.
-    "message": str
-}
-```
+Implements the ping command.
 """
 
-from typing import ClassVar, Type, Optional
+from typing import Any
 
 from src.libs.cmd_lib import (
     DefaultParsers,
@@ -26,7 +10,6 @@ from src.libs.cmd_lib import (
     ArgumentParser,
     ArgumentType,
     Argument,
-    RendererBase,
 )
 
 
@@ -35,7 +18,7 @@ class PingArgumentParser(ArgumentParser):
     Parser for the ping command.
     """
 
-    arguments = [
+    arguments: list[Argument] = [
         Argument(
             cmd_type=ArgumentType.STRING,
             name="message",
@@ -58,16 +41,32 @@ class PingArgumentParser(ArgumentParser):
 
 class PingCommand(CommandBase):
     """
-    Implements the ping command.
+    Simple test command used to evaluate connectivity.
+
+    Ping accepts two optional arguments:
+    - A delay before sending the response, in seconds (0 by default)
+    - A message to return with the response (nothing by default)
+
+    The structure of the payload is as follows:
+    ```json
+    {
+        // The time at which the ping was issued.
+        "ping_timestamp": 000000000
+        // The time at which the ping was received.
+        "pong_timestamp": 000000000
+        // The optional message included with the original ping.
+        "message": str
+    }
+    ```
     """
 
-    name: ClassVar[str] = "ping"
-    description: ClassVar[str] = __doc__
-    version: ClassVar[str] = "0.0.1"
-    argument_parser: ClassVar[Type[ArgumentParser]] = PingArgumentParser
+    name = "ping"
+    description = __doc__
+    version = "0.0.1"
+    argument_parser = PingArgumentParser
 
-    command_renderer: Optional[RendererBase] = None
+    command_renderer = None
 
     @classmethod
-    def execute_command(cls, **kwargs) -> bytes:
-        pass
+    def execute_command(cls, args: dict[str, Any]) -> dict[str, Any]:
+        raise NotImplementedError

@@ -15,6 +15,7 @@ import abc
 import json
 from enum import Enum
 from pathlib import Path
+from textwrap import dedent
 from typing import Any, Callable, ClassVar, Optional, Type
 
 from pydantic import BaseModel
@@ -113,6 +114,9 @@ class Argument(BaseModel):
 
     Note that it is up to the ArgumentParser instance of a particular CommandBase
     to actually validate commands. No basic type checking is provided.
+
+    Although many of the fields in Argument are *really* immutable elements,
+    this is implemented as a Pydantic model for a variety of convenience reasons.
     """
 
     # The value type this argument is expected to hold.
@@ -177,10 +181,10 @@ class ArgumentParser(BaseModel, abc.ABC):
     is created each time.
     """
 
-    arguments: ClassVar[list[Argument]]
+    arguments: list[Argument]
 
-    def __init__(self, arguments: list[Argument], **kwargs):
-        super().__init__(arguments, **kwargs)
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
 
         # Generate a mapping of available argument names to their underlying
         # argument instances.
@@ -213,7 +217,7 @@ class ArgumentParser(BaseModel, abc.ABC):
         return result
 
 
-class CommandBase(BaseModel, abc.ABC):
+class CommandBase(abc.ABC):
     """
     Class representing the basic definition of a DeadDrop command.
 
@@ -236,7 +240,13 @@ class CommandBase(BaseModel, abc.ABC):
     corresponding instances.
     """
 
-    # The below is no longer relevant, but is still kept for completeness:
+    # The comment below was added when CommandBase was originally intended
+    # to be a BaseModel to expose Pydantic's functionality. However, the features
+    # aren't *really* needed, so I've opted to use Mythic's approach of declaring
+    # everything as abstract properties.
+    #
+    # The same approach isn't used for Argument because it makes a little more
+    # sense to leverage stuff like dump_model() and dump_model_json() there.
     # ---
     # The use of abstract properties, as used by Mythic in stock classes,
     # is also valid for Pydantic. See the following link:
@@ -247,33 +257,100 @@ class CommandBase(BaseModel, abc.ABC):
     #
     # As expected, decorating with @abc.abstractmethod effectively makes the
     # attribute required; simply decorating with @property does not.
-    # ---
 
-    name: ClassVar[str]
-    description: ClassVar[str]
-    version: ClassVar[str]
-    argument_parser: ClassVar[Type[ArgumentParser]]
+    # command_renderer: ClassVar[Optional[RendererBase]] = None
 
-    command_renderer: Optional[RendererBase] = None
+    @property
+    @abc.abstractmethod
+    def name(self) -> str:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def description(self) -> str:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def version(self) -> str:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def argument_parser(self) -> Type[ArgumentParser]:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def command_renderer(self) -> Optional[Type[RendererBase]]:
+        pass
 
     @abc.abstractmethod
-    def execute_command(self, **kwargs) -> bytes:
+    def execute_command(self, args: dict[str, Any]) -> dict[str, Any]:
         """
         Execute the command.
+
+        In general, commands accept a dictionary of arguments and (eventually)
+        generate a payload dictionary as output. It is generally expected that
+        the `payload` field is the immediate output of a command completing.
+
+        The structure of the `payload` field for command_response messages is
+        arbitrary.
+
+        :param args: A dictionary of strings to values.
         """
         pass
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert this object to a dictionary suitable for export.
+
+        Note that this also converts the associated commands as exposed by
+        the ArgumentParser. The structure is as follows:
+
+        ```json
+        {
+            "name": str,
+            "description": str,
+            "version": str,
+            "has_renderer": bool,
+            "arguments": [
+                {
+                    // see Argument for exported fields
+                }, ...
+            ]
+        }
+        ```
+        """
+        return {
+            "name": self.name,
+            # `dedent()` removes any leading indentation from the docstring.
+            "description": dedent(self.description).strip(),
+            "version": self.version,
+            "has_renderer": bool(
+                self.command_renderer
+            ),  # True if one has been assigned.
+            "arguments": self.argument_parser().model_dump()["arguments"],
+        }
+
+    def to_json(self, **kwargs) -> str:
+        return json.dumps(self.to_dict(), **kwargs)
 
 
 def export_all_commands() -> list[Type[CommandBase]]:
     """
     Return a list of visible command classes.
+
+    Note that "visible" means that the associated subclasses of CommandBase must
+    already have been imported. If you implement a script to generate the command JSONs,
+    you will need to import the commands ahead of time.
     """
     # TODO: I don't know how reliable this is. On paper, I feel like it should
     # just work if you import `commands` and then call this, but is that correct?
     return CommandBase.__subclasses__()
 
 
-def export_commands_as_json(command_classes: list[Type[CommandBase]]):
+def export_commands_as_json(command_classes: list[Type[CommandBase]], **kwargs):
     """
     Return a nicely formatted dictionary containing all command information,
     suitable for presentation in the DeadDrop interface. This is a list of
@@ -282,10 +359,8 @@ def export_commands_as_json(command_classes: list[Type[CommandBase]]):
     In the case of this library, we can generally get away with just calling
     the Pydantic JSON validator over and over again.
     """
-    json_objs: list[str] = []
+    json_objs: list[dict[str, Any]] = []
     for command_class in command_classes:
-        json_objs.append(command_class.model_dump_json())
+        json_objs.append(command_class().to_dict())
 
-    result = ",".join(json_objs)
-    data = json.loads(f"[{result}]")
-    return json.dumps(data, indent=4)
+    return json.dumps(json_objs, **kwargs)
