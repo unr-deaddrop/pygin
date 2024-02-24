@@ -12,7 +12,8 @@ for path in paths:
     if not path.is_file():
         continue
 
-    if path.name == "__init__.py":
+    # Ignore any with leading underscores, including __init__.py
+    if path.name.startswith("_"):
         continue
 
     __all__.append(path.stem)
