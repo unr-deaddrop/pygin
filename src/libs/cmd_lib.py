@@ -341,11 +341,24 @@ def export_all_commands() -> list[Type[CommandBase]]:
     """
     Return a list of visible command classes.
 
+    The command lookup occurs by inspecting all available subclasses of CommandBase
+    when this function is executed.
+
     Note that "visible" means that the associated subclasses of CommandBase must
     already have been imported. If you implement a script to generate the command JSONs,
     you will need to import the commands ahead of time.
     """
     return CommandBase.__subclasses__()
+
+
+def get_commands_as_dict() -> dict[str, Type[CommandBase]]:
+    """
+    Return a dictionary of commands, suitable for lookup.
+
+    The keys are the `name` attribute of each command found; the values are the
+    literal types for each command (a subclass of CommandBase).
+    """
+    return {cmd.name: cmd for cmd in export_all_commands()}
 
 
 def export_commands_as_json(command_classes: list[Type[CommandBase]], **kwargs):
@@ -355,7 +368,7 @@ def export_commands_as_json(command_classes: list[Type[CommandBase]], **kwargs):
     JSON objects containing all available commands.
 
     In the case of this library, we can generally get away with just calling
-    the Pydantic JSON validator over and over again.
+    the Pydantic JSON validator for the arguments.
     """
     json_objs: list[dict[str, Any]] = []
     for command_class in command_classes:

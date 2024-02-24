@@ -24,9 +24,10 @@ handled by an initial setup script at the OS level.
 
 from datetime import datetime
 from enum import Enum
-from typing import Type
+from typing import Any, Type
 import abc
 import uuid
+import json
 
 from pydantic import BaseModel, Field
 
@@ -124,7 +125,7 @@ class ProtocolBase(BaseModel, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def protocol_name(self) -> str:
+    def name(self) -> str:
         """
         The internal protocol name displayed to users and used in internal
         messaging.
@@ -190,33 +191,42 @@ class ProtocolBase(BaseModel, abc.ABC):
         """
         # TODO: does this actually work with Celery tasking?
         pass
+    
+    def to_dict(self) -> dict[str, Any]:
+        raise NotImplementedError
 
 
 def export_all_protocols() -> dict[str, Type[ProtocolBase]]:
     """
-    Return a dictionary of available protocols.
+    Return a list of visible protocol classes.
 
-    The keys are the `protocol_name` attribute of each protocol found;
-    the values are the literal class definitions for each protocol.
+    The protocol lookup occurs by inspecting all available subclasses of ProtocolBase
+    when this function is executed.
 
-    The protocol lookup occurs by inspecting all available subclasses of
-    ProtocolBase when this function is executed.
+    Note that "visible" means that the associated subclasses of ProtocolBase must
+    already have been imported. If you implement a script to generate the command JSONs,
+    you will need to import the commands ahead of time.
     """
-    raise NotImplementedError
+    return ProtocolBase.__subclasses__()
 
 
-def get_protocol_by_name(protocol_name: str) -> Type[ProtocolBase]:
+def get_protocols_as_dict() -> dict[str, Type[ProtocolBase]]:
     """
-    Search for a protocol by name.
+    Return a dictionary of commands, suitable for lookup.
 
-    If not found, raises RuntimeError.
+    The keys are the `name` attribute of each command found; the values are the
+    literal types for each command (a subclass of CommandBase).
     """
-    raise NotImplementedError
+    return {proto.name: proto for proto in export_all_protocols()}
 
 
-def export_protocols_as_json():
+def export_protocols_as_json(protocol_classes: list[Type[ProtocolBase]], **kwargs):
     """
     Return a nicely formatted string containing all command information,
     suitable for presentation in the DeadDrop interface.
     """
-    pass
+    json_objs: list[dict[str, Any]] = []
+    for command_class in protocol_classes:
+        json_objs.append(command_class().to_dict())
+
+    return json.dumps(json_objs, **kwargs)
