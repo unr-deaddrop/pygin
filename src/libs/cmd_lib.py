@@ -14,6 +14,7 @@ the standard library and external packages.
 import abc
 import json
 from enum import Enum
+from pathlib import Path
 from typing import Any, Callable, ClassVar, Optional, Type
 
 from pydantic import BaseModel
@@ -66,10 +67,47 @@ class ArgumentType(str, Enum):
 
     BOOLEAN = "boolean"
     STRING = "string"
-    NUMERIC = "numeric"
+    INTEGER = "integer"
+    FLOAT = "float"
     PATH = "filepath"
     ITERABLE = "iterable"
 
+class DefaultParsers():
+    """
+    Stock argument parsers.
+    """
+    @staticmethod
+    def parse_boolean(value) -> bool:
+        # Hardcoded string-cast values.
+        DEFAULT_VALUES = {
+            "True": True,
+            "False": False,
+            "true": True,
+            "false": False
+        }
+        if value in DEFAULT_VALUES:
+            return DEFAULT_VALUES[value]
+        
+        return bool(value)
+
+    @staticmethod
+    def parse_string(value) -> str:
+        return str(value)
+
+    @staticmethod
+    def parse_integer(value) -> int:
+        return int(value)
+
+    @staticmethod
+    def parse_float(value) -> float:
+        return float(value)
+
+    @staticmethod
+    def parse_path(value) -> Path:
+        """
+        Returns
+        """
+        return Path(value)
 
 class Argument(BaseModel):
     """
@@ -80,7 +118,7 @@ class Argument(BaseModel):
     """
 
     # The value type this argument is expected to hold.
-    type: ArgumentType
+    cmd_type: ArgumentType
     # The name of this argument, used both internally and displayed to the user.
     name: str
     # The long description of this argument. May be valid Markdown.
@@ -92,17 +130,23 @@ class Argument(BaseModel):
     # `parse_arg()` at runtime.
     is_iterable: bool
 
+    default: Optional[Any] = None
+
     # The parser function used to convert incoming values into their final datatype,
     # if any. The default behavior is for the value to be used as-is.
     _parser: Optional[Callable[..., Any]] = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.value = self.default
 
     # The value (or default value) currently associated with this argument.
     @property
     def value(self) -> Any:
         return self._value
 
-    @property.setter
-    def value(self, new_value) -> Any:
+    @value.setter
+    def value(self, new_value) -> None:
         """
         Setter for the value. Override _parser if you want to change
         the behavior of this field.
@@ -114,10 +158,9 @@ class Argument(BaseModel):
         """
         if not self._parser:
             self._value = new_value
+            return
 
         self._value = self._parser(new_value) # type: ignore
-
-        return self.value
 
 
 class ArgumentParser(BaseModel, abc.ABC):
@@ -211,7 +254,7 @@ class CommandBase(BaseModel, abc.ABC):
     name: ClassVar[str]
     description: ClassVar[str]
     version: ClassVar[str]
-    argument_parser: ClassVar[ArgumentParser]
+    argument_parser: ClassVar[Type[ArgumentParser]]
 
     command_renderer: Optional[RendererBase] = None
 
