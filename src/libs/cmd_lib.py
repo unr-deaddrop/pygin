@@ -72,22 +72,19 @@ class ArgumentType(str, Enum):
     PATH = "filepath"
     ITERABLE = "iterable"
 
-class DefaultParsers():
+
+class DefaultParsers:
     """
     Stock argument parsers.
     """
+
     @staticmethod
     def parse_boolean(value) -> bool:
         # Hardcoded string-cast values.
-        DEFAULT_VALUES = {
-            "True": True,
-            "False": False,
-            "true": True,
-            "false": False
-        }
+        DEFAULT_VALUES = {"True": True, "False": False, "true": True, "false": False}
         if value in DEFAULT_VALUES:
             return DEFAULT_VALUES[value]
-        
+
         return bool(value)
 
     @staticmethod
@@ -108,6 +105,7 @@ class DefaultParsers():
         Returns
         """
         return Path(value)
+
 
 class Argument(BaseModel):
     """
@@ -160,7 +158,7 @@ class Argument(BaseModel):
             self._value = new_value
             return
 
-        self._value = self._parser(new_value) # type: ignore
+        self._value = self._parser(new_value)  # type: ignore
 
 
 class ArgumentParser(BaseModel, abc.ABC):
