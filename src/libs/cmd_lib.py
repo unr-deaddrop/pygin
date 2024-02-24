@@ -345,8 +345,6 @@ def export_all_commands() -> list[Type[CommandBase]]:
     already have been imported. If you implement a script to generate the command JSONs,
     you will need to import the commands ahead of time.
     """
-    # TODO: I don't know how reliable this is. On paper, I feel like it should
-    # just work if you import `commands` and then call this, but is that correct?
     return CommandBase.__subclasses__()
 
 
