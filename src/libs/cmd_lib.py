@@ -56,7 +56,7 @@ class RendererBase(BaseModel, abc.ABC):
 
         FIXME: Additionally, note that calling this implies that the interface
         is capable of calling Python code. In the future, it would be necessary
-        to make "calling" a command renderer independent of implementation.
+        to make "calling" a command renderer independent of implementation somehow.
         """
         pass
 
@@ -81,6 +81,11 @@ class DefaultParsers:
 
     @staticmethod
     def parse_boolean(value) -> bool:
+        """
+        Default boolean parsing.
+
+        Includes certain hard-coded value conversions for strings.
+        """
         # Hardcoded string-cast values.
         DEFAULT_VALUES = {"True": True, "False": False, "true": True, "false": False}
         if value in DEFAULT_VALUES:
@@ -90,20 +95,31 @@ class DefaultParsers:
 
     @staticmethod
     def parse_string(value) -> str:
+        """
+        Default string parsing.
+        """
         return str(value)
 
     @staticmethod
     def parse_integer(value) -> int:
+        """
+        Default integer parsing.
+        """
         return int(value)
 
     @staticmethod
     def parse_float(value) -> float:
+        """
+        Default float parsing.
+        """
         return float(value)
 
     @staticmethod
     def parse_path(value) -> Path:
         """
-        Returns
+        Default path parsing.
+
+        Note that the path is not resolved to avoid making
         """
         return Path(value)
 
@@ -162,7 +178,7 @@ class Argument(BaseModel):
             self._value = new_value
             return
 
-        self._value = self._parser(new_value)  # type: ignore
+        self._value = self._parser(new_value)
 
 
 class ArgumentParser(BaseModel, abc.ABC):
@@ -242,8 +258,9 @@ class CommandBase(abc.ABC):
 
     # The comment below was added when CommandBase was originally intended
     # to be a BaseModel to expose Pydantic's functionality. However, the features
-    # aren't *really* needed, so I've opted to use Mythic's approach of declaring
-    # everything as abstract properties.
+    # aren't *really* needed (and don't work as simply as I'd like for classvars),
+    # so I've opted to use Mythic's approach of declaring everything as abstract
+    # properties.
     #
     # The same approach isn't used for Argument because it makes a little more
     # sense to leverage stuff like dump_model() and dump_model_json() there.
@@ -321,6 +338,10 @@ class CommandBase(abc.ABC):
             ]
         }
         ```
+        
+        Note that for compatibility purposes, ensure that the resulting dictionary
+        is completely JSON serializable. By extension, this means that Argument
+        must have JSON serializable fields, as dictated by `model_dump()`.
         """
         return {
             "name": self.name,
@@ -358,7 +379,9 @@ def get_commands_as_dict() -> dict[str, Type[CommandBase]]:
     The keys are the `name` attribute of each command found; the values are the
     literal types for each command (a subclass of CommandBase).
     """
-    return {cmd.name: cmd for cmd in export_all_commands()}
+    # mypy doesn't handle properties well; this works in practice, and the type
+    # of cmd.name is *always* str
+    return {cmd.name: cmd for cmd in export_all_commands()}  # type: ignore[misc]
 
 
 def export_commands_as_json(command_classes: list[Type[CommandBase]], **kwargs):

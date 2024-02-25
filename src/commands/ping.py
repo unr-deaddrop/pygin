@@ -2,7 +2,7 @@
 Implements the ping command.
 """
 
-from typing import Any
+from typing import Any, Optional, Type
 
 from src.libs.cmd_lib import (
     DefaultParsers,
@@ -10,6 +10,7 @@ from src.libs.cmd_lib import (
     ArgumentParser,
     ArgumentType,
     Argument,
+    RendererBase,
 )
 
 
@@ -60,12 +61,12 @@ class PingCommand(CommandBase):
     ```
     """
 
-    name = "ping"
-    description = __doc__
-    version = "0.0.1"
-    argument_parser = PingArgumentParser
+    name: str = "ping"
+    description: str = __doc__
+    version: str = "0.0.1"
+    argument_parser: Type[ArgumentParser] = PingArgumentParser
 
-    command_renderer = None
+    command_renderer: Optional[Type[RendererBase]] = None
 
     @classmethod
     def execute_command(cls, args: dict[str, Any]) -> dict[str, Any]:

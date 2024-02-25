@@ -117,7 +117,7 @@ class DeadDropMessage(BaseModel, abc.ABC):
     digest: str | None = None
 
 
-class ProtocolBase(BaseModel, abc.ABC):
+class ProtocolBase(abc.ABC):
     """
     Abstract base class representing the standard definition of a protocol
     for Python-based agents.
@@ -191,12 +191,22 @@ class ProtocolBase(BaseModel, abc.ABC):
         """
         # TODO: does this actually work with Celery tasking?
         pass
-    
+
     def to_dict(self) -> dict[str, Any]:
-        raise NotImplementedError
+        """
+        Return this protocol's metadata as a dictionary.
+        
+        Note that for compatibility purposes, ensure that the resulting dictionary
+        is completely JSON serializable.
+        """
+        return {
+            "name": self.name,
+            "description": self.description,
+            "version": self.version,
+        }
 
 
-def export_all_protocols() -> dict[str, Type[ProtocolBase]]:
+def export_all_protocols() -> list[Type[ProtocolBase]]:
     """
     Return a list of visible protocol classes.
 
@@ -217,7 +227,9 @@ def get_protocols_as_dict() -> dict[str, Type[ProtocolBase]]:
     The keys are the `name` attribute of each command found; the values are the
     literal types for each command (a subclass of CommandBase).
     """
-    return {proto.name: proto for proto in export_all_protocols()}
+    # mypy doesn't handle properties well; this works in practice, and the type
+    # of cmd.name is *always* str
+    return {proto.name: proto for proto in export_all_protocols()}  # type: ignore[misc]
 
 
 def export_protocols_as_json(protocol_classes: list[Type[ProtocolBase]], **kwargs):
