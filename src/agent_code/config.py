@@ -17,7 +17,7 @@ import uuid
 from pydantic import BaseModel, field_validator
 
 
-class Config(BaseModel):
+class PyginConfig(BaseModel):
     """
     Agent-wide configuration definitions. Includes both non-sensitive and
     sensitive configurations set at runtime.
@@ -50,10 +50,16 @@ class Config(BaseModel):
     )
 
     @classmethod
-    def from_cfg_file(cls, cfg_path: Path) -> "Config":
+    def from_cfg_file(cls, cfg_path: Path) -> "PyginConfig":
+        """
+        Construct the global Pygin configuration object from a file.
+        
+        Note that this also recursively creates the directories specified in the
+        configuration file.
+        """
         cfg_parser = configparser.ConfigParser()
         cfg_parser.read(cfg_path)
-        cfg_obj = Config.model_validate(cfg_parser["pygin"])
+        cfg_obj = PyginConfig.model_validate(cfg_parser["pygin"])
         cfg_obj.create_dirs()
         return cfg_obj
 

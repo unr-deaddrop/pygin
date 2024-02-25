@@ -25,6 +25,8 @@ class PyginMessage(DeadDropMessage):
     # The prefix used when using this class to directly add itself to a Redis
     # instance. Guarantees all keys with this prefix are representative of a
     # particular message.
+    #
+    # The default is "agent-msg-parsed-", but may be overrided at will.
     REDIS_KEY_PREFIX: ClassVar[str] = "agent-msg-parsed-"
 
     @field_validator("data", mode="before")
