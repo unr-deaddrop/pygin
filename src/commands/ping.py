@@ -4,14 +4,8 @@ Implements the ping command.
 
 from typing import Any, Optional, Type
 
-from src.libs.command_lib import (
-    DefaultParsers,
-    CommandBase,
-    ArgumentParser,
-    ArgumentType,
-    Argument,
-    RendererBase,
-)
+from src.libs.argument_lib import DefaultParsers, ArgumentParser, ArgumentType, Argument
+from src.libs.command_lib import CommandBase, RendererBase
 
 
 class PingArgumentParser(ArgumentParser):
@@ -21,7 +15,7 @@ class PingArgumentParser(ArgumentParser):
 
     arguments: list[Argument] = [
         Argument(
-            cmd_type=ArgumentType.STRING,
+            arg_type=ArgumentType.STRING,
             name="message",
             description="Extra message to include in the ping response.",
             required=False,
@@ -29,7 +23,7 @@ class PingArgumentParser(ArgumentParser):
             _parser=DefaultParsers.parse_string,
         ),
         Argument(
-            cmd_type=ArgumentType.FLOAT,
+            arg_type=ArgumentType.FLOAT,
             name="delay",
             description="The number of seconds to delay the reponse for.",
             required=False,

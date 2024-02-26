@@ -133,8 +133,6 @@ def get_new_msgs(cfg: config.PyginConfig, drop_seen_msgs: bool) -> list[PyginMes
     result: list[PyginMessage] = []
     # For each protocol, ask the message dispatching module to go find all the
     # new messages.
-    for protocol_name in cfg.INCOMING_PROTOCOLS:
-        
 
     # Sort all messages by time, earliest to latest.
     raise NotImplementedError

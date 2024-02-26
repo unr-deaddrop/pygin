@@ -24,13 +24,15 @@ handled by an initial setup script at the OS level.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Type
+from typing import Any, Type, ClassVar
 import abc
+import configparser
 import uuid
 import json
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer, field_validator
 
+from src.libs.argument_lib import ArgumentParser
 
 class DeadDropMessageType(str, Enum):
     """
@@ -105,16 +107,94 @@ class DeadDropMessage(BaseModel, abc.ABC):
     # The agent or server ID.
     source_id: uuid.UUID
 
-    # The timestamp that this message was created.
+    # The timestamp that this message was created. Assume UTC.
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
     # Underlying message data. It is up to the code constructing messages to
-    # ensure that the subfields of `payload` are JSON serializable.
+    # ensure that the subfields of `payload` are JSON serializable. There is
+    # no well-defined structure for most message types.
     payload: dict[str, Any] | None = None
 
     # Digital signature as a base64 string.
     digest: str | None = None
+    
+    @field_serializer("timestamp", when_used="json-unless-none")
+    @classmethod
+    def serialize_timestamp(self, timestamp: datetime, _info):
+        """
+        On JSON serialization, the timestamp is always numeric.
+        """
+        return timestamp.timestamp()
+    
+    @field_validator("timestamp", mode='before')
+    @classmethod
+    def validate_timestamp(cls, v: Any) -> datetime:
+        """
+        Convert a timestamp back to a native Python datetime object.
+        """
+        if type(v) is datetime:
+            return v
+        
+        if type(v) is str:
+            try:
+                return datetime.utcfromtimestamp(float(v))
+            except Exception as e:
+                raise ValueError(f"Assumed string timestamp conversion of {v} failed.") from e
+        
+        if type(v) is float:
+            try:
+                return datetime.utcfromtimestamp(v)
+            except Exception as e:
+                raise ValueError(f"Attempted timestamp conversion of {v} failed.") from e
+        
+        raise ValueError("Unexpected type for timestamp")    
 
+class ProtocolConfig(BaseModel, abc.ABC):
+    @property
+    @abc.abstractmethod
+    def _section_name(self) -> str:
+        """
+        The configuration "section" used in configuration files.
+        
+        This MUST be the same as the module name.
+        """
+        pass
+    
+    @property
+    @abc.abstractmethod
+    def _dir_attrs(self) -> list[str]:
+        """
+        A list of attributes that represent directories that need to be created
+        at runtime.
+        """
+        pass
+    
+    def create_dirs(self) -> None:
+        """
+        Create any associated directories.
+        """
+        for field in self._dir_attrs:
+            getattr(self, field).resolve().mkdir(exist_ok=True, parents=True)
+    
+    @classmethod
+    def from_cfg_parser(cls, cfg_parser: configparser.ConfigParser) -> "ProtocolConfig":
+        cfg_obj = cls.model_validate(cfg_parser[cls._section_name])
+        cfg_obj.create_dirs()
+        return cfg_obj
+
+class ProtocolArgumentParser(ArgumentParser, abc.ABC):
+    @classmethod
+    def from_config_obj(cls, config: ProtocolConfig) -> "ProtocolArgumentParser":
+        """
+        Generate an argument parser from a ProtocolConfig object, setting
+        the values from the ProtocolConfig object.
+        """
+        arg_obj = cls()
+        if not arg_obj.parse_arguments(config.model_dump()):
+            raise ValueError(f"{config} did not fill the required arguments for {cls}")
+        
+        return arg_obj
+        
 
 class ProtocolBase(abc.ABC):
     """
@@ -151,9 +231,48 @@ class ProtocolBase(abc.ABC):
         """
         pass
 
+    @property
+    @abc.abstractmethod
+    def config_parser(self) -> Type[ArgumentParser]:
+        """
+        The configuration (argument) parser for this protocol.
+        
+        ---
+        
+        The reasoning for reusing ArgumentParser:
+        
+        At the end of the day, we could implement configuration for each protocol
+        as a Pydantic model, a dataclass, and a bunch of other things that make
+        sense. But ArgumentParser gives us exactly what we want: a way to expose
+        configurable options for a particular protocol in a platform-independent
+        manner, while still allowing us to use a dictionary of arguments if we 
+        really want to.
+        
+        At the same time, though, we'd still like to leverage Pydantic models for
+        configuration, just as we are for the control unit. This is a decent
+        compromise between the two, 
+        
+        I don't really think this is the right way to do this, but let's just try
+        it for now and see how it goes. There's plenty of arguments to be made,
+        and I don't really know what's the best way to do this. Really, I would
+        like something like
+        
+        ```py
+        @abc.abstractmethod
+        def send_msg(cls, msg, **kwargs) -> bytes:
+            pass
+        
+        def send_msg(cls, msg, arg_1, arg_2, arg_3) -> bytes:
+            pass
+        ```
+        
+        but that violates LSP.
+        """
+        pass
+
     @classmethod
     @abc.abstractmethod
-    def send_msg(self, msg: bytes, **kwargs) -> bytes:
+    def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> bytes:
         """
         Send an arbitrary binary message.
 
@@ -175,17 +294,22 @@ class ProtocolBase(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def check_for_msg(self, **kwargs) -> bytes:
+    def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
         """
-        Retrieve the least recent message that has yet to be retrieved.
-
-        Each time this message is called, either an empty bytestring is returned,
-        or the next available message is retrieved. The process of reconstructing
-        messages, if needed, is handled opaquely.
+        Retrieve all new messages that have yet to be retrieved.
+    
+        This function should make a best-effort attempt at ensuring that messages
+        that have already been retrieved in the past are not retrieved again. 
+        However, it is up to the server or agent to ensure that it is not
+        acting on duplicated messages, since a message may have been sent over
+        more than one protocol.
+    
+        Diagnostic data as a result of retrieving the messages should be logged;
+        it is not returned as part of the return value.
 
         If additional arguments are required for this to operate, such as the
         credentials needed to log onto an account or a shared meeting, they
-        may be passed as keyword arguments.
+        may be passed as either a configuration object or keyword arguments.
 
         This function may raise exceptions, such as if a service is inaccessible.
         """
@@ -202,6 +326,7 @@ class ProtocolBase(abc.ABC):
             "name": self.name,
             "description": self.description,
             "version": self.version,
+            "arguments": self.argument_parser().model_dump()["arguments"],
         }
 
 
@@ -218,6 +343,14 @@ def export_all_protocols() -> list[Type[ProtocolBase]]:
     """
     return ProtocolBase.__subclasses__()
 
+
+def export_all_protocol_configs() -> list[Type[ProtocolConfig]]:
+    """
+    Return a list of visible protocol configuration objects.
+    
+    Refer to export_all_protocols() above.
+    """
+    return ProtocolConfig.__subclasses__()
 
 def get_protocols_as_dict() -> dict[str, Type[ProtocolBase]]:
     """

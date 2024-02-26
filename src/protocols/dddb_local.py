@@ -7,8 +7,55 @@ This is useful in single-device demonstrations of DeadDrop, as well as remote
 demonstrations of DeadDrop that do not involve an actual remote service.
 """
 
-from src.libs.protocol_lib import ProtocolBase
+from pathlib import Path
+from typing import Type, Any, ClassVar
 
+
+from src.libs.argument_lib import Argument, ArgumentType, DefaultParsers
+from src.libs.protocol_lib import ProtocolBase, ProtocolConfig, ProtocolArgumentParser, DeadDropMessage
+
+
+
+class dddbLocalConfig(ProtocolConfig):
+    """
+    Model detailing available configuration options for dddb_local.
+    """
+    DDDB_LOCAL_CHECKIN_FREQUENCY: int
+    DDDB_LOCAL_INBOX_DIR: Path
+    DDDB_LOCAL_OUTBOX_DIR: Path
+    
+    # Should be dddb_local
+    _section_name: ClassVar[str] = "dddb_local"
+    _dir_attrs: ClassVar[list[str]] = [
+        'DDDB_LOCAL_INBOX_DIR',
+        'DDDB_LOCAL_OUTBOX_DIR'
+    ]
+    
+class dddbLocalArgumentParser(ProtocolArgumentParser):
+    """
+    Parser for the dddb_local configuration.
+    """
+    arguments: list[Argument] = [
+        Argument(
+            arg_type=ArgumentType.INTEGER,
+            name="DDDB_LOCAL_CHECKIN_FREQUENCY",
+            description="The frequency with which to check for new messages.",
+            _parser=DefaultParsers.parse_integer,
+        ),
+        Argument(
+            arg_type=ArgumentType.PATH,
+            name="DDDB_LOCAL_INBOX_DIR",
+            description="The location to expect incoming messages in.",
+            _parser=DefaultParsers.parse_path,
+        ),
+        Argument(
+            arg_type=ArgumentType.PATH,
+            name="DDDB_LOCAL_INBOX_DIR",
+            description="The location to send outgoing messages to.",
+            _parser=DefaultParsers.parse_path,
+        ),
+    ]
+    
 
 class dddbLocalProtocol(ProtocolBase):
     """
@@ -26,9 +73,10 @@ class dddbLocalProtocol(ProtocolBase):
     name: str = "dddb_local"
     description: str = __doc__
     version: str = "0.0.1"
+    config_parser: Type[ProtocolArgumentParser] = dddbLocalArgumentParser
 
-    def send_msg(self, msg: bytes, **kwargs) -> bytes:
+    def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> bytes:
         raise NotImplementedError
 
-    def check_for_msg(self, **kwargs) -> bytes:
+    def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
         raise NotImplementedError

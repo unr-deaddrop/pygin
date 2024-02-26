@@ -28,13 +28,6 @@ class PyginMessage(DeadDropMessage):
     # is that this should be changed by the Celery tasking module if needed.
     REDIS_KEY_PREFIX: ClassVar[str] = "agent-msg-parsed-"
 
-    @field_serializer("timestamp", when_used="json-unless-none")
-    def serialize_timestamp(self, timestamp: datetime, _info):
-        """
-        On JSON serialization, the timestamp is always numeric.
-        """
-        return timestamp.timestamp()
-
     def get_redis_key(self) -> str:
         """
         Retrive this message's resulting Redis key.
