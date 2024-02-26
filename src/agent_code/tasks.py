@@ -162,8 +162,8 @@ def conditionally_send_log_bundles(cfg: config.PyginConfig):
     """
     Send log bundles back to the server if the required conditions have been met.
     """
-    # TODO: Should this issue log bundles over all protocols, or just one
-    # preferred protocol?
+    # For each protocol available in the PyginConfig object, determine if that
+    # protocol is set to be a log bundling protocol.
     raise NotImplementedError
 
 @app.task(serializer="pickle")
@@ -171,6 +171,6 @@ def send_heartbeat(cfg: config.PyginConfig):
     """
     Send a heartbeat message with diagnostic information to the server.
     """
-    # TODO: Should this just issue a heartbeat over all protocols, or just
-    # one preferred protocol?
+    # For each protocol available in the PyginConfig object, determine if that
+    # protocol is set to be a heartbeat protocol.
     raise NotImplementedError

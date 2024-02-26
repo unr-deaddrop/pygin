@@ -58,7 +58,8 @@ class RendererBase(BaseModel, abc.ABC):
 
         FIXME: Additionally, note that calling this implies that the interface
         is capable of calling Python code. In the future, it would be necessary
-        to make "calling" a command renderer independent of implementation somehow.
+        to make "calling" a command renderer independent of implementation somehow,
+        like exposing an actual binary.
         """
         pass
 

@@ -89,8 +89,6 @@ class DeadDropMessage(BaseModel, abc.ABC):
     In the future, these messages may be wrapped in another JSON object containing
     forwarding information, effectively allowing it to be routed (as if it were
     at the networking layer). This is not planned in the short term.
-
-    FIXME: This belongs in an external lib, not Pygin.
     """
 
     # The underlying message type.
@@ -254,8 +252,7 @@ class ProtocolBase(abc.ABC):
         
         I don't really think this is the right way to do this, but let's just try
         it for now and see how it goes. There's plenty of arguments to be made,
-        and I don't really know what's the best way to do this. Really, I would
-        like something like
+        and I don't really know what's the best way to do this.
         
         ```py
         @abc.abstractmethod
@@ -326,7 +323,7 @@ class ProtocolBase(abc.ABC):
             "name": self.name,
             "description": self.description,
             "version": self.version,
-            "arguments": self.argument_parser().model_dump()["arguments"],
+            "arguments": self.config_parser().model_dump()["arguments"],
         }
 
 

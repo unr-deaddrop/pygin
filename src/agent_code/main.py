@@ -117,12 +117,24 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
     a few risks, and it's still a little messier than I'd like. But hey, no more
     having to time.sleep()!
     
+    ---
     
     Ultimately, the challenge is to just prevent the "get new messages" call from
     happening way too often. Yet another option is to use bound tasks, such that
     any results for "get new messages" is stored within a specified Redis key
     that can trivially be obtained with a helper function in main.py.
     (https://docs.celeryq.dev/en/latest/userguide/tasks.html#bound-tasks)
+    
+    ^^ I think this is probably the most logical path forward, since the server
+    can trivally get new messages from that one Redis key as needed without
+    having to worry about poofing AsyncResults into thin air like we were before,
+    but still reliably getting the messages.
+    
+    Since the agent will be able to store any in-progress AsyncResults (and their
+    IDs) itself, this also sidesteps the issue of having to make AsyncResults
+    appear out of thin air, too. But it also means that if the main process dies,
+    it's likely the server won't be getting a response anytime soon, even if the
+    command does finish.
     ---
     
     We could also set some flag in tasks.py periodically that prevents "get
