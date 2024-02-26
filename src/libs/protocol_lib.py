@@ -108,12 +108,11 @@ class DeadDropMessage(BaseModel, abc.ABC):
     # The timestamp that this message was created.
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
-    # Underlying message data. Notice that this is always stored as `str`.
-    # This is for a variety of reasons, namely the fact that JSON does not support
-    # arbitrary binary data.
-    payload: str | None = None
+    # Underlying message data. It is up to the code constructing messages to
+    # ensure that the subfields of `payload` are JSON serializable.
+    payload: dict[str, Any] | None = None
 
-    # Digital signature as a string.
+    # Digital signature as a base64 string.
     digest: str | None = None
 
 
@@ -152,6 +151,7 @@ class ProtocolBase(abc.ABC):
         """
         pass
 
+    @classmethod
     @abc.abstractmethod
     def send_msg(self, msg: bytes, **kwargs) -> bytes:
         """
@@ -171,9 +171,9 @@ class ProtocolBase(abc.ABC):
 
         :param msg: The binary message to send.
         """
-        # TODO: does this actually work with Celery tasking?
         pass
 
+    @classmethod
     @abc.abstractmethod
     def check_for_msg(self, **kwargs) -> bytes:
         """
@@ -189,13 +189,12 @@ class ProtocolBase(abc.ABC):
 
         This function may raise exceptions, such as if a service is inaccessible.
         """
-        # TODO: does this actually work with Celery tasking?
         pass
 
     def to_dict(self) -> dict[str, Any]:
         """
         Return this protocol's metadata as a dictionary.
-        
+
         Note that for compatibility purposes, ensure that the resulting dictionary
         is completely JSON serializable.
         """
