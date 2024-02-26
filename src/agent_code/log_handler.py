@@ -15,4 +15,3 @@ There's also the problem of deciding whether or not we should regularly export
 logs or always wait until the server asks to the latest log message not yet
 sent to the server.
 """
-

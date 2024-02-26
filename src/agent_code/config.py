@@ -32,8 +32,38 @@ class PyginConfig(BaseModel):
     AGENT_PRIVATE_KEY_PATH: Path
     SERVER_PUBLIC_KEY_PATH: Path
 
-    ENCRPYTION_KEY: bytes
+    ENCRYPTION_KEY: bytes
 
+    INCOMING_PROTOCOLS: list[str]
+
+    REDIS_MESSAGES_SEEN_KEY: str
+    REDIS_COMPLETED_CMDS_KEY: str
+    REDIS_INTERNAL_MSG_PREFIX: str
+
+    # TODO: I'm of the opinion this should be broken out into a separate model so
+    # that protocol handlers can be scoped to just that model's configuration.
+    # This would likely also entail creating a new section in agent.cfg and
+    # working accordingly.
+    #
+    # This would also allow the state of individual protocols to be stored within
+    # the configuration object, so we're not opaquely storing information in the
+    # Redis database. That, however, runs the risk of not having synchronized
+    # states across workers; on the other hand, Redis should be a little more
+    # robust against these race conditions.
+    #
+    # The way I *think* this would work is that:
+    # - each protocol will have its own protocol configuration class
+    # - PyginConfig will have PROTOCOL_CONFIG: dict[str, dict[str, Any]]
+    # - For each protocol available (which can't be tied to `src.protocols`, else
+    #   we get circular dependencies), parse out that section in agent.cfg and
+    #   instantiate its corresponding protocol config instance, if it exists
+    # - Assign that to PROTOCOL_CONFIG, pass it around everywhere lol
+    #
+    #
+    # The common things needed across all protocol configurations are:
+    # - the periodicity of when we should check messages from that protocol
+    # - whether or not that protocol is in use for specific actions (e.g. heartbeat,
+    #   command responses, logging)
     INCOMING_ENCODED_MESSAGE_DIR: Path
     INCOMING_DECODED_MESSAGE_DIR: Path
     OUTGOING_DECODED_MESSAGE_DIR: Path
@@ -53,7 +83,7 @@ class PyginConfig(BaseModel):
     def from_cfg_file(cls, cfg_path: Path) -> "PyginConfig":
         """
         Construct the global Pygin configuration object from a file.
-        
+
         Note that this also recursively creates the directories specified in the
         configuration file.
         """
@@ -83,6 +113,16 @@ class PyginConfig(BaseModel):
             raise ValueError("Decoded key is of invalid length.")
 
         return v
+
+    @field_validator("INCOMING_PROTOCOLS", mode="before")
+    @classmethod
+    def validate_incoming_protocols(cls, v: str) -> list[str]:
+        """
+        Split apart the incoming protocols as needed. This is a comma-separated
+        string in the configuration file, and therefore may need to be split
+        apart manually before Pydantic gets to it.
+        """
+        return v.split(",")
 
     def resolve_all_dirs(self) -> None:
         """
