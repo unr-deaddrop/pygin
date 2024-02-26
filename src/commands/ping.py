@@ -4,7 +4,7 @@ Implements the ping command.
 
 from typing import Any, Optional, Type
 
-from src.libs.cmd_lib import (
+from src.libs.command_lib import (
     DefaultParsers,
     CommandBase,
     ArgumentParser,
