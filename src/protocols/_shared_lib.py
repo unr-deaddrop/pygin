@@ -2,10 +2,8 @@
 Shared library for all protocol-related objects for Pygin.
 """
 
-from datetime import datetime
 from typing import ClassVar
 
-from pydantic import field_serializer
 import redis
 
 from src.libs.protocol_lib import DeadDropMessage
@@ -18,6 +16,10 @@ class PyginMessage(DeadDropMessage):
 
     It should be equivalent to `AgentMessage` in purpose and implementation
     when compared to the prototype agent.
+
+    TODO: Do we actually still need this? It's no longer the case that single
+    messages are stored in the Redis database, the expectation is now that we
+    keep track of multiple...
     """
 
     # The prefix used when using this class to directly add itself to a Redis

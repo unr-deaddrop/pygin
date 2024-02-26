@@ -66,17 +66,18 @@ def on_preload_parsed(options, **kwargs):
     # discover any messages stored in the Redis database.
     PyginMessage.REDIS_KEY_PREFIX = _g_config.REDIS_INTERNAL_MSG_PREFIX
 
+
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender: Celery, **kwargs):
     """
     Set up Pygin's periodic tasks.
-    
+
     I am now older, and therefore wiser, and have realized that having Celery beat
-    constantly check for new messages when the main process might not even be alive 
+    constantly check for new messages when the main process might not even be alive
     is a bad idea. (If the agent dies, there is no reason to check for messages and
     run all the anti-duplication logic; the result is that messages "read" by
     these tasks won't actually be acted on, even if the agent restarts!)
-    
+
     In turn, this differs from the prototype agent in that it schedules two
     periodic tasks that can safely be performed (idempotently):
     - Checking whether or not there are enough logs to try and automatically
@@ -86,8 +87,8 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
     - Sending heartbeats. In general, it's always safe to assert that a connection
       with the server still exists, as well as send diagnostic information. This
       doesn't strictly depend on the main process being alive (though it *can*
-      report that the main process is dead). 
-      
+      report that the main process is dead).
+
     These two operations don't return results, and so it doesn't really matter
     if these operations aren't ever read by the main process.
     """
@@ -95,7 +96,7 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
     # task, then each protocol will need its own timer. At this point, it's
     # become pretty obvious that we'll need to split apart the configuration file
     # into different pieces for this to really make sense.
-    
+
     # TODO: The periodic time for these two tasks should be dictated by the
     # configuration object.
     sender.add_periodic_task(
@@ -114,17 +115,17 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 def get_new_msgs(cfg: config.PyginConfig, drop_seen_msgs: bool) -> list[PyginMessage]:
     """
     Check for new messages over all specified protocols.
-    
+
     Note that this retrieves *all* new messages, as determined by their respective
     protocols. The message dispatching module is responsible for logging the
     message IDs of messages that have already been seen, as well as handling
     apparent duplicates of messages.
-    
+
     This function also sorts messages earliest to latest in a best-effort
     attempt to ensure a consistent execution order. It is important to note that
     the timestamp in the message is used, *not* the order in which the messages
     were actually received by the agent or the dead drop service.
-    
+
     :param cfg: A PyginConfig object.
     :param drop_seen_msgs: Whether to drop messages that have already been seen
         from the result.
@@ -137,17 +138,21 @@ def get_new_msgs(cfg: config.PyginConfig, drop_seen_msgs: bool) -> list[PyginMes
     # Sort all messages by time, earliest to latest.
     raise NotImplementedError
 
+
 @app.task(serializer="pickle")
-def send_msg(cfg: config.PyginConfig, msg: PyginMessage, protocol: ProtocolBase) -> dict[str, Any]:
+def send_msg(
+    cfg: config.PyginConfig, msg: PyginMessage, protocol: ProtocolBase
+) -> dict[str, Any]:
     """
     Send a message over a specified protocol.
-    
+
     :param cfg: A PyginConfig object.
     :returns: An arbitrary dictionary response, typically containing response
         information from the service used for the protocol.
     """
     # Delegate to the message dispatching module.
     raise NotImplementedError
+
 
 @app.task(serializer="pickle")
 def execute_command(cmd_name: str, cmd_args: dict[str, Any]) -> dict[str, Any]:
@@ -156,7 +161,8 @@ def execute_command(cmd_name: str, cmd_args: dict[str, Any]) -> dict[str, Any]:
     """
     # Delegate to the command dispatching module.
     raise NotImplementedError
-    
+
+
 @app.task(serializer="pickle")
 def conditionally_send_log_bundles(cfg: config.PyginConfig):
     """
@@ -165,6 +171,7 @@ def conditionally_send_log_bundles(cfg: config.PyginConfig):
     # For each protocol available in the PyginConfig object, determine if that
     # protocol is set to be a log bundling protocol.
     raise NotImplementedError
+
 
 @app.task(serializer="pickle")
 def send_heartbeat(cfg: config.PyginConfig):

@@ -12,29 +12,33 @@ from typing import Type, Any, ClassVar
 
 
 from src.libs.argument_lib import Argument, ArgumentType, DefaultParsers
-from src.libs.protocol_lib import ProtocolBase, ProtocolConfig, ProtocolArgumentParser, DeadDropMessage
-
+from src.libs.protocol_lib import (
+    ProtocolBase,
+    ProtocolConfig,
+    ProtocolArgumentParser,
+    DeadDropMessage,
+)
 
 
 class dddbLocalConfig(ProtocolConfig):
     """
     Model detailing available configuration options for dddb_local.
     """
+
     DDDB_LOCAL_CHECKIN_FREQUENCY: int
     DDDB_LOCAL_INBOX_DIR: Path
     DDDB_LOCAL_OUTBOX_DIR: Path
-    
+
     # Should be dddb_local
-    _section_name: ClassVar[str] = "dddb_local"
-    _dir_attrs: ClassVar[list[str]] = [
-        'DDDB_LOCAL_INBOX_DIR',
-        'DDDB_LOCAL_OUTBOX_DIR'
-    ]
-    
+    _: ClassVar[str] = "dddb_local"
+    _dir_attrs: ClassVar[list[str]] = ["DDDB_LOCAL_INBOX_DIR", "DDDB_LOCAL_OUTBOX_DIR"]
+
+
 class dddbLocalArgumentParser(ProtocolArgumentParser):
     """
     Parser for the dddb_local configuration.
     """
+
     arguments: list[Argument] = [
         Argument(
             arg_type=ArgumentType.INTEGER,
@@ -55,7 +59,7 @@ class dddbLocalArgumentParser(ProtocolArgumentParser):
             _parser=DefaultParsers.parse_path,
         ),
     ]
-    
+
 
 class dddbLocalProtocol(ProtocolBase):
     """
@@ -75,8 +79,10 @@ class dddbLocalProtocol(ProtocolBase):
     version: str = "0.0.1"
     config_parser: Type[ProtocolArgumentParser] = dddbLocalArgumentParser
 
+    @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> bytes:
         raise NotImplementedError
 
+    @classmethod
     def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
         raise NotImplementedError

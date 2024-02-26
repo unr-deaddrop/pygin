@@ -14,8 +14,6 @@ import redis
 # from celery.result import AsyncResult
 
 from src.agent_code import config
-from src.agent_code import tasks
-from src.agent_code import utility
 from src.protocols._shared_lib import PyginMessage
 
 # Default configuration path. This is the configuration file included with the
@@ -90,16 +88,16 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
     Upon identifying that either of these has occurred, this "main" process takes
     action accordingly.
     """
-    
+
     """
     TODO: There's a few paths forward that make sense.
-    
+
     One is to do exactly the below. However, this implies that we're willing to
     basically call `time.sleep(...)` to keep us from just trying to get new messages
     all the time, which should really be delegated to celery beat.
-    
+
     The other is to allow celery beat to actually execute the "get new messages"
-    task periodically, and have both "get new messages" and "check for completed 
+    task periodically, and have both "get new messages" and "check for completed
     commands" store something searchable in the database that can be performed
     anytime at will. Perhaps these new messages could be stored in a Redis key
     that the server simply looks at, such that you have:
@@ -108,35 +106,35 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
     - Periodic task stores result in some named Redis key based on config
     - Periodic task stores named Redis key in another Redis set based on config
     - Main process grabs the Redis set (from step 4) and finds all of the
-      *actual* results by querying Redis keys stored in the set, deleting 
+      *actual* results by querying Redis keys stored in the set, deleting
       elements in the set and the associated keys as it goes.
-    
+
     This sidesteps the issue of the main process dying and not acting on incoming
     messages, since when the main process restarts, it'll see that the database
-    still has all of those unread messages. On the other hand, there's still 
+    still has all of those unread messages. On the other hand, there's still
     a few risks, and it's still a little messier than I'd like. But hey, no more
     having to time.sleep()!
-    
+
     ---
-    
+
     Ultimately, the challenge is to just prevent the "get new messages" call from
     happening way too often. Yet another option is to use bound tasks, such that
     any results for "get new messages" is stored within a specified Redis key
     that can trivially be obtained with a helper function in main.py.
     (https://docs.celeryq.dev/en/latest/userguide/tasks.html#bound-tasks)
-    
+
     ^^ I think this is probably the most logical path forward, since the server
     can trivally get new messages from that one Redis key as needed without
     having to worry about poofing AsyncResults into thin air like we were before,
     but still reliably getting the messages.
-    
+
     Since the agent will be able to store any in-progress AsyncResults (and their
     IDs) itself, this also sidesteps the issue of having to make AsyncResults
     appear out of thin air, too. But it also means that if the main process dies,
     it's likely the server won't be getting a response anytime soon, even if the
     command does finish.
     ---
-    
+
     We could also set some flag in tasks.py periodically that prevents "get
     new messages" from executing unless that flag is set. Then, invoking the
     the messaging system happens in real-time, but whether or not it actually
@@ -144,20 +142,19 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
     I don't think that actually works with Celery, especially because state
     isn't shared among worker processes (as far as I know). So this isn't robust.
     """
-    
-    
+
     # Invoke the "get new messages task". Store the AsyncResult in a list.
-    
+
     # Check if any of the "get new messages" tasks in previous runs have completed.
     # If so, retrieve their results and delete the associated task from the Redis
     # database.
-    
+
     # For each message receieved (which should always be command_request), invoke
     # the command execution task. Store that AsyncResult in a list.
-    
+
     # Check if any of the command executions have finished. If so, log it, and
     # then invoke the "send message" task.
-    
+
     raise NotImplementedError
 
 

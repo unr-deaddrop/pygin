@@ -13,11 +13,10 @@ import uuid
 
 from pydantic import BaseModel, field_validator
 
-# Intentional star import, with the goal of getting all of the protocol configuration
-# objects available.
-from src.protocols import *
+# Intentional star import, with the goal of getting all of the protocol
+# configuration objects available.
+from src.protocols import *  # noqa: F403, F401
 from src.libs.protocol_lib import ProtocolConfig, export_all_protocol_configs
-
 
 
 class PyginConfig(BaseModel):
@@ -38,7 +37,7 @@ class PyginConfig(BaseModel):
     ENCRYPTION_KEY: bytes
 
     INCOMING_PROTOCOLS: list[str]
-    
+
     HEARTBEAT_PROTOCOL: str
     LOGGING_PROTOCOL: str
     SENDING_PROTOCOL: str
@@ -51,7 +50,7 @@ class PyginConfig(BaseModel):
     INCOMING_DECODED_MESSAGE_DIR: Path
     OUTGOING_DECODED_MESSAGE_DIR: Path
     OUTGOING_ENCODED_MESSAGE_DIR: Path
-    
+
     # Configuration objects for each protocol.
     protocol_configuration: dict[str, ProtocolConfig] = {}
 
@@ -76,17 +75,21 @@ class PyginConfig(BaseModel):
         # Use the built-in configparser to get things
         cfg_parser = configparser.ConfigParser()
         cfg_parser.read(cfg_path)
-        
+
         # Instantiate the Pygin configuration model
         cfg_obj = PyginConfig.model_validate(cfg_parser["pygin"])
         cfg_obj.create_dirs()
-        
-        # Now, for each built-in protocol, generate their configuration and add 
-        # it to our own
+
+        # Now, for each built-in protocol, generate their configuration and add
+        # it to our own.
+        #
+        # The type ignore is, again, due to properties.
         for protocol_cfg_type in export_all_protocol_configs():
-            protocol_name = protocol_cfg_type._section_name
-            cfg_obj.protocol_configuration[protocol_name] = protocol_cfg_type.from_cfg_parser(cfg_parser)
-        
+            protocol_name = protocol_cfg_type.section_name
+            cfg_obj.protocol_configuration[protocol_name] = (  # type: ignore[index]
+                protocol_cfg_type.from_cfg_parser(cfg_parser)
+            )
+
         return cfg_obj
 
     @field_validator("ENCRYPTION_KEY", mode="before")
@@ -120,10 +123,10 @@ class PyginConfig(BaseModel):
         """
         if type(v) is str:
             return v.split(",")
-        
+
         if type(v) is list:
             return v
-        
+
         raise ValueError("Unexpected type for INCOMING_PROTOCOLS")
 
     def resolve_all_dirs(self) -> None:

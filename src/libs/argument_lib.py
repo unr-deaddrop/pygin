@@ -12,6 +12,7 @@ import abc
 
 from pydantic import BaseModel
 
+
 class ArgumentType(str, Enum):
     """
     Enumeration of available argument types.
@@ -74,12 +75,12 @@ class DefaultParsers:
         about the path referring to a specific location on this filesystem.
         """
         return Path(value)
-    
+
     @staticmethod
     def parse_iterable(value: str) -> list[str]:
         """
         Default iterable parsing.
-        
+
         This simply assumes that a comma-separated list of strings has been
         provided. The result of each string is stripped of whitespace to
         account for lists separated by commas and spaces.
@@ -160,7 +161,7 @@ class ArgumentParser(BaseModel, abc.ABC):
     is created each time.
     """
 
-    arguments: list[Argument]
+    arguments: list[Argument] = []
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -175,7 +176,7 @@ class ArgumentParser(BaseModel, abc.ABC):
     def parse_arguments(self, args: dict[str, Any]) -> bool:
         """
         For each argument provided, sets their value.
-        
+
         Returns True if all required arguments have been set.
         """
         for arg_name, arg_value in args.items():
@@ -186,11 +187,11 @@ class ArgumentParser(BaseModel, abc.ABC):
                 self._argument_mapping[arg_name] = arg_value
             except Exception as e:
                 raise RuntimeError(f"Invalid argument value {arg_value}") from e
-            
+
         for arg in self.arguments:
             if arg.required and arg.value is None:
                 return False
-            
+
         return True
 
     def get_stored_args(self) -> dict[str, Any]:

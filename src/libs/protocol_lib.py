@@ -24,7 +24,7 @@ handled by an initial setup script at the OS level.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Type, ClassVar
+from typing import Any, Type
 import abc
 import configparser
 import uuid
@@ -33,6 +33,7 @@ import json
 from pydantic import BaseModel, Field, field_serializer, field_validator
 
 from src.libs.argument_lib import ArgumentParser
+
 
 class DeadDropMessageType(str, Enum):
     """
@@ -115,7 +116,7 @@ class DeadDropMessage(BaseModel, abc.ABC):
 
     # Digital signature as a base64 string.
     digest: str | None = None
-    
+
     @field_serializer("timestamp", when_used="json-unless-none")
     @classmethod
     def serialize_timestamp(self, timestamp: datetime, _info):
@@ -123,8 +124,8 @@ class DeadDropMessage(BaseModel, abc.ABC):
         On JSON serialization, the timestamp is always numeric.
         """
         return timestamp.timestamp()
-    
-    @field_validator("timestamp", mode='before')
+
+    @field_validator("timestamp", mode="before")
     @classmethod
     def validate_timestamp(cls, v: Any) -> datetime:
         """
@@ -132,53 +133,60 @@ class DeadDropMessage(BaseModel, abc.ABC):
         """
         if type(v) is datetime:
             return v
-        
+
         if type(v) is str:
             try:
                 return datetime.utcfromtimestamp(float(v))
             except Exception as e:
-                raise ValueError(f"Assumed string timestamp conversion of {v} failed.") from e
-        
+                raise ValueError(
+                    f"Assumed string timestamp conversion of {v} failed."
+                ) from e
+
         if type(v) is float:
             try:
                 return datetime.utcfromtimestamp(v)
             except Exception as e:
-                raise ValueError(f"Attempted timestamp conversion of {v} failed.") from e
-        
-        raise ValueError("Unexpected type for timestamp")    
+                raise ValueError(
+                    f"Attempted timestamp conversion of {v} failed."
+                ) from e
+
+        raise ValueError("Unexpected type for timestamp")
+
 
 class ProtocolConfig(BaseModel, abc.ABC):
     @property
     @abc.abstractmethod
-    def _section_name(self) -> str:
+    def section_name(self) -> str:
         """
         The configuration "section" used in configuration files.
-        
+
         This MUST be the same as the module name.
         """
         pass
-    
+
     @property
     @abc.abstractmethod
-    def _dir_attrs(self) -> list[str]:
+    def dir_attrs(self) -> list[str]:
         """
         A list of attributes that represent directories that need to be created
         at runtime.
         """
         pass
-    
+
     def create_dirs(self) -> None:
         """
         Create any associated directories.
         """
-        for field in self._dir_attrs:
+        for field in self.dir_attrs:
             getattr(self, field).resolve().mkdir(exist_ok=True, parents=True)
-    
+
     @classmethod
     def from_cfg_parser(cls, cfg_parser: configparser.ConfigParser) -> "ProtocolConfig":
-        cfg_obj = cls.model_validate(cfg_parser[cls._section_name])
+        # Property, always returning string.
+        cfg_obj = cls.model_validate(cfg_parser[cls.section_name])  # type: ignore[index]
         cfg_obj.create_dirs()
         return cfg_obj
+
 
 class ProtocolArgumentParser(ArgumentParser, abc.ABC):
     @classmethod
@@ -190,9 +198,9 @@ class ProtocolArgumentParser(ArgumentParser, abc.ABC):
         arg_obj = cls()
         if not arg_obj.parse_arguments(config.model_dump()):
             raise ValueError(f"{config} did not fill the required arguments for {cls}")
-        
+
         return arg_obj
-        
+
 
 class ProtocolBase(abc.ABC):
     """
@@ -234,35 +242,35 @@ class ProtocolBase(abc.ABC):
     def config_parser(self) -> Type[ArgumentParser]:
         """
         The configuration (argument) parser for this protocol.
-        
+
         ---
-        
+
         The reasoning for reusing ArgumentParser:
-        
+
         At the end of the day, we could implement configuration for each protocol
         as a Pydantic model, a dataclass, and a bunch of other things that make
         sense. But ArgumentParser gives us exactly what we want: a way to expose
         configurable options for a particular protocol in a platform-independent
-        manner, while still allowing us to use a dictionary of arguments if we 
+        manner, while still allowing us to use a dictionary of arguments if we
         really want to.
-        
+
         At the same time, though, we'd still like to leverage Pydantic models for
         configuration, just as we are for the control unit. This is a decent
-        compromise between the two, 
-        
+        compromise between the two,
+
         I don't really think this is the right way to do this, but let's just try
         it for now and see how it goes. There's plenty of arguments to be made,
         and I don't really know what's the best way to do this.
-        
+
         ```py
         @abc.abstractmethod
         def send_msg(cls, msg, **kwargs) -> bytes:
             pass
-        
+
         def send_msg(cls, msg, arg_1, arg_2, arg_3) -> bytes:
             pass
         ```
-        
+
         but that violates LSP.
         """
         pass
@@ -294,13 +302,13 @@ class ProtocolBase(abc.ABC):
     def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
         """
         Retrieve all new messages that have yet to be retrieved.
-    
+
         This function should make a best-effort attempt at ensuring that messages
-        that have already been retrieved in the past are not retrieved again. 
+        that have already been retrieved in the past are not retrieved again.
         However, it is up to the server or agent to ensure that it is not
         acting on duplicated messages, since a message may have been sent over
         more than one protocol.
-    
+
         Diagnostic data as a result of retrieving the messages should be logged;
         it is not returned as part of the return value.
 
@@ -344,10 +352,11 @@ def export_all_protocols() -> list[Type[ProtocolBase]]:
 def export_all_protocol_configs() -> list[Type[ProtocolConfig]]:
     """
     Return a list of visible protocol configuration objects.
-    
+
     Refer to export_all_protocols() above.
     """
     return ProtocolConfig.__subclasses__()
+
 
 def get_protocols_as_dict() -> dict[str, Type[ProtocolBase]]:
     """

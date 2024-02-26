@@ -14,9 +14,8 @@ the standard library and external packages.
 import abc
 import json
 from enum import Enum
-from pathlib import Path
 from textwrap import dedent
-from typing import Any, Callable, ClassVar, Optional, Type
+from typing import Any, ClassVar, Optional, Type
 
 from pydantic import BaseModel
 
@@ -62,6 +61,7 @@ class RendererBase(BaseModel, abc.ABC):
         like exposing an actual binary.
         """
         pass
+
 
 class CommandBase(abc.ABC):
     """
