@@ -51,13 +51,35 @@ def get_new_msgs(
     cfg_obj: config.PyginConfig, redis_con: redis.Redis, remove_msgs: bool = True
 ) -> list[PyginMessage]:
     """
-    Get and reconstruct all messages remaining in the Redis database.
+    Get and reconstruct all new messages in the Redis database.
 
     Note that this does not actually invoke the message retreival system;
     it assumes that a scheduled Celery task is responsible for initating
     remote message retrieval over a particular protocol.
+    
+    At a high level, this function operates as follows:
+    - It retrieves all stored task IDs associated with periodic message
+      retrieval tasks, then deleting those IDs from the key.
+    - It uses the AsyncResult constructor by task ID to retrieve the list
+      of PyginMessage associated with each task, if any.
+    - All of these PyginMessages are combined into a single list. If
+      the ID of a particular message has been seen before, drop and log it.
+      If it has not been seen before, add it to the final result.
+    - Return the remaining list of messages.
 
-
+    New messages are "passed" to the main process (the control unit) by 
+    periodic message checking tasks by adding their task IDs to an agreed-upon
+    Redis key containing a set of strings. The main process can then "retrieve"
+    these messages by taking these task IDs and manually reconstructing the
+    AsyncResult by task ID. 
+    
+    Note that by taking the task IDs out of the Redis set, it guarantees that
+    the same task result is never "used" twice, while still allowing task
+    results to hang around in the Redis database for debugging purposes.
+    
+    However, message IDs processed by the main process are also stored in a
+    separate Redis set as a safety measure to prevent messages from being read
+    twice. 
     """
     raise NotImplementedError
 
