@@ -7,6 +7,9 @@
 # the agent by default.
 /msgs
 
+# The dddb_local protocol stores and expectes messages in /dddb_local.
+/dddb_local
+
 # Pygin stores all log information in /logs of the root of the agent by default.
 logs/
 
