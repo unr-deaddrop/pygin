@@ -119,9 +119,21 @@ class DefaultParsers:
         """
         Default path parsing.
 
-        Note that the path is not resolved to avoid making
+        Note that the path is not resolved to avoid making assumptions
+        about the path referring to a specific location on this filesystem.
         """
         return Path(value)
+    
+    @staticmethod
+    def parse_iterable(value: str) -> list[str]:
+        """
+        Default iterable parsing.
+        
+        This simply assumes that a comma-separated list of strings has been
+        provided. The result of each string is stripped of whitespace to
+        account for lists separated by commas and spaces.
+        """
+        return [x.strip() for x in value.split(",")]
 
 
 class Argument(BaseModel):
@@ -311,6 +323,12 @@ class CommandBase(abc.ABC):
         generate a payload dictionary as output. It is generally expected that
         the `payload` field is the immediate output of a command completing.
 
+        In general, `execute_command` should assume that the arguments have already
+        been parsed by the associated `argument_parser`. This is to decouple
+        the execution of a command from the rest of the libraries, as it's not
+        necessarily the case that arguments are going to be thrown in as a giant
+        dictionary of strings.
+
         The structure of the `payload` field for command_response messages is
         arbitrary.
 
@@ -338,7 +356,7 @@ class CommandBase(abc.ABC):
             ]
         }
         ```
-        
+
         Note that for compatibility purposes, ensure that the resulting dictionary
         is completely JSON serializable. By extension, this means that Argument
         must have JSON serializable fields, as dictated by `model_dump()`.
