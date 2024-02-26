@@ -13,7 +13,7 @@ import redis
 
 # from celery.result import AsyncResult
 
-from src.agent_code import config
+from src.agent_code import config, utility
 from src.protocols._shared_lib import PyginMessage
 
 # Default configuration path. This is the configuration file included with the
@@ -48,7 +48,9 @@ def get_args() -> argparse.Namespace:
 
 
 def get_new_msgs(
-    cfg_obj: config.PyginConfig, redis_con: redis.Redis, remove_msgs: bool = True
+    cfg_obj: config.PyginConfig, 
+    app: celery.Celery, 
+    remove_msgs: bool = True
 ) -> list[PyginMessage]:
     """
     Get and reconstruct all new messages in the Redis database.
@@ -80,8 +82,33 @@ def get_new_msgs(
     However, message IDs processed by the main process are also stored in a
     separate Redis set as a safety measure to prevent messages from being read
     twice. 
+    
+    :param cfg_obj: The global Pygin configuration object.
+    :param app: The Celery application tied to the Redis database.
+    :param remove_msgs: Whether to delete the task result entries in Redis 
+        after retrieval. Note that this refers to the celery-task-meta-*
+        entries in the database, which may be deleted or kept without 
+        consequence.
     """
-    raise NotImplementedError
+    result: list[PyginMessage] = []
+    redis_con: redis.Redis = utility.get_redis_con(app)
+    
+    # Get all task IDs stored within our inbox
+    task_ids: set[str] = redis_con.smembers(cfg_obj.REDIS_NEW_MESSAGES_KEY)
+    
+    # Nuke that set (effectively making it empty). Note this runs the
+    # theoretical risk that the type of the key stops being a set between
+    # now and the next time the message checking task runs, but this should
+    # not be a concern.
+    redis_con.delete(cfg_obj.REDIS_NEW_MESSAGES_KEY)
+    
+    # For each of those, reconstruct the associated AsyncResult and add
+    # the actual PyginMessages to our result (if any). Additionally, destroy
+    # the associated result (which amounts to a DEL call to the Redis backend)
+    # if specified.
+    for task_id in task_ids:
+        AsyncResult(task_id, app=app). # TODO LOOK AT ME
+    return result
 
 
 def get_stored_tasks(
@@ -92,8 +119,29 @@ def get_stored_tasks(
 
     By default, this assumes that the default Celery prefix ("celery-task-meta-")
     is in use when storing task information in the Redis database.
+    
+    This should solely be used for debugging purposes. It is not intended
+    for general use. Additionally, note that it retrieves ALL stored tasks,
+    disregarding the actual function that the task result comes from.
     """
-    raise NotImplementedError
+    # https://stackoverflow.com/questions/72115457/how-can-i-get-results-failures-for-celery-tasks-from-a-redis-backend-when-i-don
+    task_results: list[AsyncResult] = []
+
+    redis_con: redis.Redis = utility.get_redis_con(app)
+
+    # Scan the Redis database for all keys matching the prefix followed by a *.
+    # The assumption of celery-task-meta-* is safe for Celery. Note that SCAN
+    # is non-blocking and is preferred over other methods.
+    #
+    # Additionally, Backend.client is specific to Redis, so we ignore mypy's linting
+    # error here.
+    for key in redis_con.scan_iter(f"{prefix}*"):  # type: ignore[attr-defined]
+        # Grab everything after the Celery prefix, which will be the task ID.
+        task_id = str(key).split(prefix, 1)[1].replace("'", "")
+        # Use that task ID with our Celery application to retrieve the underlying result.
+        task_results.append(AsyncResult(task_id, app=app))
+    return task_results
+
 
 
 def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:

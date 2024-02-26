@@ -4,11 +4,12 @@ This module contains all available tasking for Celery.
 
 from typing import Optional, Any
 
-from celery import Celery, signals
+from celery import Celery, signals, Task
 from celery.utils.log import get_task_logger
 import click
+import redis
 
-from src.agent_code import config, message_dispatch
+from src.agent_code import config, message_dispatch, utility
 from src.libs.protocol_lib import ProtocolBase
 from src.protocols._shared_lib import PyginMessage
 
@@ -110,9 +111,11 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
         name="Send a heartbeat message to the server.",
     )
 
-
-@app.task(serializer="pickle")
-def get_new_msgs(cfg: config.PyginConfig, drop_seen_msgs: bool) -> list[PyginMessage]:
+# See https://docs.celeryq.dev/en/stable/userguide/tasks.html#bound-tasks
+# for more information on bound tasks. This is used to retrieve our own
+# task ID.
+@app.task(bind=True, serializer="pickle")
+def get_new_msgs(self: Task, cfg: config.PyginConfig, drop_seen_msgs: bool) -> list[PyginMessage]:
     """
     Check for new messages over all specified protocols.
 
@@ -132,11 +135,21 @@ def get_new_msgs(cfg: config.PyginConfig, drop_seen_msgs: bool) -> list[PyginMes
     :returns: A list of PyginMessages, sorted least recent first.
     """
     result: list[PyginMessage] = []
-    # For each protocol, ask the message dispatching module to go find all the
-    # new messages.
+    redis_con: redis.Redis = utility.get_redis_con(app)
+    
+    # For each protocol enabled for listening, ask the message dispatching module 
+    # to go find all the new messages for that protocol.
+    for protocol_name in cfg.protocol_configuration.keys():
+        result += message_dispatch.retrieve_new_messages(protocol_name, cfg, redis_con, drop_seen_msgs)    
 
     # Sort all messages by time, earliest to latest.
-    raise NotImplementedError
+    result.sort(key=lambda msg: msg.timestamp)
+    
+    # Store this task's ID in the control unit's "inbox", so it can retrieve 
+    # the AsyncResult of this periodic task later on.
+    redis_con.sadd(cfg.REDIS_NEW_MESSAGES_KEY, self.request.id)
+
+    return result
 
 
 @app.task(serializer="pickle")

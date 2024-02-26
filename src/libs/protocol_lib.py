@@ -154,6 +154,8 @@ class DeadDropMessage(BaseModel, abc.ABC):
 
 
 class ProtocolConfig(BaseModel, abc.ABC):
+    
+    
     @property
     @abc.abstractmethod
     def section_name(self) -> str:
