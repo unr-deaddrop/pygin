@@ -100,12 +100,12 @@ class DeadDropMessage(BaseModel, abc.ABC):
     # to a random value (i.e. uuidv4).
     message_id: uuid.UUID = Field(default_factory=uuid.uuid4)
 
-    # The user this message is associated with. May be empty (such as with logs
-    # that are not tied to a user).
-    user_id: uuid.UUID
+    # The user this message is associated with. May be null if not associated
+    # with a user.
+    user_id: uuid.UUID = Field(default_factory=lambda: uuid.UUID(int=0))
 
-    # The agent or server ID.
-    source_id: uuid.UUID
+    # The agent ID, or null if sent by the server.
+    source_id: uuid.UUID = Field(default_factory=lambda: uuid.UUID(int=0))
 
     # The timestamp that this message was created. Assume UTC.
     timestamp: datetime = Field(default_factory=datetime.utcnow)

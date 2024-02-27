@@ -1,6 +1,15 @@
 """
 This implements the messaging dispatch module as described in DeadDrop's
 generic architecture model for agents.
+
+If any additional operations are needed before handing the message off to
+a particular protocol, it should be done here. This may include adding 
+protocol-specific arguments that are not already present in the configuration
+object, and therefore must be handled on a case-by-case basis. 
+
+The spirit of this design is that any edge case handling can be centralized
+to this module, allowing the protocols to remain (relatively) loosely bound
+from the rest of Pygin's libraries.
 """
 
 from typing import Any

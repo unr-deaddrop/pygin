@@ -209,6 +209,7 @@ def construct_cmd_response(
             # for unfinished tasks. But this should only be called for finished
             # tasks (assertion above).
             "end_time": task_result.date_done.timestamp(),  # type: ignore[union-attr]
+            "request_id": cmd_request.message_id,
             "result": task_result.get(),
         },
     )

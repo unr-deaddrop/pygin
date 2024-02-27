@@ -73,6 +73,14 @@ class dddbLocalProtocol(ProtocolBase):
     While this does not use an external protocol as intended by the framework,
     this demonstrates a proof-of-concept that avoids depending on an external
     service outside of our control.
+    
+    Note that this protocol is extremely simple with respect to error handling
+    and local storage space; it makes no attempt at filtering out messages that
+    have already been read, and simply returns all available messages. It is up
+    to higher-level code to filter out messages that have already been seen.
+    
+    That is to say, this protocol does not keep track of the most recently viewed
+    message.
     """
 
     name: str = "dddb_local"
@@ -82,6 +90,9 @@ class dddbLocalProtocol(ProtocolBase):
 
     @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> bytes:
+        # dddb_local doesn't leverage anything fancy. For readability, we'll
+        # convert our argument dictionary back into the dddb_local config object.
+        
         raise NotImplementedError
 
     @classmethod
