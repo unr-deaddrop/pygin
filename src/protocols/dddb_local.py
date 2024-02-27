@@ -86,4 +86,5 @@ class dddbLocalProtocol(ProtocolBase):
 
     @classmethod
     def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
+        #print some log messages about how it's checking so-and-so folder
         raise NotImplementedError

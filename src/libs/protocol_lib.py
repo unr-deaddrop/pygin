@@ -159,12 +159,12 @@ class DeadDropMessage(BaseModel, abc.ABC):
 
     @field_serializer("digest", when_used="json-unless-none")
     @classmethod
-    def serialize_timestamp(cls, digest: bytes, _info):
+    def serialize_digest(cls, digest: bytes, _info):
         """
         On JSON serialization, the digest is base64.
         """
-        return b64encode(digest).decode('utf-8')
-    
+        return b64encode(digest).decode("utf-8")
+
     @field_validator("digest", mode="before")
     @classmethod
     def validate_digest(cls, v: Any) -> bytes:
@@ -174,16 +174,15 @@ class DeadDropMessage(BaseModel, abc.ABC):
         """
         if type(v) is str:
             return b64decode(v)
-        
+
         if type(v) is bytes:
             return v
-        
+
         raise ValueError("Unexpected type for digest")
 
 
 class ProtocolConfig(BaseModel, abc.ABC):
-    
-    
+
     @property
     @abc.abstractmethod
     def section_name(self) -> str:
@@ -202,7 +201,7 @@ class ProtocolConfig(BaseModel, abc.ABC):
         at runtime.
         """
         pass
-    
+
     @property
     @abc.abstractmethod
     def checkin_interval_name(self) -> str:
@@ -211,7 +210,7 @@ class ProtocolConfig(BaseModel, abc.ABC):
         protocol.
         """
         pass
-    
+
     def get_checkin_interval(self) -> int:
         """
         The checkin interval for this protocol.

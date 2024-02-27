@@ -41,7 +41,7 @@ class PyginConfig(BaseModel):
     HEARTBEAT_PROTOCOL: str
     LOGGING_PROTOCOL: str
     SENDING_PROTOCOL: str
-    
+
     LOGGING_INTERVAL: int
     HEARTBEAT_INTERVAL: int
 

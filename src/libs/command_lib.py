@@ -132,8 +132,9 @@ class CommandBase(abc.ABC):
     def command_renderer(self) -> Optional[Type[RendererBase]]:
         pass
 
+    @classmethod
     @abc.abstractmethod
-    def execute_command(self, args: dict[str, Any]) -> dict[str, Any]:
+    def execute_command(cls, args: dict[str, Any]) -> dict[str, Any]:
         """
         Execute the command.
 

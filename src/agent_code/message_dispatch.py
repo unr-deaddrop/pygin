@@ -64,6 +64,8 @@ def send_message(
     """
     Send a message over the specified protocol.
     """
+    # Sign the message
+
     # Get a handle to the relevant protocol class, if it exists
 
     # Invoke the protocol's message sending function. Again, pass in the Redis
