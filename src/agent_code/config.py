@@ -41,6 +41,9 @@ class PyginConfig(BaseModel):
     HEARTBEAT_PROTOCOL: str
     LOGGING_PROTOCOL: str
     SENDING_PROTOCOL: str
+    
+    LOGGING_INTERVAL: int
+    HEARTBEAT_INTERVAL: int
 
     REDIS_MESSAGES_SEEN_KEY: str
     REDIS_NEW_MESSAGES_KEY: str

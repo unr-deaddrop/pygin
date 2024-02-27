@@ -30,8 +30,9 @@ class dddbLocalConfig(ProtocolConfig):
     DDDB_LOCAL_OUTBOX_DIR: Path
 
     # Should be dddb_local
-    _: ClassVar[str] = "dddb_local"
-    _dir_attrs: ClassVar[list[str]] = ["DDDB_LOCAL_INBOX_DIR", "DDDB_LOCAL_OUTBOX_DIR"]
+    checkin_interval_name: ClassVar[str] = "DDDB_LOCAL_CHECKIN_FREQUENCY"
+    section_name: ClassVar[str] = "dddb_local"
+    dir_attrs: ClassVar[list[str]] = ["DDDB_LOCAL_INBOX_DIR", "DDDB_LOCAL_OUTBOX_DIR"]
 
 
 class dddbLocalArgumentParser(ProtocolArgumentParser):

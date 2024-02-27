@@ -9,8 +9,7 @@ from celery.utils.log import get_task_logger
 import click
 import redis
 
-from src.agent_code import config, message_dispatch, utility
-from src.libs.protocol_lib import ProtocolBase
+from src.agent_code import config, message_dispatch, command_dispatch, utility
 from src.protocols._shared_lib import PyginMessage
 
 # Set up logging for tasks.
@@ -73,14 +72,12 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
     """
     Set up Pygin's periodic tasks.
 
-    I am now older, and therefore wiser, and have realized that having Celery beat
-    constantly check for new messages when the main process might not even be alive
-    is a bad idea. (If the agent dies, there is no reason to check for messages and
-    run all the anti-duplication logic; the result is that messages "read" by
-    these tasks won't actually be acted on, even if the agent restarts!)
-
-    In turn, this differs from the prototype agent in that it schedules two
+    This differs from the prototype agent in that it schedules three
     periodic tasks that can safely be performed (idempotently):
+    - Checking for new messages. Although the main process (the "control unit")
+      may die and fail to act on these messages, the design has been changed
+      so that the main process now has its own "inbox" as opposed to having
+      to scan the entire Redis database for available messages.
     - Checking whether or not there are enough logs to try and automatically
       send them back to the server. This will advance the "last sent log" marker,
       but this is safe since a) the logs will be *somewhere*, and b) Pygin
@@ -89,35 +86,43 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
       with the server still exists, as well as send diagnostic information. This
       doesn't strictly depend on the main process being alive (though it *can*
       report that the main process is dead).
+    """    
+    # Schedule checkins for each configured protocol.
+    for protocol_name, protocol_cfg in _g_config.protocol_configuration.items():
+        proto_interval = protocol_cfg.get_checkin_interval()
+        logger.info(f"Setting up check-ins every {proto_interval} seconds for {protocol_name}")
+        sender.add_periodic_task(
+            proto_interval,
+            get_new_msgs.s(_g_config, protocol_name, True),
+            name=f"Check for new messages over the {protocol_name} protocol.",
+        )
 
-    These two operations don't return results, and so it doesn't really matter
-    if these operations aren't ever read by the main process.
-    """
-    # TODO: If we do go the path of letting "get new messages" be a periodic
-    # task, then each protocol will need its own timer. At this point, it's
-    # become pretty obvious that we'll need to split apart the configuration file
-    # into different pieces for this to really make sense.
-
-    # TODO: The periodic time for these two tasks should be dictated by the
-    # configuration object.
+    # Schedule conditional log bundling and heartbeats.
+    logger.info(f"Setting up conditional log bundling every {_g_config.LOGGING_INTERVAL} seconds for {_g_config.LOGGING_PROTOCOL}")
     sender.add_periodic_task(
-        5.0,
-        conditionally_send_log_bundles.s(_g_config),
-        name="Send accumulated log bundles.",
+        _g_config.LOGGING_INTERVAL,
+        conditionally_send_log_bundles.s(_g_config, _g_config.LOGGING_PROTOCOL),
+        name=f"Send accumulated log bundles over the {_g_config.LOGGING_PROTOCOL} protocol.",
     )
+    logger.info(f"Setting up heartbeats every {_g_config.HEARTBEAT_INTERVAL} seconds for {_g_config.HEARTBEAT_PROTOCOL}")
     sender.add_periodic_task(
-        5.0,
-        send_heartbeat.s(_g_config),
-        name="Send a heartbeat message to the server.",
+        _g_config.HEARTBEAT_INTERVAL,
+        send_heartbeat.s(_g_config, _g_config.HEARTBEAT_PROTOCOL),
+        name=f"Send a heartbeat message over the {_g_config.HEARTBEAT_PROTOCOL} protocol.",
     )
 
 # See https://docs.celeryq.dev/en/stable/userguide/tasks.html#bound-tasks
 # for more information on bound tasks. This is used to retrieve our own
 # task ID.
 @app.task(bind=True, serializer="pickle")
-def get_new_msgs(self: Task, cfg: config.PyginConfig, drop_seen_msgs: bool) -> list[PyginMessage]:
+def get_new_msgs(
+    self: Task, 
+    cfg: config.PyginConfig, 
+    protocol_name: str,
+    drop_seen_msgs: bool
+) -> list[PyginMessage]:
     """
-    Check for new messages over all specified protocols.
+    Check for new messages over the specified protocol.
 
     Note that this retrieves *all* new messages, as determined by their respective
     protocols. The message dispatching module is responsible for logging the
@@ -130,17 +135,16 @@ def get_new_msgs(self: Task, cfg: config.PyginConfig, drop_seen_msgs: bool) -> l
     were actually received by the agent or the dead drop service.
 
     :param cfg: A PyginConfig object.
+    :param protocol_name: The name of the protocol to get new messages for.
     :param drop_seen_msgs: Whether to drop messages that have already been seen
         from the result.
     :returns: A list of PyginMessages, sorted least recent first.
     """
-    result: list[PyginMessage] = []
     redis_con: redis.Redis = utility.get_redis_con(app)
     
     # For each protocol enabled for listening, ask the message dispatching module 
     # to go find all the new messages for that protocol.
-    for protocol_name in cfg.protocol_configuration.keys():
-        result += message_dispatch.retrieve_new_messages(protocol_name, cfg, redis_con, drop_seen_msgs)    
+    result = message_dispatch.retrieve_new_messages(protocol_name, cfg, redis_con, drop_seen_msgs)    
 
     # Sort all messages by time, earliest to latest.
     result.sort(key=lambda msg: msg.timestamp)
@@ -154,7 +158,7 @@ def get_new_msgs(self: Task, cfg: config.PyginConfig, drop_seen_msgs: bool) -> l
 
 @app.task(serializer="pickle")
 def send_msg(
-    cfg: config.PyginConfig, msg: PyginMessage, protocol: ProtocolBase
+    cfg: config.PyginConfig, msg: PyginMessage, protocol_name: str
 ) -> dict[str, Any]:
     """
     Send a message over a specified protocol.
@@ -171,26 +175,29 @@ def send_msg(
 def execute_command(cmd_name: str, cmd_args: dict[str, Any]) -> dict[str, Any]:
     """
     Execute a command asynchronously.
+    
+    `cmd_args` is assumed to be an unparsed dictionary of command arguments,
+    taken directly from the `payload` field of the `command_request` message.
     """
     # Delegate to the command dispatching module.
-    raise NotImplementedError
+    command_dispatch.execute_command(cmd_name, cmd_args)
 
 
 @app.task(serializer="pickle")
-def conditionally_send_log_bundles(cfg: config.PyginConfig):
+def conditionally_send_log_bundles(cfg: config.PyginConfig, protocol_name: str):
     """
-    Send log bundles back to the server if the required conditions have been met.
+    TODO: Send log bundles back to the server if the required conditions have been met.
     """
     # For each protocol available in the PyginConfig object, determine if that
     # protocol is set to be a log bundling protocol.
-    raise NotImplementedError
+    logger.warning("Log bundling hasn't been implemented yet, but it would be executed right now")
 
 
 @app.task(serializer="pickle")
-def send_heartbeat(cfg: config.PyginConfig):
+def send_heartbeat(cfg: config.PyginConfig, protocol_name: str):
     """
-    Send a heartbeat message with diagnostic information to the server.
+    TODO: Send a heartbeat message with diagnostic information to the server.
     """
     # For each protocol available in the PyginConfig object, determine if that
     # protocol is set to be a heartbeat protocol.
-    raise NotImplementedError
+    logger.warning("Heartbeats haven't been implemented yet, but it would be executed right now")

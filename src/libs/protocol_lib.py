@@ -22,6 +22,7 @@ installed as part of the normal Python environment setup process, and can be
 handled by an initial setup script at the OS level.
 """
 
+from base64 import b64encode, b64decode
 from datetime import datetime
 from enum import Enum
 from typing import Any, Type
@@ -110,16 +111,20 @@ class DeadDropMessage(BaseModel, abc.ABC):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
     # Underlying message data. It is up to the code constructing messages to
-    # ensure that the subfields of `payload` are JSON serializable. There is
-    # no well-defined structure for most message types.
+    # ensure that the subfields of `payload` are JSON serializable. In most cases,
+    # there is no well-defined structure for the inner fields of `payload`,
+    # though certain immediate children may be required.
+    #
+    # TODO: How do we enforce that? If payload has a fixed structure based on
+    # message_type, shouldn't that be its own submodel?
     payload: dict[str, Any] | None = None
 
-    # Digital signature as a base64 string.
-    digest: str | None = None
+    # Digital signature, if set.
+    digest: bytes | None = None
 
     @field_serializer("timestamp", when_used="json-unless-none")
     @classmethod
-    def serialize_timestamp(self, timestamp: datetime, _info):
+    def serialize_timestamp(cls, timestamp: datetime, _info):
         """
         On JSON serialization, the timestamp is always numeric.
         """
@@ -152,6 +157,29 @@ class DeadDropMessage(BaseModel, abc.ABC):
 
         raise ValueError("Unexpected type for timestamp")
 
+    @field_serializer("digest", when_used="json-unless-none")
+    @classmethod
+    def serialize_timestamp(cls, digest: bytes, _info):
+        """
+        On JSON serialization, the digest is base64.
+        """
+        return b64encode(digest).decode('utf-8')
+    
+    @field_validator("digest", mode="before")
+    @classmethod
+    def validate_digest(cls, v: Any) -> bytes:
+        """
+        On validation, the digest should be bytes. If it's a string,
+        assume it's base64.
+        """
+        if type(v) is str:
+            return b64decode(v)
+        
+        if type(v) is bytes:
+            return v
+        
+        raise ValueError("Unexpected type for digest")
+
 
 class ProtocolConfig(BaseModel, abc.ABC):
     
@@ -174,6 +202,21 @@ class ProtocolConfig(BaseModel, abc.ABC):
         at runtime.
         """
         pass
+    
+    @property
+    @abc.abstractmethod
+    def checkin_interval_name(self) -> str:
+        """
+        The config key/attribute that contains the checkin interval for this
+        protocol.
+        """
+        pass
+    
+    def get_checkin_interval(self) -> int:
+        """
+        The checkin interval for this protocol.
+        """
+        return getattr(self, self.checkin_interval_name)
 
     def create_dirs(self) -> None:
         """
