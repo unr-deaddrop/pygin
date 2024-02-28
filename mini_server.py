@@ -8,6 +8,9 @@ reliable and won't randomly explode (and won't cause any ToS violations).
 
 from pathlib import Path
 from typing import Type, Any
+import time
+import logging
+import sys
 
 from src.libs.protocol_lib import DeadDropMessage, DeadDropMessageType, ProtocolArgumentParser, get_protocols_as_dict
 from src.agent_code.config import PyginConfig
@@ -15,6 +18,14 @@ from src.agent_code.config import PyginConfig
 # Make all protocols visible so that PyginConfig works correctly
 from src.protocols import *
 from src.protocols.plaintext_local import PlaintextLocalConfig
+
+logging.basicConfig(
+    handlers=[logging.StreamHandler(sys.stdout)],
+    level=logging.DEBUG,
+    format="%(filename)s:%(lineno)d | %(asctime)s | [%(levelname)s] - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger()
 
 # The command to issue
 CMD_NAME: str = "ping"
@@ -27,9 +38,9 @@ def switch_inbox_outbox(cfg: PyginConfig) -> None:
     Switch the inbox and outbox fields for the dddb_local configuration.
     """
     protocol_cfg: PlaintextLocalConfig = cfg.protocol_configuration["plaintext_local"]
-    temp = protocol_cfg.DDDB_LOCAL_INBOX_DIR
-    protocol_cfg.DDDB_LOCAL_INBOX_DIR = protocol_cfg.DDDB_LOCAL_OUTBOX_DIR
-    protocol_cfg.DDDB_LOCAL_OUTBOX_DIR = temp
+    temp = protocol_cfg.PLAINTEXT_LOCAL_INBOX_DIR
+    protocol_cfg.PLAINTEXT_LOCAL_INBOX_DIR = protocol_cfg.PLAINTEXT_LOCAL_OUTBOX_DIR
+    protocol_cfg.PLAINTEXT_LOCAL_OUTBOX_DIR = temp
 
 def get_plaintext_local_args(cfg: PyginConfig) -> dict[str, Any]:
     """
@@ -42,9 +53,9 @@ def get_plaintext_local_args(cfg: PyginConfig) -> dict[str, Any]:
     """
     dddb_local_protocol = get_protocols_as_dict()["plaintext_local"]
     argparser: Type[ProtocolArgumentParser] = dddb_local_protocol.config_parser
-    argparser.from_config_obj(cfg.protocol_configuration["plaintext_local"])
+    p = argparser.from_config_obj(cfg.protocol_configuration["plaintext_local"])
     
-    return argparser.get_stored_args()
+    return p.get_stored_args()
 
 def send_over_plaintext_local(msg: DeadDropMessage, cfg: PyginConfig):
     args = get_plaintext_local_args(cfg)
@@ -78,8 +89,15 @@ if __name__ == "__main__":
     
     # Read back all messages from the outbox and select the response to
     # our original message
-    print(receive_all_over_plaintext_local(cfg))
-    
+    while True:
+        time.sleep(1)
+        logger.info("Checking for response in the agent's outbox")
+        recv_msgs = receive_all_over_plaintext_local(cfg)
+        for recv_msg in recv_msgs:
+            if "request_id" in recv_msg.payload and recv_msg.payload['request_id'] == str(msg.message_id):
+                logger.info(f"Got response: {recv_msg}")
+                break
+            
     
     
     

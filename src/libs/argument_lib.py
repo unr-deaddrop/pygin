@@ -184,7 +184,7 @@ class ArgumentParser(BaseModel, abc.ABC):
                 raise RuntimeError(f"Unexpected argument {arg_name}")
 
             try:
-                self._argument_mapping[arg_name] = arg_value
+                self._argument_mapping[arg_name].value = arg_value
             except Exception as e:
                 raise RuntimeError(f"Invalid argument value {arg_value}") from e
 

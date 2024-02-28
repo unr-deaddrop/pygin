@@ -167,11 +167,14 @@ class DeadDropMessage(BaseModel, abc.ABC):
 
     @field_validator("digest", mode="before")
     @classmethod
-    def validate_digest(cls, v: Any) -> bytes:
+    def validate_digest(cls, v: Any) -> bytes | None:
         """
         On validation, the digest should be bytes. If it's a string,
         assume it's base64.
         """
+        if v is None:
+            return None
+        
         if type(v) is str:
             return b64decode(v)
 
@@ -227,7 +230,10 @@ class ProtocolConfig(BaseModel, abc.ABC):
     @classmethod
     def from_cfg_parser(cls, cfg_parser: configparser.ConfigParser) -> "ProtocolConfig":
         # Property, always returning string.
-        cfg_obj = cls.model_validate(cfg_parser[cls.section_name])  # type: ignore[index]
+        try:
+            cfg_obj = cls.model_validate(cfg_parser[cls.section_name])  # type: ignore[index]
+        except KeyError as e:
+            raise RuntimeError(f"Missing configuration section for protocol {cls.section_name}, is it defined?") from e
         cfg_obj.create_dirs()
         return cfg_obj
 
