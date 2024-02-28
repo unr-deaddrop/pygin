@@ -10,6 +10,7 @@ demonstrations of DeadDrop that do not involve an actual remote service.
 from pathlib import Path
 from typing import Type, Any, ClassVar
 
+from tempfile import NamedTemporaryFile
 
 from src.libs.argument_lib import Argument, ArgumentType, DefaultParsers
 from src.libs.protocol_lib import (
@@ -89,11 +90,19 @@ class dddbLocalProtocol(ProtocolBase):
     config_parser: Type[ProtocolArgumentParser] = dddbLocalArgumentParser
 
     @classmethod
-    def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> bytes:
+    def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:
         # dddb_local doesn't leverage anything fancy. For readability, we'll
         # convert our argument dictionary back into the dddb_local config object.
+        local_cfg = dddbLocalConfig.model_validate(args)
         
-        raise NotImplementedError
+        # Dump the message as a JSON string, storing it in a temporary file.
+        with NamedTemporaryFile("w+t") as fp:
+            fp.write(msg.model_dump_json())
+        
+            # TODO: Have this actually use dddb. For now, we're basically just using
+            # plaintext to simulate having dddb; in reality, dddb would accept a filepath
+            # here.
+            temp_path = Path(fp.name).resolve()
 
     @classmethod
     def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:

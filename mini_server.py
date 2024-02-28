@@ -2,7 +2,7 @@
 Simple server that adheres to the DeadDrop protocol and can be used to
 manually send messages to the agent.
 
-This is currently hardcoded for Pygin's dddb_local protocol, since it's
+This is currently hardcoded for Pygin's plaintext-local protocol, since it's
 reliable and won't randomly explode (and won't cause any ToS violations).
 """
 
@@ -14,7 +14,7 @@ from src.agent_code.config import PyginConfig
 
 # Make all protocols visible so that PyginConfig works correctly
 from src.protocols import *
-from src.protocols.dddb_local import dddbLocalConfig
+from src.protocols.plaintext_local import PlaintextLocalConfig
 
 # The command to issue
 CMD_NAME: str = "ping"
@@ -26,12 +26,12 @@ def switch_inbox_outbox(cfg: PyginConfig) -> None:
     """
     Switch the inbox and outbox fields for the dddb_local configuration.
     """
-    protocol_cfg: dddbLocalConfig = cfg.protocol_configuration["dddb_local"]
+    protocol_cfg: PlaintextLocalConfig = cfg.protocol_configuration["plaintext_local"]
     temp = protocol_cfg.DDDB_LOCAL_INBOX_DIR
     protocol_cfg.DDDB_LOCAL_INBOX_DIR = protocol_cfg.DDDB_LOCAL_OUTBOX_DIR
     protocol_cfg.DDDB_LOCAL_OUTBOX_DIR = temp
 
-def get_dddb_local_args(cfg: PyginConfig) -> dict[str, Any]:
+def get_plaintext_local_args(cfg: PyginConfig) -> dict[str, Any]:
     """
     Get the arguments for the dddb_local protocol. dddb_local operates
     entirely on the configuration and doesn't (shouldn't) require any
@@ -40,21 +40,21 @@ def get_dddb_local_args(cfg: PyginConfig) -> dict[str, Any]:
     Note this doesn't switch the inbox/outbox for the protocol, since doing
     it twice will just revert the operation!
     """
-    dddb_local_protocol = get_protocols_as_dict()["dddb_local"]
+    dddb_local_protocol = get_protocols_as_dict()["plaintext_local"]
     argparser: Type[ProtocolArgumentParser] = dddb_local_protocol.config_parser
-    argparser.from_config_obj(cfg.protocol_configuration["dddb_local"])
+    argparser.from_config_obj(cfg.protocol_configuration["plaintext_local"])
     
     return argparser.get_stored_args()
 
-def send_over_dddb_local(msg: DeadDropMessage, cfg: PyginConfig):
-    args = get_dddb_local_args(cfg)
-    dddb_local_protocol = get_protocols_as_dict()["dddb_local"]
-    dddb_local_protocol.send_msg(msg, args)
+def send_over_plaintext_local(msg: DeadDropMessage, cfg: PyginConfig):
+    args = get_plaintext_local_args(cfg)
+    plaintext_local_protocol = get_protocols_as_dict()["plaintext_local"]
+    plaintext_local_protocol.send_msg(msg, args)
     
-def receive_all_over_dddb_local(cfg: PyginConfig) -> list[DeadDropMessage]:
-    args = get_dddb_local_args(cfg)
-    dddb_local_protocol = get_protocols_as_dict()["dddb_local"]
-    return dddb_local_protocol.get_new_messages(args)
+def receive_all_over_plaintext_local(cfg: PyginConfig) -> list[DeadDropMessage]:
+    args = get_plaintext_local_args(cfg)
+    plaintext_local_protocol = get_protocols_as_dict()["plaintext_local"]
+    return plaintext_local_protocol.get_new_messages(args)
     
 
 if __name__ == "__main__":
@@ -74,11 +74,11 @@ if __name__ == "__main__":
     # to the inbox as defined by the dddb protocol config (by setting the
     # outbox to the inbox)
     switch_inbox_outbox(cfg)
-    send_over_dddb_local(msg, cfg)
+    send_over_plaintext_local(msg, cfg)
     
     # Read back all messages from the outbox and select the response to
     # our original message
-    print(receive_all_over_dddb_local(cfg))
+    print(receive_all_over_plaintext_local(cfg))
     
     
     

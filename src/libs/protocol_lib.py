@@ -321,7 +321,7 @@ class ProtocolBase(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> bytes:
+    def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:
         """
         Send an arbitrary binary message.
 
@@ -333,7 +333,7 @@ class ProtocolBase(abc.ABC):
 
         This function may raise exceptions.
 
-        The return value of this function is always bytes, but the underlying
+        The return value of this function is always a dict, but the underlying
         structure may be anything; it is up to the agent core to decide how to
         handle the responses of a particular protocol implementation.
 
