@@ -92,8 +92,8 @@ def retrieve_new_messages(
                 logger.debug(f"Dropping duplicate message {msg_id}")
                 continue
             
-            # Add this new message to the set
-            redis_con.sadd(cfg.REDIS_MESSAGES_SEEN_KEY, msg_id)
+        # Add this new message to the set if it hasn't been seen already
+        redis_con.sadd(cfg.REDIS_MESSAGES_SEEN_KEY, msg_id)
         
         result.append(msg)
 
