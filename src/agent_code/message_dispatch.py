@@ -75,7 +75,7 @@ def retrieve_new_messages(
     # arguments are added in by the message dispatch unit, such as the inclusion of
     # a handle to the Redis database in the keyword arguments.
     #
-    # XXX: I'm holding off on this for now. This should probably call another function
+    # TODO: I'm holding off on this for now. This should probably call another function
     # that adds more arguments as needed, then combines the protocol_args dictionary
     # with our new dictionary containing runtime arguments.
     new_msgs = protocol_class.get_new_messages(protocol_args)
@@ -112,9 +112,13 @@ def send_message(
 ) -> dict[str, Any]:
     """
     Send a message over the specified protocol.
+
+    Note that if a message is signed at this point, the signature will be
+    overwritten. Individual protocols may elect to re-sign the message
+    if desired.
     """
     # Sign the message
-    # TODO: implement
+    # TODO: Implement message signing
 
     # Get a handle to the relevant protocol class, if it exists. Parse the arguments
     # accordingly from the PyginConfig class.

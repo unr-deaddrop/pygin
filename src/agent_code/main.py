@@ -2,6 +2,7 @@
 The main process loop.
 """
 
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -31,6 +32,13 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger()
+
+# Contains the number of times a task ID for message retrieval has been
+# checked, determined to be not ready, and re-added for future retrieval.
+# If this happens too many times based on the configuration, we simply give
+# up on that task - the only thing that could be holding it up is Celery,
+# which isn't something I think we can reliably recover from.
+g_reattempted_task_ids: dict[str, int] = defaultdict(int)
 
 
 @dataclass
@@ -109,62 +117,49 @@ def get_new_msgs(
     # Get all task IDs stored within our inbox
     task_ids: set[str] = redis_con.smembers(cfg_obj.REDIS_NEW_MESSAGES_KEY)
 
-    # Nuke that set (effectively making it empty). Note this runs the
-    # theoretical risk that the type of the key stops being a set between
-    # now and the next time the message checking task runs, but this should
-    # not be a concern.
-    #
-    # BUG: It's not clear to me why, but it seems that the control unit is just
-    # randomly missing random tasks from the inbox despite the actual task
-    # reporting that they're all successfully inserting their IDs... is
-    # this a race condition? srem is safer than blindly deleting, especially
-    # if these operations happen fast enough...
+    # Remove each of the retrieved task IDs from our inbox. An older approach
+    # was to simply delete the key, which actually led to dropped messages if
+    # a periodic task completed in between the time SMEMBERS and DELETE was
+    # called.
     if task_ids:
         redis_con.srem(cfg_obj.REDIS_NEW_MESSAGES_KEY, *task_ids)
-    # redis_con.delete(cfg_obj.REDIS_NEW_MESSAGES_KEY)
 
     # For each of those, reconstruct the associated AsyncResult and add
-    # the actual DeadDropMessages to our result (if any). Additionally, destroy
-    # the associated result (which amounts to a DEL call to the Redis backend)
-    # if specified.
+    # the actual DeadDropMessages to our result (if any).
     for task_id in task_ids:
         logger.debug(f"Inspecting the results for {task_id}")
 
         task: AsyncResult = AsyncResult(task_id, app=app)
         if task.failed():
-            logger.warning(f"{task_id} failed, can't recover")
+            logger.warning(f"{task_id} failed and won't be retried")
             continue
 
         if not task.ready():
-            # Ocassionally, we'll get a task ID in our inbox and the task will
-            # not have its results ready.
+            # We use this to keep track of the number of times we've had to recheck
+            # the status of a task. Again, get_new_msgs() only inserts its task ID
+            # *after* it's actually retrieved the messages from the message dispatch
+            # unit, so it's reasonable to conclude that an unfinished task is
+            # due to Celery-related issues.
             #
-            # I suspect this is a race condition. On paper, adding its own task
-            # ID is the last thing the get_new_msgs task does, but that doesn't
-            # mean Celery thinks the task is ready and actually has the pickled
-            # list ready for us.
-            #
-            # BUG: If Celery dies, it appears that all of these tasks become
-            # permanently stuck in purgatory and will never recover. There needs
-            # to be a way to give these a second chance and give up otherwise.
-            #
-            # We can also just put all of our faith in the timeout system.
-            # That said, even that isn't perfect, because we've encountered
-            # the following race condition: https://github.com/celery/celery/issues/7162
-            #
-            # Perhaps the ultimate solution is to slow down the main thread.
-            logger.info(
-                f"Readded {task_id} back; it wasn't ready despite being in the inbox"
-            )
-            redis_con.sadd(cfg_obj.REDIS_NEW_MESSAGES_KEY, *task_ids)
+            # If we end up having to re-add a task more than the configured number
+            # of times, conclude that Celery is stalling on it for some reason and
+            # drop it.
+            g_reattempted_task_ids[task_id] += 1
+
+            if (
+                g_reattempted_task_ids[task_id]
+                > cfg_obj.RESULT_RETRIEVAL_REATTEMPT_LIMIT
+            ):
+                logger.warning(
+                    f"{task_id} hit the re-add limit and was still pending, it has been discarded"
+                )
+            else:
+                logger.debug(
+                    f"Readded {task_id} back; it wasn't ready despite being in the inbox"
+                )
+                redis_con.sadd(cfg_obj.REDIS_NEW_MESSAGES_KEY, task_id)
             continue
 
-        # FIXME: Some tasks get stuck in pending forever. Other tasks falsely
-        # report themselves being ready. I don't know why this is the case, but
-        # some testing suggests that exceptions just... magically disappear
-        # and don't actually result in a failure to Celery, instead causing
-        # the task to get stuck in pending. You can prove this by sending a
-        # command that's missing a rqeuired argument.
         try:
             msgs: list[DeadDropMessage] = task.get(timeout=5)
         except TimeoutError:
@@ -190,7 +185,7 @@ def get_new_msgs(
                 redis_con.sadd(cfg_obj.REDIS_MAIN_PROCESS_MESSAGES_SEEN_KEY, msg_id_str)
 
         if remove_task_results:
-            # This effectively results in a delete call to the Redis backend.
+            # This effectively results in a DEL call to the Redis backend.
             task.forget()
 
     return result
@@ -239,8 +234,8 @@ def construct_cmd_response(
     """
     assert task_result.successful()
 
-    # TODO: Note that this message is unsigned! I think construction of the
-    # signature should be the message dispatch unit's problem.
+    # Note that the message is unsigned at this point. Message signatures are
+    # the message dispatch unit's problem.
     return DeadDropMessage(
         message_type=DeadDropMessageType.CMD_RESPONSE,
         user_id=cmd_request.user_id,
@@ -279,10 +274,17 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
 
     logger.info("Starting main loop")
     while True:
-        # FIXME: Best-effort attempt to alleviate race conditions.
-        time.sleep(2)
-        # TODO: Assert that Redis is alive before doing anything; if it's not,
-        # print error message and stall a second
+        # Assert that Redis is actually reachable before trying anything. If it isn't,
+        # stall a while.
+        try:
+            redis_con: redis.Redis = utility.get_redis_con(app)
+            redis_con.ping()
+        except redis.ConnectionError:
+            logger.error("The Redis server is unreachable, waiting and retrying")
+            time.sleep(5)
+
+        # See the configuration files for more details on why this exists.
+        time.sleep(cfg_obj.CONTROL_UNIT_THROTTLE_TIME)
 
         # Check for new messages. For each message received (which should always
         # be command_request), invoke the command execution task. Store that
