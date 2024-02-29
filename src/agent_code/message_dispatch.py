@@ -57,24 +57,27 @@ def retrieve_new_messages(
         been seen, as stored by the Redis database.
     """
     result: list[PyginMessage] = []
-    
+
     # Get a handle to the relevant protocol class, if it exists. Parse the arguments
     # accordingly from the PyginConfig class.
     protocol_class = protocol_lib.lookup_protocol(protocol_name)
 
-    protocol_parser_type: Type[protocol_lib.ProtocolArgumentParser] = protocol_class.config_parser
-    protocol_parser = protocol_parser_type.from_config_obj(cfg.protocol_configuration[protocol_name])
+    protocol_parser_type: Type[protocol_lib.ProtocolArgumentParser] = (
+        protocol_class.config_parser
+    )
+    protocol_parser = protocol_parser_type.from_config_obj(
+        cfg.protocol_configuration[protocol_name]
+    )
     protocol_args = protocol_parser.get_stored_args()
 
     # Invoke the protocol's message retrieval function. At this point, any protocol-specific
-    # arguments are added in by the message dispatch unit, such as the inclusion of 
+    # arguments are added in by the message dispatch unit, such as the inclusion of
     # a handle to the Redis database in the keyword arguments.
     #
     # XXX: I'm holding off on this for now. This should probably call another function
     # that adds more arguments as needed, then combines the protocol_args dictionary
     # with our new dictionary containing runtime arguments.
     new_msgs = protocol_class.get_new_messages(protocol_args)
-
 
     # For each message, check if was already seen and act accordingly based on
     # `drop_seen`. In all cases, add message IDs to the set.
@@ -83,18 +86,18 @@ def retrieve_new_messages(
         # to explicitly convert a uuid.UUID to a string for it to work with
         # the strings contained in the Redis database
         msg_id = str(msg.message_id)
-        
+
         # TODO: This wasn't working earlier because Redis likes returning things as
-        # bytes, not str. 
+        # bytes, not str.
         if redis_con.sismember(cfg.REDIS_MESSAGES_SEEN_KEY, msg_id):
             logger.debug(f"Duplicate message {msg_id} seen by message dispatch unit")
             if drop_seen:
                 logger.debug(f"Dropping duplicate message {msg_id}")
                 continue
-            
+
         # Add this new message to the set if it hasn't been seen already
         redis_con.sadd(cfg.REDIS_MESSAGES_SEEN_KEY, msg_id)
-        
+
         result.append(msg)
 
     # Return the remaining set of messages.
@@ -118,8 +121,12 @@ def send_message(
     # "parse config object and get dictionary of arguments" operation?
     protocol_class = protocol_lib.lookup_protocol(protocol_name)
 
-    protocol_parser_type: Type[protocol_lib.ProtocolArgumentParser] = protocol_class.config_parser
-    protocol_parser = protocol_parser_type.from_config_obj(cfg.protocol_configuration[protocol_name])
+    protocol_parser_type: Type[protocol_lib.ProtocolArgumentParser] = (
+        protocol_class.config_parser
+    )
+    protocol_parser = protocol_parser_type.from_config_obj(
+        cfg.protocol_configuration[protocol_name]
+    )
     protocol_args = protocol_parser.get_stored_args()
 
     # Invoke the protocol's message sending function. Again, pass in the Redis

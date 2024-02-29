@@ -174,7 +174,7 @@ class DeadDropMessage(BaseModel, abc.ABC):
         """
         if v is None:
             return None
-        
+
         if type(v) is str:
             return b64decode(v)
 
@@ -232,7 +232,9 @@ class ProtocolConfig(BaseModel, abc.ABC):
         try:
             cfg_obj = cls.model_validate(cfg_parser[cls.section_name])  # type: ignore[index]
         except KeyError as e:
-            raise RuntimeError(f"Missing configuration section for protocol {cls.section_name}, is it defined?") from e
+            raise RuntimeError(
+                f"Missing configuration section for protocol {cls.section_name}, is it defined?"
+            ) from e
         cfg_obj.create_dirs()
         return cfg_obj
 
@@ -418,6 +420,7 @@ def get_protocols_as_dict() -> dict[str, Type[ProtocolBase]]:
     # of cmd.name is *always* str
     return {proto.name: proto for proto in export_all_protocols()}  # type: ignore[misc]
 
+
 def lookup_protocol(protocol_name: str) -> Type[ProtocolBase]:
     """
     Search for a provided protocol.
@@ -425,7 +428,10 @@ def lookup_protocol(protocol_name: str) -> Type[ProtocolBase]:
     try:
         return get_protocols_as_dict()[protocol_name]
     except KeyError:
-        raise RuntimeError(f"Failed to find protocol {protocol_name}, either it doesn't exist or it isn't visible")
+        raise RuntimeError(
+            f"Failed to find protocol {protocol_name}, either it doesn't exist or it isn't visible"
+        )
+
 
 def export_protocols_as_json(protocol_classes: list[Type[ProtocolBase]], **kwargs):
     """

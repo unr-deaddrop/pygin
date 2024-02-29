@@ -74,12 +74,12 @@ class dddbLocalProtocol(ProtocolBase):
     While this does not use an external protocol as intended by the framework,
     this demonstrates a proof-of-concept that avoids depending on an external
     service outside of our control.
-    
+
     Note that this protocol is extremely simple with respect to error handling
     and local storage space; it makes no attempt at filtering out messages that
     have already been read, and simply returns all available messages. It is up
     to higher-level code to filter out messages that have already been seen.
-    
+
     That is to say, this protocol does not keep track of the most recently viewed
     message.
     """
@@ -94,11 +94,11 @@ class dddbLocalProtocol(ProtocolBase):
         # dddb_local doesn't leverage anything fancy. For readability, we'll
         # convert our argument dictionary back into the dddb_local config object.
         local_cfg = dddbLocalConfig.model_validate(args)
-        
+
         # Dump the message as a JSON string, storing it in a temporary file.
         with NamedTemporaryFile("w+t") as fp:
             fp.write(msg.model_dump_json())
-        
+
             # TODO: Have this actually use dddb. For now, we're basically just using
             # plaintext to simulate having dddb; in reality, dddb would accept a filepath
             # here.
@@ -106,5 +106,5 @@ class dddbLocalProtocol(ProtocolBase):
 
     @classmethod
     def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
-        #print some log messages about how it's checking so-and-so folder
+        # print some log messages about how it's checking so-and-so folder
         raise NotImplementedError

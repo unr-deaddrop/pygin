@@ -130,22 +130,22 @@ def get_new_msgs(
     # if specified.
     for task_id in task_ids:
         logger.debug(f"Inspecting the results for {task_id}")
-        
+
         task: AsyncResult = AsyncResult(task_id, app=app)
         if task.failed():
             logger.warning(f"{task_id} failed, can't recover")
             continue
-            
+
         if not task.ready():
             # Ocassionally, we'll get a task ID in our inbox and the task will
-            # not have its results ready. 
+            # not have its results ready.
             #
             # I suspect this is a race condition. On paper, adding its own task
             # ID is the last thing the get_new_msgs task does, but that doesn't
             # mean Celery thinks the task is ready and actually has the pickled
             # list ready for us.
             #
-            # BUG: If Celery dies, it appears that all of these tasks become 
+            # BUG: If Celery dies, it appears that all of these tasks become
             # permanently stuck in purgatory and will never recover. There needs
             # to be a way to give these a second chance and give up otherwise.
             #
@@ -154,10 +154,12 @@ def get_new_msgs(
             # the following race condition: https://github.com/celery/celery/issues/7162
             #
             # Perhaps the ultimate solution is to slow down the main thread.
-            logger.info(f"Readded {task_id} back; it wasn't ready despite being in the inbox")
+            logger.info(
+                f"Readded {task_id} back; it wasn't ready despite being in the inbox"
+            )
             redis_con.sadd(cfg_obj.REDIS_NEW_MESSAGES_KEY, *task_ids)
             continue
-    
+
         # FIXME: Some tasks get stuck in pending forever. Other tasks falsely
         # report themselves being ready. I don't know why this is the case, but
         # some testing suggests that exceptions just... magically disappear
@@ -167,9 +169,11 @@ def get_new_msgs(
         try:
             msgs: list[PyginMessage] = task.get(timeout=5)
         except TimeoutError:
-            logger.warning(f"{task_id} exceeded the retrieval time limit and will be discarded.")
+            logger.warning(
+                f"{task_id} exceeded the retrieval time limit and will be discarded."
+            )
             continue
-            
+
         for msg in msgs:
             msg_id_str = str(msg.message_id)
 
@@ -280,7 +284,7 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
         time.sleep(2)
         # TODO: Assert that Redis is alive before doing anything; if it's not,
         # print error message and stall a second
-        
+
         # Check for new messages. For each message received (which should always
         # be command_request), invoke the command execution task. Store that
         # unfinished AsyncResult.
@@ -293,7 +297,7 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
             logger.info(f"Received message with message ID {message.message_id}")
             try:
                 # TODO: mypy complains here because again, the structure of
-                # the payload isn't known but IS well defined... see the 
+                # the payload isn't known but IS well defined... see the
                 # proposal on discriminating unions for how this can be fixed
                 task = tasks.execute_command.delay(
                     message.payload["cmd_name"], message.payload["cmd_args"]
@@ -321,7 +325,7 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
                     f"The task for command_request {cmd_request.message_id} failed and will not be retried: {task.traceback}"
                 )
                 continue
-            
+
             # The only other possibility is that the task succeeded, so a command
             # can be constructed
             cmd_response = construct_cmd_response(
@@ -335,13 +339,15 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
                 # TODO: This raises a typing error because we send a DeadDropMessage,
                 # not a PyginMessage. Do we really need PyginMessage, assuming
                 # that we don't need all the magic Redis overhead anymore?
-                res = tasks.send_msg.delay(cfg_obj, cmd_response, cfg_obj.SENDING_PROTOCOL)
+                res = tasks.send_msg.delay(
+                    cfg_obj, cmd_response, cfg_obj.SENDING_PROTOCOL
+                )
                 logger.debug(f"Finished scheduling response: {res}")
             except Exception as e:
                 logger.error(
                     f"Could not successfully schedule sending {cmd_response}: {e}"
                 )
-        
+
         running_commands = pending_commands
 
 
