@@ -124,7 +124,11 @@ def get_new_msgs(
         # be no reason that the task is in the "inbox" but is also not complete,
         # but this serves as a safety measure.
         task: AsyncResult = AsyncResult(task_id, app=app)
-        if task.status is not celery.states.SUCCESS:
+        if task.status != celery.states.SUCCESS:
+            # TODO I think it's fine if we just wait the timeout, this sometimes
+            # succeeds in the time it takes to print lol
+            #
+            # but we also sometimes get into timeout, why is that?
             logger.warning(
                 f"Task {task_id} is in a non-sucessful state ({task.status})"
             )
@@ -234,7 +238,11 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
     # Stores pairs of AsyncResults and their originating command_request message.
     running_commands: list[CommandTask] = []
 
+    logger.info("Starting main loop")
     while True:
+        # TODO: Assert that Redis is alive before doing anything; if it's not,
+        # print error message and stall a second
+        
         # Check for new messages. For each message received (which should always
         # be command_request), invoke the command execution task. Store that
         # unfinished AsyncResult.
@@ -280,7 +288,7 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
                 try:
                     # TODO: This raises a typing error because we send a DeadDropMessage,
                     # not a PyginMessage. Do we really need PyginMessage?
-                    tasks.send_msg(cfg_obj, cmd_response, cfg_obj.SENDING_PROTOCOL)
+                    tasks.send_msg.s(cfg_obj, cmd_response, cfg_obj.SENDING_PROTOCOL)
                 except Exception as e:
                     logger.error(
                         f"Could not successfully schedule sending {cmd_response}: {e}"

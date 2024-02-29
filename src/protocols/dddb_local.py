@@ -56,7 +56,7 @@ class dddbLocalArgumentParser(ProtocolArgumentParser):
         ),
         Argument(
             arg_type=ArgumentType.PATH,
-            name="DDDB_LOCAL_INBOX_DIR",
+            name="DDDB_LOCAL_OUTBOX_DIR",
             description="The location to send outgoing messages to.",
             _parser=DefaultParsers.parse_path,
         ),
