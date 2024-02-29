@@ -9,6 +9,7 @@ reliable and won't randomly explode (and won't cause any ToS violations).
 from pathlib import Path
 from typing import Type, Any
 import time
+from datetime import datetime
 import logging
 import sys
 
@@ -29,8 +30,9 @@ logger = logging.getLogger()
 
 # The command to issue
 CMD_NAME: str = "ping"
-CMD_ARGS: dict[str, str] =  {
-    "message": "test"
+CMD_ARGS: dict[str, Any] =  {
+    "message": "test",
+    'ping_timestamp': datetime.utcnow().timestamp()
 }
 
 def switch_inbox_outbox(cfg: PyginConfig) -> None:
@@ -77,7 +79,7 @@ if __name__ == "__main__":
         message_type = DeadDropMessageType.CMD_REQUEST,
         payload = {
             "cmd_name": CMD_NAME,
-            "cmd_args": CMD_ARGS
+            "cmd_args": CMD_ARGS,
         }
     )
     
@@ -96,7 +98,12 @@ if __name__ == "__main__":
         for recv_msg in recv_msgs:
             if "request_id" in recv_msg.payload and recv_msg.payload['request_id'] == str(msg.message_id):
                 logger.info(f"Got response: {recv_msg}")
-                break
+                
+                start_time = float(recv_msg.payload['result']['ping_timestamp'])
+                end_time = float(recv_msg.payload['result']['pong_timestamp'])
+                return_time = datetime.utcnow().timestamp()
+                logger.info(f"The ping time was {end_time-start_time:.2f} seconds to receive, {return_time-start_time:.2f} seconds RTT")
+                exit()
             
     
     

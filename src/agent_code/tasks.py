@@ -130,7 +130,11 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 # See https://docs.celeryq.dev/en/stable/userguide/tasks.html#bound-tasks
 # for more information on bound tasks. This is used to retrieve our own
 # task ID.
-@app.task(bind=True, serializer="pickle")
+#
+# The soft time limit raises an exception in the task when the time limit
+# is hit. This is an effort to avoid runaway tasks; note that the default
+# number of retries is 3.
+@app.task(bind=True, serializer="pickle", soft_time_limit=4)
 def get_new_msgs(
     self: Task, cfg: config.PyginConfig, protocol_name: str, drop_seen_msgs: bool
 ) -> list[PyginMessage]:
@@ -170,6 +174,7 @@ def get_new_msgs(
     # mypy complains that self.request.id could be None, which it won't be
     # inside a task.
     redis_con.sadd(cfg.REDIS_NEW_MESSAGES_KEY, self.request.id)  # type: ignore[arg-type]
+    logger.warning(redis_con.smembers(cfg.REDIS_NEW_MESSAGES_KEY))
 
     return result
 

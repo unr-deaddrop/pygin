@@ -11,9 +11,13 @@ run:
 # https://stackoverflow.com/questions/7394290/how-to-check-return-value-from-the-shell-directive
 # https://unix.stackexchange.com/questions/119648/redirecting-to-dev-null
 # https://stackoverflow.com/questions/14479894/stopping-supervisord-shut-down
+#
+# Also nuke dump.rdb so we have a fresh db each time; this avoids any issues
+# due to lingering and will-never-finish tasking
 SUPERVISORD_RETVAL := $(shell supervisorctl pid > /dev/null 2>&1; echo $$?)
 SUPERVISORD_PID := $(shell supervisorctl pid)
 kill:
+	rm dump.rdb || true
     ifeq ($(SUPERVISORD_RETVAL),0)
 	kill -s SIGTERM $(SUPERVISORD_PID)
 	@echo "Killed supervisor - waiting 10 seconds"
