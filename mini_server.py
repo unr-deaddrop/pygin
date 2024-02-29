@@ -13,7 +13,12 @@ from datetime import datetime
 import logging
 import sys
 
-from src.libs.protocol_lib import DeadDropMessage, DeadDropMessageType, ProtocolArgumentParser, get_protocols_as_dict
+from src.libs.protocol_lib import (
+    DeadDropMessage,
+    DeadDropMessageType,
+    ProtocolArgumentParser,
+    get_protocols_as_dict,
+)
 from src.agent_code.config import PyginConfig
 
 # Make all protocols visible so that PyginConfig works correctly
@@ -30,10 +35,11 @@ logger = logging.getLogger()
 
 # The command to issue
 CMD_NAME: str = "ping"
-CMD_ARGS: dict[str, Any] =  {
+CMD_ARGS: dict[str, Any] = {
     "message": "test",
-    'ping_timestamp': datetime.utcnow().timestamp()
+    "ping_timestamp": datetime.utcnow().timestamp(),
 }
+
 
 def switch_inbox_outbox(cfg: PyginConfig) -> None:
     """
@@ -44,51 +50,54 @@ def switch_inbox_outbox(cfg: PyginConfig) -> None:
     protocol_cfg.PLAINTEXT_LOCAL_INBOX_DIR = protocol_cfg.PLAINTEXT_LOCAL_OUTBOX_DIR
     protocol_cfg.PLAINTEXT_LOCAL_OUTBOX_DIR = temp
 
+
 def get_plaintext_local_args(cfg: PyginConfig) -> dict[str, Any]:
     """
     Get the arguments for the dddb_local protocol. dddb_local operates
     entirely on the configuration and doesn't (shouldn't) require any
     additional information, at least for right now.
-    
+
     Note this doesn't switch the inbox/outbox for the protocol, since doing
     it twice will just revert the operation!
     """
     dddb_local_protocol = get_protocols_as_dict()["plaintext_local"]
     argparser: Type[ProtocolArgumentParser] = dddb_local_protocol.config_parser
     p = argparser.from_config_obj(cfg.protocol_configuration["plaintext_local"])
-    
+
     return p.get_stored_args()
+
 
 def send_over_plaintext_local(msg: DeadDropMessage, cfg: PyginConfig):
     args = get_plaintext_local_args(cfg)
     plaintext_local_protocol = get_protocols_as_dict()["plaintext_local"]
     plaintext_local_protocol.send_msg(msg, args)
-    
+
+
 def receive_all_over_plaintext_local(cfg: PyginConfig) -> list[DeadDropMessage]:
     args = get_plaintext_local_args(cfg)
     plaintext_local_protocol = get_protocols_as_dict()["plaintext_local"]
     return plaintext_local_protocol.get_new_messages(args)
-    
+
 
 if __name__ == "__main__":
     # Load configuration
-    cfg = PyginConfig.from_cfg_file(Path('./agent.cfg'))    
-    
+    cfg = PyginConfig.from_cfg_file(Path("./agent.cfg"))
+
     # Construct the command_request message
     msg = DeadDropMessage(
-        message_type = DeadDropMessageType.CMD_REQUEST,
-        payload = {
+        message_type=DeadDropMessageType.CMD_REQUEST,
+        payload={
             "cmd_name": CMD_NAME,
             "cmd_args": CMD_ARGS,
-        }
+        },
     )
-    
+
     # Fire off message using Pygin's built-in protocol library, sending it
     # to the inbox as defined by the dddb protocol config (by setting the
     # outbox to the inbox)
     switch_inbox_outbox(cfg)
     send_over_plaintext_local(msg, cfg)
-    
+
     # Read back all messages from the outbox and select the response to
     # our original message
     while True:
@@ -96,15 +105,15 @@ if __name__ == "__main__":
         logger.info("Checking for response in the agent's outbox")
         recv_msgs = receive_all_over_plaintext_local(cfg)
         for recv_msg in recv_msgs:
-            if "request_id" in recv_msg.payload and recv_msg.payload['request_id'] == str(msg.message_id):
+            if "request_id" in recv_msg.payload and recv_msg.payload[
+                "request_id"
+            ] == str(msg.message_id):
                 logger.info(f"Got response: {recv_msg}")
-                
-                start_time = float(recv_msg.payload['result']['ping_timestamp'])
-                end_time = float(recv_msg.payload['result']['pong_timestamp'])
+
+                start_time = float(recv_msg.payload["result"]["ping_timestamp"])
+                end_time = float(recv_msg.payload["result"]["pong_timestamp"])
                 return_time = datetime.utcnow().timestamp()
-                logger.info(f"The ping time was {end_time-start_time:.2f} seconds to receive, {return_time-start_time:.2f} seconds RTT")
+                logger.info(
+                    f"The ping time was {end_time-start_time:.2f} seconds to receive, {return_time-start_time:.2f} seconds RTT"
+                )
                 exit()
-            
-    
-    
-    
