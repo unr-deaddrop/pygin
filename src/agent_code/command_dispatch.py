@@ -3,9 +3,9 @@ This implements the command dispatch module as described in DeadDrop's
 generic architecture model for agents.
 
 If any additional operations are needed before handing the message off to
-a particular command, it should be done here. This may include adding 
+a particular command, it should be done here. This may include adding
 command-specific arguments that are not already present in the configuration
-object, and therefore must be handled on a case-by-case basis. 
+object, and therefore must be handled on a case-by-case basis.
 
 The spirit of this design is that any edge case handling can be centralized
 to this module, allowing the command to remain (relatively) loosely bound

@@ -3,9 +3,9 @@ This implements the messaging dispatch module as described in DeadDrop's
 generic architecture model for agents.
 
 If any additional operations are needed before handing the message off to
-a particular protocol, it should be done here. This may include adding 
+a particular protocol, it should be done here. This may include adding
 protocol-specific arguments that are not already present in the configuration
-object, and therefore must be handled on a case-by-case basis. 
+object, and therefore must be handled on a case-by-case basis.
 
 The spirit of this design is that any edge case handling can be centralized
 to this module, allowing the protocols to remain (relatively) loosely bound
@@ -23,8 +23,8 @@ import redis
 from src.protocols import *  # noqa: F401,F403
 
 from src.agent_code import config
-from src.protocols._shared_lib import PyginMessage
 from src.libs import protocol_lib
+from src.libs.protocol_lib import DeadDropMessage
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def retrieve_new_messages(
     cfg: config.PyginConfig,
     redis_con: redis.Redis,
     drop_seen: bool = True,
-) -> list[PyginMessage]:
+) -> list[DeadDropMessage]:
     """
     Retrieve all new messages over the specified service.
 
@@ -56,14 +56,15 @@ def retrieve_new_messages(
     :param drop_seen: Whether to drop any messages with IDs that have already
         been seen, as stored by the Redis database.
     """
-    result: list[PyginMessage] = []
+    result: list[DeadDropMessage] = []
 
     # Get a handle to the relevant protocol class, if it exists. Parse the arguments
     # accordingly from the PyginConfig class.
     protocol_class = protocol_lib.lookup_protocol(protocol_name)
 
+    # Another case of mypy not handling our properties all too well
     protocol_parser_type: Type[protocol_lib.ProtocolArgumentParser] = (
-        protocol_class.config_parser
+        protocol_class.config_parser  # type: ignore[assignment]
     )
     protocol_parser = protocol_parser_type.from_config_obj(
         cfg.protocol_configuration[protocol_name]
@@ -105,7 +106,7 @@ def retrieve_new_messages(
 
 
 def send_message(
-    msg: PyginMessage,
+    msg: DeadDropMessage,
     protocol_name: str,
     cfg: config.PyginConfig,
 ) -> dict[str, Any]:
@@ -121,8 +122,9 @@ def send_message(
     # "parse config object and get dictionary of arguments" operation?
     protocol_class = protocol_lib.lookup_protocol(protocol_name)
 
+    # Ignore mypy complaining about this property
     protocol_parser_type: Type[protocol_lib.ProtocolArgumentParser] = (
-        protocol_class.config_parser
+        protocol_class.config_parser  # type: ignore[assignment]
     )
     protocol_parser = protocol_parser_type.from_config_obj(
         cfg.protocol_configuration[protocol_name]
