@@ -25,6 +25,7 @@ handled by an initial setup script at the OS level.
 from base64 import b64encode, b64decode
 from datetime import datetime
 from enum import Enum
+from textwrap import dedent
 from typing import Any, Type
 import abc
 import configparser
@@ -380,7 +381,7 @@ class ProtocolBase(abc.ABC):
         """
         return {
             "name": self.name,
-            "description": self.description,
+            "description": dedent(self.description).strip(),
             "version": self.version,
             "arguments": self.config_parser().model_dump()["arguments"],
         }
