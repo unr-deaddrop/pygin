@@ -91,6 +91,8 @@ class dddbLocalProtocol(ProtocolBase):
 
     @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:
+        raise NotImplementedError
+
         # dddb_local doesn't leverage anything fancy. For readability, we'll
         # convert our argument dictionary back into the dddb_local config object.
         local_cfg = dddbLocalConfig.model_validate(args)

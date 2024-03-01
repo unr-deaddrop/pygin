@@ -2,15 +2,18 @@
 This module contains all available tasking for Celery.
 """
 
+from pathlib import Path
 from typing import Any
 
-from celery import Celery, signals, Task
+from celery import Celery, Task
 from celery.utils.log import get_task_logger
 import click
 import redis
 
 from src.agent_code import config, message_dispatch, command_dispatch, utility
-from src.protocols._shared_lib import PyginMessage
+from src.libs.protocol_lib import DeadDropMessage
+
+# from src.protocols._shared_lib import PyginMessage
 
 # Set up logging for tasks.
 logger = get_task_logger(__name__)
@@ -46,9 +49,10 @@ app.conf.result_serializer = "pickle"
 
 # Global configuration object that can be used by tasks. Set once, read-only.
 # Do NOT use this variable outside of this module.
-_g_config: config.PyginConfig = None
+# _g_config: config.PyginConfig = None
 
-
+# TODO: It seems that changes that occur here aren't visible to Celery beat
+# for whatever reason, we'll have to fix this.
 # @signals.user_preload_options.connect
 # def on_preload_parsed(options, **kwargs):
 #     """
@@ -91,7 +95,7 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
     """
     # TODO: Can't figure out how to pass the name of the config file in
     # at runtime
-    _g_config = config.PyginConfig.from_cfg_file("./agent.cfg")
+    _g_config = config.PyginConfig.from_cfg_file(Path("./agent.cfg"))
 
     # Schedule checkins for each configured protocol.
     for protocol_name, protocol_cfg in _g_config.protocol_configuration.items():
@@ -138,7 +142,7 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 @app.task(bind=True, serializer="pickle", soft_time_limit=4)
 def get_new_msgs(
     self: Task, cfg: config.PyginConfig, protocol_name: str, drop_seen_msgs: bool
-) -> list[PyginMessage]:
+) -> list[DeadDropMessage]:
     """
     Check for new messages over the specified protocol.
 
@@ -156,7 +160,7 @@ def get_new_msgs(
     :param protocol_name: The name of the protocol to get new messages for.
     :param drop_seen_msgs: Whether to drop messages that have already been seen
         from the result.
-    :returns: A list of PyginMessages, sorted least recent first.
+    :returns: A list of DeadDropMessages, sorted least recent first.
     """
     redis_con: redis.Redis = utility.get_redis_con(app)
 
@@ -182,7 +186,7 @@ def get_new_msgs(
 
 @app.task(serializer="pickle")
 def send_msg(
-    cfg: config.PyginConfig, msg: PyginMessage, protocol_name: str
+    cfg: config.PyginConfig, msg: DeadDropMessage, protocol_name: str
 ) -> dict[str, Any]:
     """
     Send a message over a specified protocol.

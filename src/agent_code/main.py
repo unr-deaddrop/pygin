@@ -17,7 +17,6 @@ import redis
 # from celery.result import AsyncResult
 
 from src.agent_code import config, utility, tasks
-from src.protocols._shared_lib import PyginMessage
 from src.libs.protocol_lib import DeadDropMessageType, DeadDropMessage
 
 # Default configuration path. This is the configuration file included with the
@@ -65,7 +64,7 @@ def get_args() -> argparse.Namespace:
 
 def get_new_msgs(
     cfg_obj: config.PyginConfig, app: celery.Celery, remove_task_results: bool = True
-) -> list[PyginMessage]:
+) -> list[DeadDropMessage]:
     """
     Get and reconstruct all new messages in the Redis database.
 
@@ -77,8 +76,8 @@ def get_new_msgs(
     - It retrieves all stored task IDs associated with periodic message
       retrieval tasks, then deleting those IDs from the key.
     - It uses the AsyncResult constructor by task ID to retrieve the list
-      of PyginMessage associated with each task, if any.
-    - All of these PyginMessages are combined into a single list. If
+      of DeadDropMessage associated with each task, if any.
+    - All of these DeadDropMessages are combined into a single list. If
       the ID of a particular message has been seen before, drop and log it.
       If it has not been seen before, add it to the final result.
     - Return the remaining list of messages.
@@ -104,7 +103,7 @@ def get_new_msgs(
         entries in the database, which may be deleted or kept without
         consequence.
     """
-    result: list[PyginMessage] = []
+    result: list[DeadDropMessage] = []
     redis_con: redis.Redis = utility.get_redis_con(app)
 
     # Get all task IDs stored within our inbox
@@ -125,7 +124,7 @@ def get_new_msgs(
     # redis_con.delete(cfg_obj.REDIS_NEW_MESSAGES_KEY)
 
     # For each of those, reconstruct the associated AsyncResult and add
-    # the actual PyginMessages to our result (if any). Additionally, destroy
+    # the actual DeadDropMessages to our result (if any). Additionally, destroy
     # the associated result (which amounts to a DEL call to the Redis backend)
     # if specified.
     for task_id in task_ids:
@@ -167,7 +166,7 @@ def get_new_msgs(
         # the task to get stuck in pending. You can prove this by sending a
         # command that's missing a rqeuired argument.
         try:
-            msgs: list[PyginMessage] = task.get(timeout=5)
+            msgs: list[DeadDropMessage] = task.get(timeout=5)
         except TimeoutError:
             logger.warning(
                 f"{task_id} exceeded the retrieval time limit and will be discarded."
@@ -336,9 +335,6 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
             )
             logger.debug(f"Command response: {cmd_response}")
             try:
-                # TODO: This raises a typing error because we send a DeadDropMessage,
-                # not a PyginMessage. Do we really need PyginMessage, assuming
-                # that we don't need all the magic Redis overhead anymore?
                 res = tasks.send_msg.delay(
                     cfg_obj, cmd_response, cfg_obj.SENDING_PROTOCOL
                 )
