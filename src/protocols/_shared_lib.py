@@ -17,9 +17,10 @@ class PyginMessage(DeadDropMessage):
     It should be equivalent to `AgentMessage` in purpose and implementation
     when compared to the prototype agent.
 
-    TODO: Do we actually still need this? It's no longer the case that single
-    messages are stored in the Redis database, the expectation is now that we
-    keep track of multiple...
+    NOTE: Right now, PyginMessage is generally unused since we moved away from
+    using the JSON serializers for Celery. That's no longer the case, and we
+    don't really need more than what DeadDropMessage provides, so this remains
+    as unused legacy code.
     """
 
     # The prefix used when using this class to directly add itself to a Redis

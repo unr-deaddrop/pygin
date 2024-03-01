@@ -31,6 +31,8 @@ class PyginConfig(BaseModel):
     # all caps, but that's the intent.
     AGENT_ID: uuid.UUID
 
+    CONTROL_UNIT_THROTTLE_TIME: float
+
     AGENT_PRIVATE_KEY_PATH: Path
     SERVER_PUBLIC_KEY_PATH: Path
 
@@ -48,6 +50,7 @@ class PyginConfig(BaseModel):
     REDIS_MESSAGES_SEEN_KEY: str
     REDIS_NEW_MESSAGES_KEY: str
     REDIS_MAIN_PROCESS_MESSAGES_SEEN_KEY: str
+    RESULT_RETRIEVAL_REATTEMPT_LIMIT: int
 
     INCOMING_ENCODED_MESSAGE_DIR: Path
     INCOMING_DECODED_MESSAGE_DIR: Path
