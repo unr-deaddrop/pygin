@@ -4,11 +4,11 @@ Various routines for generating the agent's metadata.
 This covers:
 - commands.json, which serves as a reference for the commands this agent
   supports and their arguments
-- protocols.json, which exposes the protocols this agent supports and 
+- protocols.json, which exposes the protocols this agent supports and
   the configuration keys specific to those protocols for this agent
 - agent.json, which exposes core agent metadata and configurable
   options for the agent itself
-  
+
 These three files are placed in the same folder relative to execution.
 It is intended to be executed as `python3 -m src.meta.generate_metadata`
 as a standalone script.
@@ -21,8 +21,8 @@ import sys
 # Make all protocols and commands visible. This is intentional, as the helper
 # functions in the protocol and command libraries depend on their subclasses
 # being imported.
-from src.protocols import *
-from src.commands import *
+from src.protocols import *  # noqa: F403, F401
+from src.commands import *  # noqa: F403, F401
 from src.libs import protocol_lib, command_lib
 from src.meta import agent
 

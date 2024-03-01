@@ -5,7 +5,7 @@ Static metadata definitions for Pygin.
 from typing import Type
 
 from src.libs.agent_lib import SupportedOSTypes, SupportedProtocols, AgentBase
-from src.libs.argument_lib import ArgumentParser, Argument, ArgumentType, DefaultParsers
+from src.libs.argument_lib import ArgumentParser, Argument, ArgumentType
 
 
 class PyginConfigParser(ArgumentParser):

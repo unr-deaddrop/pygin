@@ -7,7 +7,6 @@ from typing import Any
 
 from celery import Celery, Task
 from celery.utils.log import get_task_logger
-import click
 import redis
 
 from src.agent_code import config, message_dispatch, command_dispatch, utility
