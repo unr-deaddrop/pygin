@@ -7,7 +7,6 @@ from typing import Any
 
 from celery import Celery, Task
 from celery.utils.log import get_task_logger
-import click
 import redis
 
 from src.agent_code import config, message_dispatch, command_dispatch, utility
@@ -43,8 +42,9 @@ app.conf.result_serializer = "pickle"
 # Hardcoded configuration path. I was unable to get Celery's custom command-line
 # arguments to work, but I've decided that (theoretically) there should never
 # really be a need to hot-swap agent configurations anyways.
-# 
-CONFIG_PATH = Path('./agent.cfg')
+#
+CONFIG_PATH = Path("./agent.cfg")
+
 
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender: Celery, **kwargs):

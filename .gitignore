@@ -1,3 +1,9 @@
+# Don't commit the agent metadata files. These change frequently and should
+# always be genarated on demand.
+agent.json
+commands.json
+protocols.json
+
 # Don't commit any databases or redis dumps. We might have to change this later
 # when we implement the logging system.
 *.db
