@@ -22,13 +22,18 @@ installed as part of the normal Python environment setup process, and can be
 handled by an initial setup script at the OS level.
 """
 
+from base64 import b64encode, b64decode
 from datetime import datetime
 from enum import Enum
-from typing import Type
+from typing import Any, Type
 import abc
+import configparser
 import uuid
+import json
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer, field_validator
+
+from src.libs.argument_lib import ArgumentParser
 
 
 class DeadDropMessageType(str, Enum):
@@ -86,8 +91,6 @@ class DeadDropMessage(BaseModel, abc.ABC):
     In the future, these messages may be wrapped in another JSON object containing
     forwarding information, effectively allowing it to be routed (as if it were
     at the networking layer). This is not planned in the short term.
-
-    FIXME: This belongs in an external lib, not Pygin.
     """
 
     # The underlying message type.
@@ -104,19 +107,146 @@ class DeadDropMessage(BaseModel, abc.ABC):
     # The agent or server ID.
     source_id: uuid.UUID
 
-    # The timestamp that this message was created.
+    # The timestamp that this message was created. Assume UTC.
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
-    # Underlying message data. Notice that this is always stored as `str`.
-    # This is for a variety of reasons, namely the fact that JSON does not support
-    # arbitrary binary data.
-    payload: str | None = None
+    # Underlying message data. It is up to the code constructing messages to
+    # ensure that the subfields of `payload` are JSON serializable. In most cases,
+    # there is no well-defined structure for the inner fields of `payload`,
+    # though certain immediate children may be required.
+    #
+    # TODO: How do we enforce that? If payload has a fixed structure based on
+    # message_type, shouldn't that be its own submodel?
+    payload: dict[str, Any] | None = None
 
-    # Digital signature as a string.
-    digest: str | None = None
+    # Digital signature, if set.
+    digest: bytes | None = None
+
+    @field_serializer("timestamp", when_used="json-unless-none")
+    @classmethod
+    def serialize_timestamp(cls, timestamp: datetime, _info):
+        """
+        On JSON serialization, the timestamp is always numeric.
+        """
+        return timestamp.timestamp()
+
+    @field_validator("timestamp", mode="before")
+    @classmethod
+    def validate_timestamp(cls, v: Any) -> datetime:
+        """
+        Convert a timestamp back to a native Python datetime object.
+        """
+        if type(v) is datetime:
+            return v
+
+        if type(v) is str:
+            try:
+                return datetime.utcfromtimestamp(float(v))
+            except Exception as e:
+                raise ValueError(
+                    f"Assumed string timestamp conversion of {v} failed."
+                ) from e
+
+        if type(v) is float:
+            try:
+                return datetime.utcfromtimestamp(v)
+            except Exception as e:
+                raise ValueError(
+                    f"Attempted timestamp conversion of {v} failed."
+                ) from e
+
+        raise ValueError("Unexpected type for timestamp")
+
+    @field_serializer("digest", when_used="json-unless-none")
+    @classmethod
+    def serialize_digest(cls, digest: bytes, _info):
+        """
+        On JSON serialization, the digest is base64.
+        """
+        return b64encode(digest).decode("utf-8")
+
+    @field_validator("digest", mode="before")
+    @classmethod
+    def validate_digest(cls, v: Any) -> bytes:
+        """
+        On validation, the digest should be bytes. If it's a string,
+        assume it's base64.
+        """
+        if type(v) is str:
+            return b64decode(v)
+
+        if type(v) is bytes:
+            return v
+
+        raise ValueError("Unexpected type for digest")
 
 
-class ProtocolBase(BaseModel, abc.ABC):
+class ProtocolConfig(BaseModel, abc.ABC):
+
+    @property
+    @abc.abstractmethod
+    def section_name(self) -> str:
+        """
+        The configuration "section" used in configuration files.
+
+        This MUST be the same as the module name.
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def dir_attrs(self) -> list[str]:
+        """
+        A list of attributes that represent directories that need to be created
+        at runtime.
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def checkin_interval_name(self) -> str:
+        """
+        The config key/attribute that contains the checkin interval for this
+        protocol.
+        """
+        pass
+
+    def get_checkin_interval(self) -> int:
+        """
+        The checkin interval for this protocol.
+        """
+        return getattr(self, self.checkin_interval_name)
+
+    def create_dirs(self) -> None:
+        """
+        Create any associated directories.
+        """
+        for field in self.dir_attrs:
+            getattr(self, field).resolve().mkdir(exist_ok=True, parents=True)
+
+    @classmethod
+    def from_cfg_parser(cls, cfg_parser: configparser.ConfigParser) -> "ProtocolConfig":
+        # Property, always returning string.
+        cfg_obj = cls.model_validate(cfg_parser[cls.section_name])  # type: ignore[index]
+        cfg_obj.create_dirs()
+        return cfg_obj
+
+
+class ProtocolArgumentParser(ArgumentParser, abc.ABC):
+    @classmethod
+    def from_config_obj(cls, config: ProtocolConfig) -> "ProtocolArgumentParser":
+        """
+        Generate an argument parser from a ProtocolConfig object, setting
+        the values from the ProtocolConfig object.
+        """
+        arg_obj = cls()
+        if not arg_obj.parse_arguments(config.model_dump()):
+            raise ValueError(f"{config} did not fill the required arguments for {cls}")
+
+        return arg_obj
+
+
+class ProtocolBase(abc.ABC):
     """
     Abstract base class representing the standard definition of a protocol
     for Python-based agents.
@@ -124,7 +254,7 @@ class ProtocolBase(BaseModel, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def protocol_name(self) -> str:
+    def name(self) -> str:
         """
         The internal protocol name displayed to users and used in internal
         messaging.
@@ -151,8 +281,47 @@ class ProtocolBase(BaseModel, abc.ABC):
         """
         pass
 
+    @property
     @abc.abstractmethod
-    def send_msg(self, msg: bytes, **kwargs) -> bytes:
+    def config_parser(self) -> Type[ArgumentParser]:
+        """
+        The configuration (argument) parser for this protocol.
+
+        ---
+
+        The reasoning for reusing ArgumentParser:
+
+        At the end of the day, we could implement configuration for each protocol
+        as a Pydantic model, a dataclass, and a bunch of other things that make
+        sense. But ArgumentParser gives us exactly what we want: a way to expose
+        configurable options for a particular protocol in a platform-independent
+        manner, while still allowing us to use a dictionary of arguments if we
+        really want to.
+
+        At the same time, though, we'd still like to leverage Pydantic models for
+        configuration, just as we are for the control unit. This is a decent
+        compromise between the two,
+
+        I don't really think this is the right way to do this, but let's just try
+        it for now and see how it goes. There's plenty of arguments to be made,
+        and I don't really know what's the best way to do this.
+
+        ```py
+        @abc.abstractmethod
+        def send_msg(cls, msg, **kwargs) -> bytes:
+            pass
+
+        def send_msg(cls, msg, arg_1, arg_2, arg_3) -> bytes:
+            pass
+        ```
+
+        but that violates LSP.
+        """
+        pass
+
+    @classmethod
+    @abc.abstractmethod
+    def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> bytes:
         """
         Send an arbitrary binary message.
 
@@ -170,53 +339,88 @@ class ProtocolBase(BaseModel, abc.ABC):
 
         :param msg: The binary message to send.
         """
-        # TODO: does this actually work with Celery tasking?
         pass
 
+    @classmethod
     @abc.abstractmethod
-    def check_for_msg(self, **kwargs) -> bytes:
+    def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
         """
-        Retrieve the least recent message that has yet to be retrieved.
+        Retrieve all new messages that have yet to be retrieved.
 
-        Each time this message is called, either an empty bytestring is returned,
-        or the next available message is retrieved. The process of reconstructing
-        messages, if needed, is handled opaquely.
+        This function should make a best-effort attempt at ensuring that messages
+        that have already been retrieved in the past are not retrieved again.
+        However, it is up to the server or agent to ensure that it is not
+        acting on duplicated messages, since a message may have been sent over
+        more than one protocol.
+
+        Diagnostic data as a result of retrieving the messages should be logged;
+        it is not returned as part of the return value.
 
         If additional arguments are required for this to operate, such as the
         credentials needed to log onto an account or a shared meeting, they
-        may be passed as keyword arguments.
+        may be passed as either a configuration object or keyword arguments.
 
         This function may raise exceptions, such as if a service is inaccessible.
         """
-        # TODO: does this actually work with Celery tasking?
         pass
 
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Return this protocol's metadata as a dictionary.
 
-def export_all_protocols() -> dict[str, Type[ProtocolBase]]:
+        Note that for compatibility purposes, ensure that the resulting dictionary
+        is completely JSON serializable.
+        """
+        return {
+            "name": self.name,
+            "description": self.description,
+            "version": self.version,
+            "arguments": self.config_parser().model_dump()["arguments"],
+        }
+
+
+def export_all_protocols() -> list[Type[ProtocolBase]]:
     """
-    Return a dictionary of available protocols.
+    Return a list of visible protocol classes.
 
-    The keys are the `protocol_name` attribute of each protocol found;
-    the values are the literal class definitions for each protocol.
+    The protocol lookup occurs by inspecting all available subclasses of ProtocolBase
+    when this function is executed.
 
-    The protocol lookup occurs by inspecting all available subclasses of
-    ProtocolBase when this function is executed.
+    Note that "visible" means that the associated subclasses of ProtocolBase must
+    already have been imported. If you implement a script to generate the command JSONs,
+    you will need to import the commands ahead of time.
     """
-    raise NotImplementedError
+    return ProtocolBase.__subclasses__()
 
 
-def get_protocol_by_name(protocol_name: str) -> Type[ProtocolBase]:
+def export_all_protocol_configs() -> list[Type[ProtocolConfig]]:
     """
-    Search for a protocol by name.
+    Return a list of visible protocol configuration objects.
 
-    If not found, raises RuntimeError.
+    Refer to export_all_protocols() above.
     """
-    raise NotImplementedError
+    return ProtocolConfig.__subclasses__()
 
 
-def export_protocols_as_json():
+def get_protocols_as_dict() -> dict[str, Type[ProtocolBase]]:
+    """
+    Return a dictionary of commands, suitable for lookup.
+
+    The keys are the `name` attribute of each command found; the values are the
+    literal types for each command (a subclass of CommandBase).
+    """
+    # mypy doesn't handle properties well; this works in practice, and the type
+    # of cmd.name is *always* str
+    return {proto.name: proto for proto in export_all_protocols()}  # type: ignore[misc]
+
+
+def export_protocols_as_json(protocol_classes: list[Type[ProtocolBase]], **kwargs):
     """
     Return a nicely formatted string containing all command information,
     suitable for presentation in the DeadDrop interface.
     """
-    pass
+    json_objs: list[dict[str, Any]] = []
+    for command_class in protocol_classes:
+        json_objs.append(command_class().to_dict())
+
+    return json.dumps(json_objs, **kwargs)

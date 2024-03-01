@@ -2,12 +2,8 @@
 Shared library for all protocol-related objects for Pygin.
 """
 
-from base64 import b64decode, b64encode
-from datetime import datetime
 from typing import ClassVar
-import binascii
 
-from pydantic import field_serializer, field_validator
 import redis
 
 from src.libs.protocol_lib import DeadDropMessage
@@ -20,44 +16,19 @@ class PyginMessage(DeadDropMessage):
 
     It should be equivalent to `AgentMessage` in purpose and implementation
     when compared to the prototype agent.
+
+    TODO: Do we actually still need this? It's no longer the case that single
+    messages are stored in the Redis database, the expectation is now that we
+    keep track of multiple...
     """
 
     # The prefix used when using this class to directly add itself to a Redis
     # instance. Guarantees all keys with this prefix are representative of a
     # particular message.
+    #
+    # The default is "agent-msg-parsed-", but may be changed at runtime. The intent
+    # is that this should be changed by the Celery tasking module if needed.
     REDIS_KEY_PREFIX: ClassVar[str] = "agent-msg-parsed-"
-
-    @field_validator("data", mode="before")
-    @classmethod
-    def validate_data(cls, v: str | bytes):
-        """
-        Before validation, assume that incoming string data is base64-encoded;
-        decode it if so.
-
-        If the incoming data is `bytes`, keep it exactly as is.
-        """
-        if isinstance(v, str):
-            try:
-                v = b64decode(v, validate=True)
-            except binascii.Error:
-                pass
-
-        return v
-
-    @field_serializer("data", when_used="json-unless-none")
-    def serialize_data(self, data: bytes, _info):
-        """
-        On JSON serialization, the data field is always a base64-encoded message.
-        In all other cases, it is kept as `bytes`.
-        """
-        return b64encode(data).decode()
-
-    @field_serializer("timestamp", when_used="json-unless-none")
-    def serialize_timestamp(self, timestamp: datetime, _info):
-        """
-        On JSON serialization, the timestamp is always numeric.
-        """
-        return timestamp.timestamp()
 
     def get_redis_key(self) -> str:
         """
