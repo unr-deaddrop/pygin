@@ -41,30 +41,32 @@ app.user_options["preload"].add(  # type: ignore[attr-defined]
 )
 app.conf.enable_utc = False
 app.conf.accept_content = ("pickle", "json")
+app.conf.task_serializer = "pickle"
+app.conf.result_serializer = "pickle"
 
 # Global configuration object that can be used by tasks. Set once, read-only.
 # Do NOT use this variable outside of this module.
 _g_config: config.PyginConfig = None
 
 
-@signals.user_preload_options.connect
-def on_preload_parsed(options, **kwargs):
-    """
-    Set the task-wide configuration object by loading it from the configuration
-    file specified when Celery was invoked.
+# @signals.user_preload_options.connect
+# def on_preload_parsed(options, **kwargs):
+#     """
+#     Set the task-wide configuration object by loading it from the configuration
+#     file specified when Celery was invoked.
 
-    The expectation is that Celery is invoked with something like the following:
-    ```sh
-    celery ... --config=./agent.cfg
-    ```
-    """
-    global _g_config
-    _g_config = config.PyginConfig.from_cfg_file(options["config"])
+#     The expectation is that Celery is invoked with something like the following:
+#     ```sh
+#     celery ... --config=./agent.cfg
+#     ```
+#     """
+#     global _g_config
+#     _g_config = config.PyginConfig.from_cfg_file(options["config"])
 
-    # Set the default Redis key for PyginMessage. It's assumed that this is
-    # synchronized with the "main thread", which will be using this prefix to
-    # discover any messages stored in the Redis database.
-    PyginMessage.REDIS_KEY_PREFIX = _g_config.REDIS_INTERNAL_MSG_PREFIX
+#     # Set the default Redis key for PyginMessage. It's assumed that this is
+#     # synchronized with the "main thread", which will be using this prefix to
+#     # discover any messages stored in the Redis database.
+#     # PyginMessage.REDIS_KEY_PREFIX = _g_config.REDIS_INTERNAL_MSG_PREFIX
 
 
 @app.on_after_configure.connect
@@ -87,8 +89,16 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
       doesn't strictly depend on the main process being alive (though it *can*
       report that the main process is dead).
     """
+    # TODO: Can't figure out how to pass the name of the config file in
+    # at runtime
+    _g_config = config.PyginConfig.from_cfg_file("./agent.cfg")
+
     # Schedule checkins for each configured protocol.
     for protocol_name, protocol_cfg in _g_config.protocol_configuration.items():
+        if protocol_name not in _g_config.INCOMING_PROTOCOLS:
+            logger.info(f"Skipping {protocol_name} from checkins")
+            continue
+
         proto_interval = protocol_cfg.get_checkin_interval()
         logger.info(
             f"Setting up check-ins every {proto_interval} seconds for {protocol_name}"
@@ -121,7 +131,11 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 # See https://docs.celeryq.dev/en/stable/userguide/tasks.html#bound-tasks
 # for more information on bound tasks. This is used to retrieve our own
 # task ID.
-@app.task(bind=True, serializer="pickle")
+#
+# The soft time limit raises an exception in the task when the time limit
+# is hit. This is an effort to avoid runaway tasks; note that the default
+# number of retries is 3.
+@app.task(bind=True, serializer="pickle", soft_time_limit=4)
 def get_new_msgs(
     self: Task, cfg: config.PyginConfig, protocol_name: str, drop_seen_msgs: bool
 ) -> list[PyginMessage]:
@@ -161,6 +175,7 @@ def get_new_msgs(
     # mypy complains that self.request.id could be None, which it won't be
     # inside a task.
     redis_con.sadd(cfg.REDIS_NEW_MESSAGES_KEY, self.request.id)  # type: ignore[arg-type]
+    logger.warning(redis_con.smembers(cfg.REDIS_NEW_MESSAGES_KEY))
 
     return result
 
@@ -177,7 +192,7 @@ def send_msg(
         information from the service used for the protocol.
     """
     # Delegate to the message dispatching module.
-    raise NotImplementedError
+    return message_dispatch.send_message(msg, protocol_name, cfg)
 
 
 @app.task(serializer="pickle")

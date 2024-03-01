@@ -100,12 +100,12 @@ class DeadDropMessage(BaseModel, abc.ABC):
     # to a random value (i.e. uuidv4).
     message_id: uuid.UUID = Field(default_factory=uuid.uuid4)
 
-    # The user this message is associated with. May be empty (such as with logs
-    # that are not tied to a user).
-    user_id: uuid.UUID
+    # The user this message is associated with. May be null if not associated
+    # with a user.
+    user_id: uuid.UUID = Field(default_factory=lambda: uuid.UUID(int=0))
 
-    # The agent or server ID.
-    source_id: uuid.UUID
+    # The agent ID, or null if sent by the server.
+    source_id: uuid.UUID = Field(default_factory=lambda: uuid.UUID(int=0))
 
     # The timestamp that this message was created. Assume UTC.
     timestamp: datetime = Field(default_factory=datetime.utcnow)
@@ -167,11 +167,14 @@ class DeadDropMessage(BaseModel, abc.ABC):
 
     @field_validator("digest", mode="before")
     @classmethod
-    def validate_digest(cls, v: Any) -> bytes:
+    def validate_digest(cls, v: Any) -> bytes | None:
         """
         On validation, the digest should be bytes. If it's a string,
         assume it's base64.
         """
+        if v is None:
+            return None
+
         if type(v) is str:
             return b64decode(v)
 
@@ -182,7 +185,6 @@ class DeadDropMessage(BaseModel, abc.ABC):
 
 
 class ProtocolConfig(BaseModel, abc.ABC):
-
     @property
     @abc.abstractmethod
     def section_name(self) -> str:
@@ -227,7 +229,12 @@ class ProtocolConfig(BaseModel, abc.ABC):
     @classmethod
     def from_cfg_parser(cls, cfg_parser: configparser.ConfigParser) -> "ProtocolConfig":
         # Property, always returning string.
-        cfg_obj = cls.model_validate(cfg_parser[cls.section_name])  # type: ignore[index]
+        try:
+            cfg_obj = cls.model_validate(cfg_parser[cls.section_name])  # type: ignore[index]
+        except KeyError as e:
+            raise RuntimeError(
+                f"Missing configuration section for protocol {cls.section_name}, is it defined?"
+            ) from e
         cfg_obj.create_dirs()
         return cfg_obj
 
@@ -321,7 +328,7 @@ class ProtocolBase(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> bytes:
+    def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:
         """
         Send an arbitrary binary message.
 
@@ -333,7 +340,7 @@ class ProtocolBase(abc.ABC):
 
         This function may raise exceptions.
 
-        The return value of this function is always bytes, but the underlying
+        The return value of this function is always a dict, but the underlying
         structure may be anything; it is up to the agent core to decide how to
         handle the responses of a particular protocol implementation.
 
@@ -412,6 +419,18 @@ def get_protocols_as_dict() -> dict[str, Type[ProtocolBase]]:
     # mypy doesn't handle properties well; this works in practice, and the type
     # of cmd.name is *always* str
     return {proto.name: proto for proto in export_all_protocols()}  # type: ignore[misc]
+
+
+def lookup_protocol(protocol_name: str) -> Type[ProtocolBase]:
+    """
+    Search for a provided protocol.
+    """
+    try:
+        return get_protocols_as_dict()[protocol_name]
+    except KeyError:
+        raise RuntimeError(
+            f"Failed to find protocol {protocol_name}, either it doesn't exist or it isn't visible"
+        )
 
 
 def export_protocols_as_json(protocol_classes: list[Type[ProtocolBase]], **kwargs):
