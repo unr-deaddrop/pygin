@@ -34,44 +34,17 @@ logger = get_task_logger(__name__)
 app = Celery(
     "tasks", backend="redis://localhost:6379/0", broker="redis://localhost:6379/0"
 )
-# user_options is guaranteed to exist by Celery's documentation, but mypy can't find it
-app.user_options["preload"].add(  # type: ignore[attr-defined]
-    click.Option(
-        ("-c", "--config"),
-        type=click.Path(exists=True),
-        help="Configuration file to use.",
-    )
-)
+
 app.conf.enable_utc = False
 app.conf.accept_content = ("pickle", "json")
 app.conf.task_serializer = "pickle"
 app.conf.result_serializer = "pickle"
 
-# Global configuration object that can be used by tasks. Set once, read-only.
-# Do NOT use this variable outside of this module.
-# _g_config: config.PyginConfig = None
-
-# TODO: It seems that changes that occur here aren't visible to Celery beat
-# for whatever reason, we'll have to fix this.
-# @signals.user_preload_options.connect
-# def on_preload_parsed(options, **kwargs):
-#     """
-#     Set the task-wide configuration object by loading it from the configuration
-#     file specified when Celery was invoked.
-
-#     The expectation is that Celery is invoked with something like the following:
-#     ```sh
-#     celery ... --config=./agent.cfg
-#     ```
-#     """
-#     global _g_config
-#     _g_config = config.PyginConfig.from_cfg_file(options["config"])
-
-#     # Set the default Redis key for PyginMessage. It's assumed that this is
-#     # synchronized with the "main thread", which will be using this prefix to
-#     # discover any messages stored in the Redis database.
-#     # PyginMessage.REDIS_KEY_PREFIX = _g_config.REDIS_INTERNAL_MSG_PREFIX
-
+# Hardcoded configuration path. I was unable to get Celery's custom command-line
+# arguments to work, but I've decided that (theoretically) there should never
+# really be a need to hot-swap agent configurations anyways.
+# 
+CONFIG_PATH = Path('./agent.cfg')
 
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender: Celery, **kwargs):
@@ -95,7 +68,7 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
     """
     # TODO: Can't figure out how to pass the name of the config file in
     # at runtime
-    _g_config = config.PyginConfig.from_cfg_file(Path("./agent.cfg"))
+    _g_config = config.PyginConfig.from_cfg_file(CONFIG_PATH)
 
     # Schedule checkins for each configured protocol.
     for protocol_name, protocol_cfg in _g_config.protocol_configuration.items():
