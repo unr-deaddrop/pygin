@@ -13,7 +13,7 @@ from datetime import datetime
 import logging
 import sys
 
-from src.libs.protocol_lib import (
+from deaddrop_meta.protocol_lib import (
     DeadDropMessage,
     DeadDropMessageType,
     ProtocolArgumentParser,

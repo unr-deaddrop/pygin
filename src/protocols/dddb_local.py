@@ -12,8 +12,8 @@ from typing import Type, Any, ClassVar
 
 from tempfile import NamedTemporaryFile
 
-from src.libs.argument_lib import Argument, ArgumentType, DefaultParsers
-from src.libs.protocol_lib import (
+from deaddrop_meta.argument_lib import Argument, ArgumentType, DefaultParsers
+from deaddrop_meta.protocol_lib import (
     ProtocolBase,
     ProtocolConfig,
     ProtocolArgumentParser,

@@ -16,7 +16,7 @@ from pydantic import BaseModel, field_validator
 # Intentional star import, with the goal of getting all of the protocol
 # configuration objects available.
 from src.protocols import *  # noqa: F403, F401
-from src.libs.protocol_lib import ProtocolConfig, export_all_protocol_configs
+from deaddrop_meta.protocol_lib import ProtocolConfig, export_all_protocol_configs
 
 
 class PyginConfig(BaseModel):

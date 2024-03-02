@@ -6,7 +6,7 @@ from typing import ClassVar
 
 import redis
 
-from src.libs.protocol_lib import DeadDropMessage
+from deaddrop_meta.protocol_lib import DeadDropMessage
 
 
 class PyginMessage(DeadDropMessage):

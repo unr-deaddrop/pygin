@@ -10,7 +10,7 @@ from celery.utils.log import get_task_logger
 import redis
 
 from src.agent_code import config, message_dispatch, command_dispatch, utility
-from src.libs.protocol_lib import DeadDropMessage
+from deaddrop_meta.protocol_lib import DeadDropMessage
 
 # from src.protocols._shared_lib import PyginMessage
 

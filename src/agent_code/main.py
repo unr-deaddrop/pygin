@@ -18,7 +18,7 @@ import redis
 # from celery.result import AsyncResult
 
 from src.agent_code import config, utility, tasks
-from src.libs.protocol_lib import DeadDropMessageType, DeadDropMessage
+from deaddrop_meta.protocol_lib import DeadDropMessageType, DeadDropMessage
 
 # Default configuration path. This is the configuration file included with the
 # agent by default.
@@ -282,6 +282,7 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
         except redis.ConnectionError:
             logger.error("The Redis server is unreachable, waiting and retrying")
             time.sleep(5)
+            continue
 
         # See the configuration files for more details on why this exists.
         time.sleep(cfg_obj.CONTROL_UNIT_THROTTLE_TIME)

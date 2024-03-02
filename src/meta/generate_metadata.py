@@ -23,7 +23,7 @@ import sys
 # being imported.
 from src.protocols import *  # noqa: F403, F401
 from src.commands import *  # noqa: F403, F401
-from src.libs import protocol_lib, command_lib
+from deaddrop_meta import protocol_lib, command_lib
 from src.meta import agent
 
 # Set up logging
