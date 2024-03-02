@@ -43,10 +43,11 @@ CMD_ARGS: dict[str, Any] = {
 }
 
 # currently either plaintext_tcp or plaintext_local
-SELECTED_PROTOCOL = 'plaintext_tcp'
+SELECTED_PROTOCOL = "plaintext_tcp"
+
 
 @dataclass
-class ProtocolEntrypoints():
+class ProtocolEntrypoints:
     send_msg: Callable[[DeadDropMessage, PyginConfig], None]
     recv_msg: Callable[[PyginConfig], list[DeadDropMessage]]
 
@@ -60,6 +61,7 @@ def switch_inbox_outbox(cfg: PyginConfig) -> None:
     protocol_cfg.PLAINTEXT_LOCAL_INBOX_DIR = protocol_cfg.PLAINTEXT_LOCAL_OUTBOX_DIR
     protocol_cfg.PLAINTEXT_LOCAL_OUTBOX_DIR = temp
 
+
 def set_ports(cfg: PyginConfig, recv_port: int, send_port: int) -> None:
     """
     Set the receiving and sending ports for the plaintext_tcp configuration.
@@ -67,6 +69,7 @@ def set_ports(cfg: PyginConfig, recv_port: int, send_port: int) -> None:
     protocol_cfg: PlaintextTCPConfig = cfg.protocol_configuration["plaintext_tcp"]
     protocol_cfg.PLAINTEXT_TCP_RECV_PORT = recv_port
     protocol_cfg.PLAINTEXT_TCP_SEND_PORT = send_port
+
 
 def get_plaintext_local_args(cfg: PyginConfig) -> dict[str, Any]:
     """
@@ -83,6 +86,7 @@ def get_plaintext_local_args(cfg: PyginConfig) -> dict[str, Any]:
 
     return p.get_stored_args()
 
+
 def get_plaintext_tcp_args(cfg: PyginConfig) -> dict[str, Any]:
     """
     Get the arguments for the plaintext_tcp protocol. Like plaintext_tcp,
@@ -95,15 +99,18 @@ def get_plaintext_tcp_args(cfg: PyginConfig) -> dict[str, Any]:
 
     return p.get_stored_args()
 
+
 def send_over_plaintext_local(msg: DeadDropMessage, cfg: PyginConfig):
     args = get_plaintext_local_args(cfg)
     plaintext_local_protocol = get_protocols_as_dict()["plaintext_local"]
     plaintext_local_protocol.send_msg(msg, args)
 
+
 def receive_all_over_plaintext_local(cfg: PyginConfig) -> list[DeadDropMessage]:
     args = get_plaintext_local_args(cfg)
     plaintext_local_protocol = get_protocols_as_dict()["plaintext_local"]
     return plaintext_local_protocol.get_new_messages(args)
+
 
 def send_plaintext_entrypoint(msg: DeadDropMessage, cfg: PyginConfig):
     # Fire off message using Pygin's built-in protocol library, sending it
@@ -111,9 +118,11 @@ def send_plaintext_entrypoint(msg: DeadDropMessage, cfg: PyginConfig):
     # outbox to the inbox)
     switch_inbox_outbox(cfg)
     send_over_plaintext_local(msg, cfg)
-    
+
+
 def receive_plaintext_entrypoint(cfg: PyginConfig) -> list[DeadDropMessage]:
     return receive_all_over_plaintext_local(cfg)
+
 
 def send_tcp_entrypoint(msg: DeadDropMessage, cfg: PyginConfig):
     # Switch the ports that the agent uses. That is, if the agent sends messages
@@ -122,15 +131,19 @@ def send_tcp_entrypoint(msg: DeadDropMessage, cfg: PyginConfig):
     args = get_plaintext_tcp_args(cfg)
     plaintext_tcp_protocol = get_protocols_as_dict()["plaintext_tcp"]
     plaintext_tcp_protocol.send_msg(msg, args)
-    
+
+
 def receive_tcp_entrypoint(cfg: PyginConfig) -> list[DeadDropMessage]:
     args = get_plaintext_tcp_args(cfg)
     plaintext_local_protocol = get_protocols_as_dict()["plaintext_tcp"]
     return plaintext_local_protocol.get_new_messages(args)
 
+
 PROTOCOL_ENTRYPOINTS: dict[str, ProtocolEntrypoints] = {
-    'plaintext_local': ProtocolEntrypoints(send_plaintext_entrypoint, receive_plaintext_entrypoint),
-    'plaintext_tcp': ProtocolEntrypoints(send_tcp_entrypoint, receive_tcp_entrypoint)
+    "plaintext_local": ProtocolEntrypoints(
+        send_plaintext_entrypoint, receive_plaintext_entrypoint
+    ),
+    "plaintext_tcp": ProtocolEntrypoints(send_tcp_entrypoint, receive_tcp_entrypoint),
 }
 
 if __name__ == "__main__":
@@ -145,12 +158,12 @@ if __name__ == "__main__":
             "cmd_args": CMD_ARGS,
         },
     )
-    
+
     # Select protocol functions
     if SELECTED_PROTOCOL not in PROTOCOL_ENTRYPOINTS:
         raise RuntimeError(f"{SELECTED_PROTOCOL} not supported!")
     protocol = PROTOCOL_ENTRYPOINTS[SELECTED_PROTOCOL]
-    
+
     # Send message
     protocol.send_msg(msg, cfg)
 
@@ -158,12 +171,14 @@ if __name__ == "__main__":
     # response to our message (if multiple messages exist)
     while True:
         time.sleep(1)
-        
+
         logger.info("Waiting for response...")
         recv_msgs = protocol.recv_msg(cfg)
-        
-        logger.info(f"Got the following message ids back: {[msg.message_id for msg in recv_msgs]}")
-        
+
+        logger.info(
+            f"Got the following message ids back: {[msg.message_id for msg in recv_msgs]}"
+        )
+
         for recv_msg in recv_msgs:
             if "request_id" in recv_msg.payload and recv_msg.payload[
                 "request_id"
