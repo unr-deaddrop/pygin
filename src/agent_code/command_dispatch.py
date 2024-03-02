@@ -17,8 +17,8 @@ from typing import Any, Type
 # Make all commands visible. This is an intentional star-import so that
 # our helper functions work. Nothing from this module is actually used directly.
 from src.commands import *  # noqa: F403, F401
-from src.libs.argument_lib import ArgumentParser
-from src.libs.command_lib import get_commands_as_dict
+from deaddrop_meta.argument_lib import ArgumentParser
+from deaddrop_meta.command_lib import get_commands_as_dict
 
 
 def execute_command(cmd_name: str, args: dict[str, Any]) -> dict[str, Any]:

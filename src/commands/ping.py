@@ -8,8 +8,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from src.libs.argument_lib import DefaultParsers, ArgumentParser, ArgumentType, Argument
-from src.libs.command_lib import CommandBase, RendererBase
+from deaddrop_meta.argument_lib import DefaultParsers, ArgumentParser, ArgumentType, Argument
+from deaddrop_meta.command_lib import CommandBase, RendererBase
 
 
 class PingArguments(BaseModel):

@@ -23,8 +23,8 @@ import redis
 from src.protocols import *  # noqa: F401,F403
 
 from src.agent_code import config
-from src.libs import protocol_lib
-from src.libs.protocol_lib import DeadDropMessage
+from deaddrop_meta import protocol_lib
+from deaddrop_meta.protocol_lib import DeadDropMessage
 
 logger = logging.getLogger(__name__)
 
