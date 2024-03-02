@@ -1,3 +1,7 @@
+# Build/bundle outputs.
+pygin-build.zip
+build/
+
 # Don't commit the agent metadata files. These change frequently and should
 # always be genarated on demand.
 agent.json

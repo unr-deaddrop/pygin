@@ -1,3 +1,4 @@
+#!/bin/sh
 # This script is the standard entrypoint for the package manager to generate
 # the three agent metadata files: agent.json, commands.json, and protocols.json.
 # 
