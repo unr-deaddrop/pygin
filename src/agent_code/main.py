@@ -122,6 +122,7 @@ def get_new_msgs(
     # a periodic task completed in between the time SMEMBERS and DELETE was
     # called.
     if task_ids:
+        logger.debug(f"Got {len(task_ids)} tasks, deleting keys from inbox")
         redis_con.srem(cfg_obj.REDIS_NEW_MESSAGES_KEY, *task_ids)
 
     # For each of those, reconstruct the associated AsyncResult and add

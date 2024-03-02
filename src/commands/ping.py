@@ -8,7 +8,12 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from deaddrop_meta.argument_lib import DefaultParsers, ArgumentParser, ArgumentType, Argument
+from deaddrop_meta.argument_lib import (
+    DefaultParsers,
+    ArgumentParser,
+    ArgumentType,
+    Argument,
+)
 from deaddrop_meta.command_lib import CommandBase, RendererBase
 
 
