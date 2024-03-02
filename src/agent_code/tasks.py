@@ -112,7 +112,9 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 # The soft time limit raises an exception in the task when the time limit
 # is hit. This is an effort to avoid runaway tasks; note that the default
 # number of retries is 3.
-@app.task(bind=True, serializer="pickle", soft_time_limit=4)
+#
+# TODO: shouldn't the time limit be documented somewhere? lol
+@app.task(bind=True, serializer="pickle", soft_time_limit=60)
 def get_new_msgs(
     self: Task, cfg: config.PyginConfig, protocol_name: str, drop_seen_msgs: bool
 ) -> list[DeadDropMessage]:

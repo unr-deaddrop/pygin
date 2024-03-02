@@ -2,15 +2,16 @@
 Simple server that adheres to the DeadDrop protocol and can be used to
 manually send messages to the agent.
 
-This is currently hardcoded for Pygin's plaintext-local protocol, since it's
+This is currently hardcoded for Pygin's local protocols, since it's
 reliable and won't randomly explode (and won't cause any ToS violations).
 """
 
-from pathlib import Path
-from typing import Type, Any
-import time
 from datetime import datetime
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Type, Any, Callable
 import logging
+import time
 import sys
 
 from deaddrop_meta.protocol_lib import (
@@ -24,6 +25,7 @@ from src.agent_code.config import PyginConfig
 # Make all protocols visible so that PyginConfig works correctly
 from src.protocols import *
 from src.protocols.plaintext_local import PlaintextLocalConfig
+from src.protocols.plaintext_tcp import PlaintextTCPConfig
 
 logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
@@ -33,51 +35,103 @@ logging.basicConfig(
 )
 logger = logging.getLogger()
 
-# The command to issue
+# The command to issue (this is protocol independent)
 CMD_NAME: str = "ping"
 CMD_ARGS: dict[str, Any] = {
     "message": "test",
     "ping_timestamp": datetime.utcnow().timestamp(),
 }
 
+# currently either plaintext_tcp or plaintext_local
+SELECTED_PROTOCOL = 'plaintext_tcp'
+
+@dataclass
+class ProtocolEntrypoints():
+    send_msg: Callable[[DeadDropMessage, PyginConfig], None]
+    recv_msg: Callable[[PyginConfig], list[DeadDropMessage]]
+
 
 def switch_inbox_outbox(cfg: PyginConfig) -> None:
     """
-    Switch the inbox and outbox fields for the dddb_local configuration.
+    Switch the inbox and outbox fields for the plaintext_local configuration.
     """
     protocol_cfg: PlaintextLocalConfig = cfg.protocol_configuration["plaintext_local"]
     temp = protocol_cfg.PLAINTEXT_LOCAL_INBOX_DIR
     protocol_cfg.PLAINTEXT_LOCAL_INBOX_DIR = protocol_cfg.PLAINTEXT_LOCAL_OUTBOX_DIR
     protocol_cfg.PLAINTEXT_LOCAL_OUTBOX_DIR = temp
 
+def set_ports(cfg: PyginConfig, recv_port: int, send_port: int) -> None:
+    """
+    Set the receiving and sending ports for the plaintext_tcp configuration.
+    """
+    protocol_cfg: PlaintextTCPConfig = cfg.protocol_configuration["plaintext_tcp"]
+    protocol_cfg.PLAINTEXT_TCP_RECV_PORT = recv_port
+    protocol_cfg.PLAINTEXT_TCP_SEND_PORT = send_port
 
 def get_plaintext_local_args(cfg: PyginConfig) -> dict[str, Any]:
     """
-    Get the arguments for the dddb_local protocol. dddb_local operates
+    Get the arguments for the plaintext_tcp protocol. plaintext_tcp operates
     entirely on the configuration and doesn't (shouldn't) require any
     additional information, at least for right now.
 
     Note this doesn't switch the inbox/outbox for the protocol, since doing
     it twice will just revert the operation!
     """
-    dddb_local_protocol = get_protocols_as_dict()["plaintext_local"]
-    argparser: Type[ProtocolArgumentParser] = dddb_local_protocol.config_parser
+    plaintext_local_protocol = get_protocols_as_dict()["plaintext_local"]
+    argparser: Type[ProtocolArgumentParser] = plaintext_local_protocol.config_parser
     p = argparser.from_config_obj(cfg.protocol_configuration["plaintext_local"])
 
     return p.get_stored_args()
 
+def get_plaintext_tcp_args(cfg: PyginConfig) -> dict[str, Any]:
+    """
+    Get the arguments for the plaintext_tcp protocol. Like plaintext_tcp,
+    there's no extra argument processing needed, so it's sufficient to just shove
+    everything through the config parser and call it a day.
+    """
+    plaintext_tcp_protocol = get_protocols_as_dict()["plaintext_tcp"]
+    argparser: Type[ProtocolArgumentParser] = plaintext_tcp_protocol.config_parser
+    p = argparser.from_config_obj(cfg.protocol_configuration["plaintext_tcp"])
+
+    return p.get_stored_args()
 
 def send_over_plaintext_local(msg: DeadDropMessage, cfg: PyginConfig):
     args = get_plaintext_local_args(cfg)
     plaintext_local_protocol = get_protocols_as_dict()["plaintext_local"]
     plaintext_local_protocol.send_msg(msg, args)
 
-
 def receive_all_over_plaintext_local(cfg: PyginConfig) -> list[DeadDropMessage]:
     args = get_plaintext_local_args(cfg)
     plaintext_local_protocol = get_protocols_as_dict()["plaintext_local"]
     return plaintext_local_protocol.get_new_messages(args)
 
+def send_plaintext_entrypoint(msg: DeadDropMessage, cfg: PyginConfig):
+    # Fire off message using Pygin's built-in protocol library, sending it
+    # to the inbox as defined by the dddb protocol config (by setting the
+    # outbox to the inbox)
+    switch_inbox_outbox(cfg)
+    send_over_plaintext_local(msg, cfg)
+    
+def receive_plaintext_entrypoint(cfg: PyginConfig) -> list[DeadDropMessage]:
+    return receive_all_over_plaintext_local(cfg)
+
+def send_tcp_entrypoint(msg: DeadDropMessage, cfg: PyginConfig):
+    # Switch the ports that the agent uses. That is, if the agent sends messages
+    # on port 12345, we should be listening on port 12345.
+    set_ports(cfg, 12346, 12345)
+    args = get_plaintext_tcp_args(cfg)
+    plaintext_tcp_protocol = get_protocols_as_dict()["plaintext_tcp"]
+    plaintext_tcp_protocol.send_msg(msg, args)
+    
+def receive_tcp_entrypoint(cfg: PyginConfig) -> list[DeadDropMessage]:
+    args = get_plaintext_tcp_args(cfg)
+    plaintext_local_protocol = get_protocols_as_dict()["plaintext_tcp"]
+    return plaintext_local_protocol.get_new_messages(args)
+
+PROTOCOL_ENTRYPOINTS: dict[str, ProtocolEntrypoints] = {
+    'plaintext_local': ProtocolEntrypoints(send_plaintext_entrypoint, receive_plaintext_entrypoint),
+    'plaintext_tcp': ProtocolEntrypoints(send_tcp_entrypoint, receive_tcp_entrypoint)
+}
 
 if __name__ == "__main__":
     # Load configuration
@@ -91,24 +145,30 @@ if __name__ == "__main__":
             "cmd_args": CMD_ARGS,
         },
     )
+    
+    # Select protocol functions
+    if SELECTED_PROTOCOL not in PROTOCOL_ENTRYPOINTS:
+        raise RuntimeError(f"{SELECTED_PROTOCOL} not supported!")
+    protocol = PROTOCOL_ENTRYPOINTS[SELECTED_PROTOCOL]
+    
+    # Send message
+    protocol.send_msg(msg, cfg)
 
-    # Fire off message using Pygin's built-in protocol library, sending it
-    # to the inbox as defined by the dddb protocol config (by setting the
-    # outbox to the inbox)
-    switch_inbox_outbox(cfg)
-    send_over_plaintext_local(msg, cfg)
-
-    # Read back all messages from the outbox and select the response to
-    # our original message
+    # Read back all messages being sent by the server, then select just the
+    # response to our message (if multiple messages exist)
     while True:
         time.sleep(1)
-        logger.info("Checking for response in the agent's outbox")
-        recv_msgs = receive_all_over_plaintext_local(cfg)
+        
+        logger.info("Waiting for response...")
+        recv_msgs = protocol.recv_msg(cfg)
+        
+        logger.info(f"Got the following message ids back: {[msg.message_id for msg in recv_msgs]}")
+        
         for recv_msg in recv_msgs:
             if "request_id" in recv_msg.payload and recv_msg.payload[
                 "request_id"
             ] == str(msg.message_id):
-                logger.info(f"Got response: {recv_msg}")
+                logger.info(f"Got response to original message: {recv_msg}")
 
                 start_time = float(recv_msg.payload["result"]["ping_timestamp"])
                 end_time = float(recv_msg.payload["result"]["pong_timestamp"])
