@@ -34,7 +34,7 @@ app = Celery(
     # FIXME: When in a Docker container, the host "redis" should be used (the
     # name of the container/service). But normally, the host "localhost" should
     # be used.
-    # 
+    #
     # I don't know how to reconcile this; the simplest way would be to expose an
     # envvar, but surely there's a better way to deal with this?
     "tasks",

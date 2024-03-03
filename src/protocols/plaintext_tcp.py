@@ -34,7 +34,7 @@ class PlaintextTCPConfig(ProtocolConfig):
     PLAINTEXT_TCP_LISTEN_BIND_HOST: str
     PLAINTEXT_TCP_LISTEN_RECV_PORT: int
     PLAINTEXT_TCP_LISTEN_SEND_PORT: int
-    
+
     # Debug only
     PLAINTEXT_TCP_INITIATE_RECV_HOST: str
     PLAINTEXT_TCP_INITIATE_RECV_PORT: int
@@ -210,7 +210,7 @@ class PlaintextTCPProtocol(ProtocolBase):
             # of time
             s.settimeout(local_cfg.PLAINTEXT_TCP_LISTEN_TIMEOUT)
             logger.debug(f"Binding to {host}:{port} to receive new messages")
-            
+
             try:
                 s.bind((host, port))
                 s.listen()
@@ -219,9 +219,11 @@ class PlaintextTCPProtocol(ProtocolBase):
                 if e.errno != errno.EADDRINUSE:
                     raise e
                 else:
-                    logger.debug(f"{host}:{port} is not yet ready for listening, returning nothing")
+                    logger.debug(
+                        f"{host}:{port} is not yet ready for listening, returning nothing"
+                    )
                     return []
-            
+
             while True:
                 # Accept connections
                 try:
@@ -386,12 +388,12 @@ class PlaintextTCPProtocol(ProtocolBase):
     def recv_msg_by_initiating(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
         """
         Unused routine to receive messages by initiating.
-        
+
         This connects to the target host and port repeatedly until it is no
         longer reachable, at which point it is assumed that all messages
         have been received.
-        
-        By default, this uses the same arguments as are used for 
+
+        By default, this uses the same arguments as are used for
         `send_msg_by_listening`.
         """
         # Since we don't use any arguments besides those in the configuration
@@ -408,7 +410,7 @@ class PlaintextTCPProtocol(ProtocolBase):
             # as many examples using it so I'm avoiding it
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.settimeout(local_cfg.PLAINTEXT_TCP_LISTEN_TIMEOUT)
-            
+
             while True:
                 try:
                     s.connect((host, port))
@@ -421,8 +423,12 @@ class PlaintextTCPProtocol(ProtocolBase):
                             break
                         data += new_data
                     logger.debug(f"Got {len(data)} bytes from connection")
-                except (TimeoutError, OSError):
-                    logger.info(f"Connection failed - assuming no more messages are ready")
+                except (TimeoutError, OSError):  # noqa: B014
+                    # TimeoutError is a subclass of OSError, but I leave it here
+                    # for readability
+                    logger.info(
+                        "Connection failed - assuming no more messages are ready"
+                    )
                     break
 
                 if not data:
