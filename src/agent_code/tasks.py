@@ -31,7 +31,17 @@ logger = get_task_logger(__name__)
 #   the encryption system or gain access to the machine the agent is running on
 #   (in which case there's basically nothing we can really do right now).
 app = Celery(
-    "tasks", backend="redis://localhost:6379/0", broker="redis://localhost:6379/0"
+    # FIXME: When in a Docker container, the host "redis" should be used (the
+    # name of the container/service). But normally, the host "localhost" should
+    # be used.
+    # 
+    # I don't know how to reconcile this; the simplest way would be to expose an
+    # envvar, but surely there's a better way to deal with this?
+    "tasks",
+    # backend="redis://localhost:6379/0",
+    # broker="redis://localhost:6379/0",
+    backend="redis://redis:6379/0",
+    broker="redis://redis:6379/0",
 )
 
 app.conf.enable_utc = False

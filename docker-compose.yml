@@ -1,0 +1,44 @@
+# Note that this DOES NOT use supervisor for daemonization; rather, all services
+# run independently in the same host container. Taken in part from Han's
+# Dockerfile for the backend.
+version: '1'
+services:
+  redis:
+    image: redis:7.0.11-alpine
+
+  pygin:
+    container_name: pygin
+    build:
+      context: .
+    command: python3 -m src.agent_code.main
+    depends_on:
+      - celery_beat
+      - celery_worker
+      - redis
+
+  celery_beat:
+    container_name: celery_beat
+    build:
+      context: .
+    command: celery -A src.agent_code.tasks beat --loglevel=DEBUG
+    depends_on:
+      - redis
+
+  celery_worker:
+    container_name: celery_worker
+    build:
+      context: .
+    command: celery -A src.agent_code.tasks worker --loglevel=DEBUG
+    ports:
+      # These are the default ports used in TCP communication as defined in 
+      # agent.cfg. Note that we expose the *worker* container, not Pygin
+      # itself - any networking is done in a worker, since that's part
+      # of the send_msg task.
+      - "12345:12345"
+      - "12346:12346"
+    environment:
+      # Celery has protections against using the pickle serializer in an
+      # environment where it is run as root. This forces it to run anyways.
+      C_FORCE_ROOT: 1
+    depends_on:
+      - redis

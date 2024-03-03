@@ -1,5 +1,24 @@
 Pygin is the basic implementation of a DeadDrop agent. 
 
+## How to run
+In general, you'll need Redis and the Python dependencies on Python 3.11+.
+You can simply run `make deps` to try to install this for you. Then, run
+`make run` to use supervisor to launch all of the background processes as
+well as the agent.
+
+Once this is ready, you can use `mini_server.py` to send a test command
+to the agent.
+
+You may also use `docker compose up` to run Pygin in a container. Note that
+you'll need to make two changes:
+- In `src/agent_code/tasks.py`, change the redis URI from `redis://localhost:6379` to `redis://redis:6379`.
+- In `agent.cfg`, you must set `PLAINTEXT_TCP_USE_LISTENER_TO_SEND = True`, if it isn't already.
+
+One observed bug is that attempting to access a Pygin port, even when forwarded,
+may fail or do nothing. You may have to restart your machine; more likely than
+not, a different process is hanging onto port 12345, and it's not actually
+being forwarded.
+
 ## Assumptions
 
 Messages take the following format:
@@ -76,4 +95,4 @@ At the absolute highest level, Pygin is a collection of five things required to 
 
 Agents can be run "as-is" from this codebase with a fair degree of manual effort, but they can also be bundled using a Docker container if needed.
 
-When an agent is installed, you can run `insert-thing-here` to automatically generate the metadata.
+When an agent is installed, you can run `bundle.sh` to automatically generate the metadata.
