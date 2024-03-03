@@ -67,7 +67,7 @@ def set_ports(cfg: PyginConfig, recv_port: int, send_port: int) -> None:
     Set the receiving and sending ports for the plaintext_tcp configuration.
     """
     protocol_cfg: PlaintextTCPConfig = cfg.protocol_configuration["plaintext_tcp"]
-    protocol_cfg.PLAINTEXT_TCP_RECV_PORT = recv_port
+    protocol_cfg.PLAINTEXT_TCP_LISTEN_RECV_PORT = recv_port
     protocol_cfg.PLAINTEXT_TCP_SEND_PORT = send_port
 
 
@@ -125,18 +125,43 @@ def receive_plaintext_entrypoint(cfg: PyginConfig) -> list[DeadDropMessage]:
 
 
 def send_tcp_entrypoint(msg: DeadDropMessage, cfg: PyginConfig):
-    # Switch the ports that the agent uses. That is, if the agent sends messages
-    # on port 12345, we should be listening on port 12345.
-    set_ports(cfg, 12346, 12345)
+    # Make a deep copy of the agent's configuration model.
+    cfg = cfg.model_copy(deep=True)
+    protocol_cfg: PlaintextTCPConfig = cfg.protocol_configuration["plaintext_tcp"]
+    
+    # The agent always uses the listener to receive messages, so we send messages
+    # by instantiating a connection, using the specified receiver host/port
+    # as the send port.
+    protocol_cfg.PLAINTEXT_TCP_USE_LISTENER_TO_SEND = False
+    # Host is always localhost, whether it's Docker or not.
+    protocol_cfg.PLAINTEXT_TCP_INITIATE_SEND_HOST = "localhost"
+    protocol_cfg.PLAINTEXT_TCP_INITIATE_SEND_PORT = protocol_cfg.PLAINTEXT_TCP_LISTEN_RECV_PORT
     args = get_plaintext_tcp_args(cfg)
+    
     plaintext_tcp_protocol = get_protocols_as_dict()["plaintext_tcp"]
     plaintext_tcp_protocol.send_msg(msg, args)
 
 
 def receive_tcp_entrypoint(cfg: PyginConfig) -> list[DeadDropMessage]:
+    # Make a deep copy of the agent's configuration model.
+    cfg = cfg.model_copy(deep=True)
+    protocol_cfg: PlaintextTCPConfig = cfg.protocol_configuration["plaintext_tcp"]
+    plaintext_tcp_protocol = get_protocols_as_dict()["plaintext_tcp"]
+    
+    # If the agent has been configured to initiate connections to send messages, 
+    # we can use the built-in listener to get new messages. 
+    if not protocol_cfg.PLAINTEXT_TCP_USE_LISTENER_TO_SEND:
+        protocol_cfg.PLAINTEXT_TCP_LISTEN_BIND_HOST = protocol_cfg.PLAINTEXT_TCP_INITIATE_SEND_HOST
+        protocol_cfg.PLAINTEXT_TCP_LISTEN_RECV_PORT = protocol_cfg.PLAINTEXT_TCP_INITIATE_SEND_PORT
+        args = get_plaintext_tcp_args(cfg)
+        return plaintext_tcp_protocol.get_new_messages(args)    
+    
+    # If the agent has been configured to listen for connections before sending
+    # the connection a message, do this instead.
+    protocol_cfg.PLAINTEXT_TCP_INITIATE_RECV_HOST = protocol_cfg.PLAINTEXT_TCP_INITIATE_SEND_HOST
+    protocol_cfg.PLAINTEXT_TCP_INITIATE_RECV_PORT = protocol_cfg.PLAINTEXT_TCP_INITIATE_SEND_PORT
     args = get_plaintext_tcp_args(cfg)
-    plaintext_local_protocol = get_protocols_as_dict()["plaintext_tcp"]
-    return plaintext_local_protocol.get_new_messages(args)
+    return plaintext_tcp_protocol.recv_msg_by_initiating(args)
 
 
 PROTOCOL_ENTRYPOINTS: dict[str, ProtocolEntrypoints] = {
