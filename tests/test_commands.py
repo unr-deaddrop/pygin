@@ -14,6 +14,8 @@ from src.agent_code.command_dispatch import execute_command
 class TestClass:
     def test_ping(self):
         """
+        codeauthor:: Lloyd Gonzales <lgonzalesna@gmail.com>
+        
         Check that the ping command functions as expected.
         
         This tests the following requirements for the ping command:
