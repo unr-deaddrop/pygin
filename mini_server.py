@@ -9,6 +9,7 @@ reliable and won't randomly explode (and won't cause any ToS violations).
 from datetime import datetime
 from dataclasses import dataclass
 from pathlib import Path
+from pprint import pprint
 from typing import Type, Any, Callable
 import logging
 import time
@@ -36,11 +37,17 @@ logging.basicConfig(
 logger = logging.getLogger()
 
 # The command to issue (this is protocol independent)
-CMD_NAME: str = "ping"
+# CMD_NAME: str = "ping"
+# CMD_ARGS: dict[str, Any] = {
+#     "message": "test",
+#     "ping_timestamp": datetime.utcnow().timestamp(),
+# }
+CMD_NAME: str = "shell"
 CMD_ARGS: dict[str, Any] = {
-    "message": "test",
-    "ping_timestamp": datetime.utcnow().timestamp(),
+    "command": "cat Makefile",
+    "use_shell": True,
 }
+
 
 # currently either plaintext_tcp or plaintext_local
 SELECTED_PROTOCOL = "plaintext_tcp"
@@ -210,10 +217,13 @@ if __name__ == "__main__":
             ] == str(msg.message_id):
                 logger.info(f"Got response to original message: {recv_msg}")
 
-                start_time = float(recv_msg.payload["result"]["ping_timestamp"])
-                end_time = float(recv_msg.payload["result"]["pong_timestamp"])
-                return_time = datetime.utcnow().timestamp()
-                logger.info(
-                    f"The ping time was {end_time-start_time:.2f} seconds to receive, {return_time-start_time:.2f} seconds RTT"
-                )
+                # Only if ping was used
+                if CMD_NAME == "ping":
+                    start_time = float(recv_msg.payload["result"]["ping_timestamp"])
+                    end_time = float(recv_msg.payload["result"]["pong_timestamp"])
+                    return_time = datetime.utcnow().timestamp()
+                    logger.info(
+                        f"The ping time was {end_time-start_time:.2f} seconds to receive, {return_time-start_time:.2f} seconds RTT"
+                    )
+                
                 exit()
