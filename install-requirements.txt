@@ -1,0 +1,5 @@
+# Dependencies required for an install to function (i.e. the dependencies
+# for src.meta.generate_metadata). It is preferred that these do not
+# edit the server's environment, so no pegging is used here.
+pydantic
+deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@main
