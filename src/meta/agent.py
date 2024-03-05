@@ -4,9 +4,12 @@ Static metadata definitions for Pygin.
 
 from typing import Type
 
+from pydantic import BaseModel
+
 from deaddrop_meta.agent_lib import SupportedOSTypes, SupportedProtocols, AgentBase
 from deaddrop_meta.argument_lib import ArgumentParser, Argument, ArgumentType
 
+from src.agent_code.config import PyginConfig
 
 class PyginConfigParser(ArgumentParser):
     # In an ideal world, src.agent_code.config would be the one source of truth.
@@ -153,4 +156,4 @@ class PyginInfo(AgentBase):
         SupportedProtocols.DDDB_YOUTUBE,
         SupportedProtocols.PLAINTEXT_LOCAL,
     ]
-    config_parser: Type[ArgumentParser] = PyginConfigParser
+    config_model: Type[BaseModel] = PyginConfig

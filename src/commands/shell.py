@@ -10,14 +10,8 @@ import shlex
 import subprocess
 import traceback
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from deaddrop_meta.argument_lib import (
-    DefaultParsers,
-    ArgumentParser,
-    ArgumentType,
-    Argument,
-)
 from deaddrop_meta.command_lib import CommandBase, RendererBase
 
 logger = logging.getLogger(__name__)
@@ -28,43 +22,22 @@ class ShellArguments(BaseModel):
     Simple helper class used for holding arguments.
     """
 
-    command: str
-    use_shell: bool
-    timeout: Optional[int] = None
-
-
-class ShellArgumentParser(ArgumentParser):
-    """
-    Parser for the shell command.
-    """
-
-    arguments: list[Argument] = [
-        Argument(
-            arg_type=ArgumentType.STRING,
-            name="command",
-            description="The command to execute.",
-            required=True,
-            is_iterable=False,
-            _parser=DefaultParsers.parse_string,
-        ),
-        Argument(
-            arg_type=ArgumentType.BOOLEAN,
-            name="use_shell",
-            description="Whether to use `shell=True`. If True, this does not use `shlex.split()`.",
-            required=True,
-            is_iterable=False,
-            _parser=DefaultParsers.parse_float,
-        ),
-        Argument(
-            arg_type=ArgumentType.INTEGER,
-            name="timeout",
-            description="The timeout for the command; returns an empty result on failure.",
-            required=False,
-            is_iterable=False,
-            default=None,
-            _parser=DefaultParsers.parse_integer,
-        ),
-    ]
+    command: str = Field(
+        json_schema_extra = {
+            'description': "The command to execute."
+        }
+    )
+    use_shell: bool = Field(
+        json_schema_extra = {
+            'description': "Whether to use `shell=True`. If True, this does not use `shlex.split()`."
+        }
+    )
+    timeout: Optional[int] = Field(
+        default = None,
+        json_schema_extra = {
+            'description': "The timeout for the command; returns an empty result on failure."
+        }
+    )
 
 
 class ShellCommand(CommandBase):
@@ -104,7 +77,7 @@ class ShellCommand(CommandBase):
     name: str = "shell"
     description: str = __doc__
     version: str = "0.0.1"
-    argument_parser: Type[ArgumentParser] = ShellArgumentParser
+    argument_model: Type[BaseModel] = ShellArguments
 
     command_renderer: Optional[Type[RendererBase]] = None
 

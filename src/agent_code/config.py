@@ -7,11 +7,12 @@ startup and remains constant throughout the lifetime of the agent.
 
 from base64 import b64decode
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 import configparser
 import uuid
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
+from pydantic.json_schema import SkipJsonSchema
 
 # Intentional star import, with the goal of getting all of the protocol
 # configuration objects available.
@@ -29,36 +30,122 @@ class PyginConfig(BaseModel):
 
     # Strictly speaking, these aren't constants and therefore shouldn't be in
     # all caps, but that's the intent.
-    AGENT_ID: uuid.UUID
+    AGENT_ID: uuid.UUID = Field(
+        json_schema_extra={
+            "description": "The agent's UUID."
+        }
+    )
 
-    CONTROL_UNIT_THROTTLE_TIME: float
+    CONTROL_UNIT_THROTTLE_TIME: float = Field(
+        default=2,
+        json_schema_extra={
+            "description": "The time, in seconds, the control unit should sleep on each cycle."
+        }
+    )
 
-    AGENT_PRIVATE_KEY_PATH: Path
-    SERVER_PUBLIC_KEY_PATH: Path
+    AGENT_PRIVATE_KEY_PATH: Optional[Path] = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
+    SERVER_PUBLIC_KEY_PATH: Optional[Path] = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
 
-    ENCRYPTION_KEY: bytes
+    ENCRYPTION_KEY: bytes = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
 
-    INCOMING_PROTOCOLS: list[str]
+    INCOMING_PROTOCOLS: list[str] = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
 
-    HEARTBEAT_PROTOCOL: str
-    LOGGING_PROTOCOL: str
-    SENDING_PROTOCOL: str
+    HEARTBEAT_PROTOCOL: str = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
+    LOGGING_PROTOCOL: str = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
+    SENDING_PROTOCOL: str = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
 
-    LOGGING_INTERVAL: int
-    HEARTBEAT_INTERVAL: int
+    LOGGING_INTERVAL: int = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
+    HEARTBEAT_INTERVAL: int = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
 
-    REDIS_MESSAGES_SEEN_KEY: str
-    REDIS_NEW_MESSAGES_KEY: str
-    REDIS_MAIN_PROCESS_MESSAGES_SEEN_KEY: str
-    RESULT_RETRIEVAL_REATTEMPT_LIMIT: int
+    REDIS_MESSAGES_SEEN_KEY: str = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
+    REDIS_NEW_MESSAGES_KEY: str = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
+    REDIS_MAIN_PROCESS_MESSAGES_SEEN_KEY: str = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
+    RESULT_RETRIEVAL_REATTEMPT_LIMIT: int = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
 
-    INCOMING_ENCODED_MESSAGE_DIR: Path
-    INCOMING_DECODED_MESSAGE_DIR: Path
-    OUTGOING_DECODED_MESSAGE_DIR: Path
-    OUTGOING_ENCODED_MESSAGE_DIR: Path
+    INCOMING_ENCODED_MESSAGE_DIR: Path = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
+    INCOMING_DECODED_MESSAGE_DIR: Path = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
+    OUTGOING_DECODED_MESSAGE_DIR: Path = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
+    OUTGOING_ENCODED_MESSAGE_DIR: Path = Field(
+        json_schema_extra={
+            "description": "The reference timestamp for the ping request."
+        }
+    )
 
-    # Configuration objects for each protocol.
-    protocol_configuration: dict[str, ProtocolConfig] = {}
+    # Configuration objects for each protocol. This is excluded from the JSON
+    # schema generation, since it's handled completely separately. The JSON schema
+    # only covers general agent configuration; the JSON file passed for build
+    # configuration is composed of global configuration, and *then* protocol-specific
+    # configuration. 
+    # 
+    # The reason for this is that it's not necessarily the case a user wants to
+    # configure *every* supported protocol for an agent. So the protocol configuration
+    # is handled as part of the payload generation script completely separately
+    # from the main config schema.
+    protocol_configuration: SkipJsonSchema[dict[str, ProtocolConfig]] = {}
 
     # The names of all object attributes that are directories and should be
     # resolved and created upon creation. Attributes with leading underscores
