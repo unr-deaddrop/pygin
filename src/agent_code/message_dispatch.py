@@ -17,6 +17,7 @@ import logging
 
 import redis
 
+from deaddrop_meta.protocol_lib import ProtocolConfig
 
 # Make all protocols visible. This is an intentional star-import so that
 # our helper functions work.
@@ -62,14 +63,12 @@ def retrieve_new_messages(
     # accordingly from the PyginConfig class.
     protocol_class = protocol_lib.lookup_protocol(protocol_name)
 
-    # Another case of mypy not handling our properties all too well
-    protocol_parser_type: Type[protocol_lib.ProtocolArgumentParser] = (
-        protocol_class.config_parser  # type: ignore[assignment]
-    )
-    protocol_parser = protocol_parser_type.from_config_obj(
+    # mypy complains about properties as usual
+    protocol_config_model: Type[ProtocolConfig] = protocol_class.config_model  # type: ignore[assignment]
+    validated_config = protocol_config_model.model_validate(
         cfg.protocol_configuration[protocol_name]
     )
-    protocol_args = protocol_parser.get_stored_args()
+    protocol_args = validated_config.model_dump()
 
     # Invoke the protocol's message retrieval function. At this point, any protocol-specific
     # arguments are added in by the message dispatch unit, such as the inclusion of
@@ -122,18 +121,14 @@ def send_message(
 
     # Get a handle to the relevant protocol class, if it exists. Parse the arguments
     # accordingly from the PyginConfig class.
-    # TODO: if this is such a common operation, shouldn't protocols just define a default
-    # "parse config object and get dictionary of arguments" operation?
     protocol_class = protocol_lib.lookup_protocol(protocol_name)
 
-    # Ignore mypy complaining about this property
-    protocol_parser_type: Type[protocol_lib.ProtocolArgumentParser] = (
-        protocol_class.config_parser  # type: ignore[assignment]
-    )
-    protocol_parser = protocol_parser_type.from_config_obj(
+    # mypy complains about properties as usual
+    protocol_config_model: Type[ProtocolConfig] = protocol_class.config_model  # type: ignore[assignment]
+    validated_config = protocol_config_model.model_validate(
         cfg.protocol_configuration[protocol_name]
     )
-    protocol_args = protocol_parser.get_stored_args()
+    protocol_args = validated_config.model_dump()
 
     # Invoke the protocol's message sending function. Again, pass in the Redis
     # connection as a keyword argument; it's up to the protocol whether or not

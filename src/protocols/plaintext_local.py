@@ -92,7 +92,7 @@ class PlaintextLocalProtocol(ProtocolBase):
         target_path = local_cfg.PLAINTEXT_LOCAL_OUTBOX_DIR / filename
 
         logger.info(
-            f"Writing message ({msg.message_id=}, {msg.message_type=}) to {target_path}"
+            f"Writing message ({msg.message_id=}, {msg.payload.message_type=}) to {target_path}"
         )
         logger.debug(f"Writing {msg} to {target_path}")
 
