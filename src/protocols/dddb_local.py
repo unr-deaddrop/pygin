@@ -69,7 +69,7 @@ class dddbLocalProtocol(ProtocolBase):
     name: str = "dddb_local"
     description: str = __doc__
     version: str = "0.0.1"
-    config_parser: Type[ProtocolConfig] = dddbLocalConfig
+    config_model: Type[ProtocolConfig] = dddbLocalConfig
 
     @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:

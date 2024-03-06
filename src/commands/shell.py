@@ -119,6 +119,7 @@ class ShellCommand(CommandBase):
     description: str = __doc__
     version: str = "0.0.1"
     argument_model: Type[BaseModel] = ShellArguments
+    result_model: Type[BaseModel] = ShellResult
 
     command_renderer: Optional[Type[RendererBase]] = None
 

@@ -84,6 +84,7 @@ class PingCommand(CommandBase):
     description: str = __doc__
     version: str = "0.0.1"
     argument_model: Type[BaseModel] = PingArguments
+    result_model: Type[BaseModel] = PingResult
 
     command_renderer: Optional[Type[RendererBase]] = None
 
