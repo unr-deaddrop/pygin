@@ -256,6 +256,7 @@ def construct_cmd_response(
         user_id=cmd_request.user_id,
         source_id=cfg.AGENT_ID,
         payload=CommandResponsePayload(
+            message_type=DeadDropMessageType.CMD_RESPONSE,
             cmd_name=payload.cmd_name,
             start_time=start_time,
             end_time=task_result.date_done,  # type: ignore[arg-type]

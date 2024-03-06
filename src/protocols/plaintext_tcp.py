@@ -138,7 +138,7 @@ class PlaintextTCPProtocol(ProtocolBase):
     name: str = "plaintext_tcp"
     description: str = __doc__
     version: str = "0.0.1"
-    config_parser: Type[ProtocolConfig] = PlaintextTCPConfig
+    config_model: Type[ProtocolConfig] = PlaintextTCPConfig
 
     @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:

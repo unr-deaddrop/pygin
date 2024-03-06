@@ -18,10 +18,14 @@ import sys
 from deaddrop_meta.protocol_lib import (
     DeadDropMessage,
     DeadDropMessageType,
-    ProtocolArgumentParser,
+    ProtocolConfig,
     get_protocols_as_dict,
+    CommandRequestPayload,
+    CommandResponsePayload
 )
 from src.agent_code.config import PyginConfig
+from src.protocols.plaintext_local import PlaintextLocalProtocol
+from src.protocols.plaintext_tcp import PlaintextTCPProtocol
 
 # Make all protocols visible so that PyginConfig works correctly
 from src.protocols import *
@@ -63,7 +67,8 @@ def switch_inbox_outbox(cfg: PyginConfig) -> None:
     """
     Switch the inbox and outbox fields for the plaintext_local configuration.
     """
-    protocol_cfg: PlaintextLocalConfig = cfg.protocol_configuration["plaintext_local"]
+    # mypy error - this will always be true for design reasons
+    protocol_cfg: PlaintextLocalConfig = cfg.protocol_configuration["plaintext_local"] #type: ignore[assignment]
     temp = protocol_cfg.PLAINTEXT_LOCAL_INBOX_DIR
     protocol_cfg.PLAINTEXT_LOCAL_INBOX_DIR = protocol_cfg.PLAINTEXT_LOCAL_OUTBOX_DIR
     protocol_cfg.PLAINTEXT_LOCAL_OUTBOX_DIR = temp
@@ -73,7 +78,8 @@ def set_ports(cfg: PyginConfig, recv_port: int, send_port: int) -> None:
     """
     Set the receiving and sending ports for the plaintext_tcp configuration.
     """
-    protocol_cfg: PlaintextTCPConfig = cfg.protocol_configuration["plaintext_tcp"]
+    # mypy error - this will always be true for design reasons
+    protocol_cfg: PlaintextTCPConfig = cfg.protocol_configuration["plaintext_tcp"] # type: ignore[assignment]
     protocol_cfg.PLAINTEXT_TCP_LISTEN_RECV_PORT = recv_port
     protocol_cfg.PLAINTEXT_TCP_SEND_PORT = send_port
 
@@ -88,10 +94,11 @@ def get_plaintext_local_args(cfg: PyginConfig) -> dict[str, Any]:
     it twice will just revert the operation!
     """
     plaintext_local_protocol = get_protocols_as_dict()["plaintext_local"]
-    argparser: Type[ProtocolArgumentParser] = plaintext_local_protocol.config_parser
-    p = argparser.from_config_obj(cfg.protocol_configuration["plaintext_local"])
+    # mypy property issues
+    cfg_model: Type[ProtocolConfig] = plaintext_local_protocol.config_model # type: ignore[assignment]
+    validated_cfg = cfg_model.model_validate(cfg.protocol_configuration["plaintext_local"])
 
-    return p.get_stored_args()
+    return validated_cfg.model_dump()
 
 
 def get_plaintext_tcp_args(cfg: PyginConfig) -> dict[str, Any]:
@@ -100,11 +107,12 @@ def get_plaintext_tcp_args(cfg: PyginConfig) -> dict[str, Any]:
     there's no extra argument processing needed, so it's sufficient to just shove
     everything through the config parser and call it a day.
     """
-    plaintext_tcp_protocol = get_protocols_as_dict()["plaintext_tcp"]
-    argparser: Type[ProtocolArgumentParser] = plaintext_tcp_protocol.config_parser
-    p = argparser.from_config_obj(cfg.protocol_configuration["plaintext_tcp"])
+    plaintext_local_protocol = get_protocols_as_dict()["plaintext_tcp"]
+    # mypy property issues
+    cfg_model: Type[ProtocolConfig] = plaintext_local_protocol.config_model # type: ignore[assignment]
+    validated_cfg = cfg_model.model_validate(cfg.protocol_configuration["plaintext_tcp"])
 
-    return p.get_stored_args()
+    return validated_cfg.model_dump()
 
 
 def send_over_plaintext_local(msg: DeadDropMessage, cfg: PyginConfig):
@@ -134,7 +142,8 @@ def receive_plaintext_entrypoint(cfg: PyginConfig) -> list[DeadDropMessage]:
 def send_tcp_entrypoint(msg: DeadDropMessage, cfg: PyginConfig):
     # Make a deep copy of the agent's configuration model.
     cfg = cfg.model_copy(deep=True)
-    protocol_cfg: PlaintextTCPConfig = cfg.protocol_configuration["plaintext_tcp"]
+    # mypy error - this will always be true for design reasons
+    protocol_cfg: PlaintextTCPConfig = cfg.protocol_configuration["plaintext_tcp"] # type: ignore[assignment]
     
     # The agent always uses the listener to receive messages, so we send messages
     # by instantiating a connection, using the specified receiver host/port
@@ -152,8 +161,10 @@ def send_tcp_entrypoint(msg: DeadDropMessage, cfg: PyginConfig):
 def receive_tcp_entrypoint(cfg: PyginConfig) -> list[DeadDropMessage]:
     # Make a deep copy of the agent's configuration model.
     cfg = cfg.model_copy(deep=True)
-    protocol_cfg: PlaintextTCPConfig = cfg.protocol_configuration["plaintext_tcp"]
-    plaintext_tcp_protocol = get_protocols_as_dict()["plaintext_tcp"]
+    
+    # mypy error - this will always be true for design reasons
+    protocol_cfg: PlaintextTCPConfig = cfg.protocol_configuration["plaintext_tcp"] # type: ignore[assignment]
+    plaintext_tcp_protocol: PlaintextTCPProtocol = get_protocols_as_dict()["plaintext_tcp"] # type: ignore[assignment]
     
     # If the agent has been configured to initiate connections to send messages, 
     # we can use the built-in listener to get new messages. 
@@ -184,12 +195,13 @@ if __name__ == "__main__":
 
     # Construct the command_request message
     msg = DeadDropMessage(
-        message_type=DeadDropMessageType.CMD_REQUEST,
-        payload={
-            "cmd_name": CMD_NAME,
-            "cmd_args": CMD_ARGS,
-        },
+        payload = CommandRequestPayload(
+            message_type=DeadDropMessageType.CMD_REQUEST,
+            cmd_name = CMD_NAME,
+            cmd_args = CMD_ARGS
+        )
     )
+    print(msg.model_dump_json())
 
     # Select protocol functions
     if SELECTED_PROTOCOL not in PROTOCOL_ENTRYPOINTS:
@@ -212,18 +224,22 @@ if __name__ == "__main__":
         )
 
         for recv_msg in recv_msgs:
-            if "request_id" in recv_msg.payload and recv_msg.payload[
-                "request_id"
-            ] == str(msg.message_id):
-                logger.info(f"Got response to original message: {recv_msg}")
+            if not isinstance(recv_msg.payload, CommandResponsePayload):
+                continue
+            
+            payload: CommandResponsePayload = recv_msg.payload
+            if payload.request_id != msg.message_id:
+                continue
+            
+            logger.info(f"Got response to original message: {recv_msg}")
 
-                # Only if ping was used
-                if CMD_NAME == "ping":
-                    start_time = float(recv_msg.payload["result"]["ping_timestamp"])
-                    end_time = float(recv_msg.payload["result"]["pong_timestamp"])
-                    return_time = datetime.utcnow().timestamp()
-                    logger.info(
-                        f"The ping time was {end_time-start_time:.2f} seconds to receive, {return_time-start_time:.2f} seconds RTT"
-                    )
-                
-                exit()
+            # Only if ping was used
+            if CMD_NAME == "ping":
+                start_time = float(payload.result["ping_timestamp"])
+                end_time = float(payload.result["pong_timestamp"])
+                return_time = datetime.utcnow().timestamp()
+                logger.info(
+                    f"The ping time was {end_time-start_time:.2f} seconds to receive, {return_time-start_time:.2f} seconds RTT"
+                )
+            
+            exit()
