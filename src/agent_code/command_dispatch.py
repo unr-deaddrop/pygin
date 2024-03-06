@@ -14,10 +14,11 @@ from the rest of Pygin's libraries.
 
 from typing import Any, Type
 
+from pydantic import BaseModel
+
 # Make all commands visible. This is an intentional star-import so that
 # our helper functions work. Nothing from this module is actually used directly.
 from src.commands import *  # noqa: F403, F401
-from deaddrop_meta.argument_lib import ArgumentParser
 from deaddrop_meta.command_lib import get_commands_as_dict
 
 
@@ -39,16 +40,13 @@ def execute_command(cmd_name: str, args: dict[str, Any]) -> dict[str, Any]:
     except KeyError:
         raise RuntimeError(f"Command {cmd_name} isn't registered!")
 
-    # Invoke the argument parser to get everything into the correct format.
+    # Invoke the model. If it passes validation, that means that the required
+    # arguments are present and that they're all of the correct type. Else,
+    # this raises ValidationError and execution stops here.
     #
-    # mypy complains about this property, which it incorrectly thinks will
-    # return Callable[CommandBase, type[ArgumentParser]].
-    parser_type: Type[ArgumentParser] = cmd_class.argument_parser  # type: ignore[assignment]
-    arg_parser: ArgumentParser = parser_type()
-    if not arg_parser.parse_arguments(args):
-        raise RuntimeError(
-            f"One or more required arguments is missing for {cmd_name} from {args=}"
-        )
+    # mypy complains about properties as usual
+    arg_model: Type[BaseModel] = cmd_class.argument_model  # type: ignore[assignment]
+    validated_args = arg_model.model_validate(args)
 
     # Actually execute the command and return its immediate result.
-    return cmd_class.execute_command(arg_parser.get_stored_args())
+    return cmd_class.execute_command(validated_args.model_dump())

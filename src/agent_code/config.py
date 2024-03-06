@@ -7,11 +7,12 @@ startup and remains constant throughout the lifetime of the agent.
 
 from base64 import b64decode
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 import configparser
 import uuid
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
+from pydantic.json_schema import SkipJsonSchema
 
 # Intentional star import, with the goal of getting all of the protocol
 # configuration objects available.
@@ -29,36 +30,116 @@ class PyginConfig(BaseModel):
 
     # Strictly speaking, these aren't constants and therefore shouldn't be in
     # all caps, but that's the intent.
-    AGENT_ID: uuid.UUID
+    AGENT_ID: uuid.UUID = Field(json_schema_extra={"description": "The agent's UUID."})
 
-    CONTROL_UNIT_THROTTLE_TIME: float
+    CONTROL_UNIT_THROTTLE_TIME: float = Field(
+        default=2,
+        json_schema_extra={
+            "description": "The time, in seconds, the control unit should sleep on each cycle."
+        },
+    )
 
-    AGENT_PRIVATE_KEY_PATH: Path
-    SERVER_PUBLIC_KEY_PATH: Path
+    # These are generated at build time and are not user configured, and therefore
+    # should not be included in any forms constructed from this schema. In turn,
+    # the payload generation script is responsible for actually creating these with
+    # the configuration file.
+    #
+    # That said, the json_schema_extra fields are filled out anyways since I didn't
+    # want to lose them if we had to turn around.
+    AGENT_PRIVATE_KEY_PATH: SkipJsonSchema[Optional[Path]] = Field(
+        json_schema_extra={"description": "The path to the agent's private key."}
+    )
+    SERVER_PUBLIC_KEY_PATH: SkipJsonSchema[Optional[Path]] = Field(
+        json_schema_extra={"description": "The path to the agent's public key."}
+    )
+    ENCRYPTION_KEY: SkipJsonSchema[bytes] = Field(
+        json_schema_extra={
+            "description": "The agent's symmetric encryption key, base64 encoded."
+        }
+    )
 
-    ENCRYPTION_KEY: bytes
+    INCOMING_PROTOCOLS: list[str] = Field(
+        json_schema_extra={
+            "description": "A list of supported agent names for which periodic listener tasks should be scheduled."
+        }
+    )
 
-    INCOMING_PROTOCOLS: list[str]
+    HEARTBEAT_PROTOCOL: str = Field(
+        json_schema_extra={"description": "The protocol used to send heartbeats."}
+    )
+    LOGGING_PROTOCOL: str = Field(
+        json_schema_extra={"description": "The protocol used to send log bundles."}
+    )
+    SENDING_PROTOCOL: str = Field(
+        json_schema_extra={
+            "description": "The protocol used to send all other messages."
+        }
+    )
 
-    HEARTBEAT_PROTOCOL: str
-    LOGGING_PROTOCOL: str
-    SENDING_PROTOCOL: str
+    LOGGING_INTERVAL: int = Field(
+        json_schema_extra={
+            "description": "The frequency, in seconds, with which log bundles should be conditionally sent."
+        }
+    )
+    HEARTBEAT_INTERVAL: int = Field(
+        json_schema_extra={
+            "description": "The frequency, in seconds, with which heartbeats should be conditionally sent."
+        }
+    )
 
-    LOGGING_INTERVAL: int
-    HEARTBEAT_INTERVAL: int
+    REDIS_MESSAGES_SEEN_KEY: str = Field(
+        json_schema_extra={
+            "description": "The key used by the message dispatch unit to drop duplicate messages."
+        }
+    )
+    REDIS_NEW_MESSAGES_KEY: str = Field(
+        json_schema_extra={
+            "description": "The key used by the control unit to discover completed message tasking."
+        }
+    )
+    REDIS_MAIN_PROCESS_MESSAGES_SEEN_KEY: str = Field(
+        json_schema_extra={
+            "description": "The key used by the control unit to drop duplicated messages."
+        }
+    )
+    RESULT_RETRIEVAL_REATTEMPT_LIMIT: int = Field(
+        json_schema_extra={
+            "description": "The number of times a Celery task may be observed to be pending before dropped."
+        }
+    )
 
-    REDIS_MESSAGES_SEEN_KEY: str
-    REDIS_NEW_MESSAGES_KEY: str
-    REDIS_MAIN_PROCESS_MESSAGES_SEEN_KEY: str
-    RESULT_RETRIEVAL_REATTEMPT_LIMIT: int
+    INCOMING_ENCODED_MESSAGE_DIR: Path = Field(
+        json_schema_extra={
+            "description": "The directory used to store incoming messages before decoding."
+        }
+    )
+    INCOMING_DECODED_MESSAGE_DIR: Path = Field(
+        json_schema_extra={
+            "description": "The directory used to store incoming messages after decoding."
+        }
+    )
+    OUTGOING_DECODED_MESSAGE_DIR: Path = Field(
+        json_schema_extra={
+            "description": "The directory used to store outgoing messages before encoding."
+        }
+    )
+    OUTGOING_ENCODED_MESSAGE_DIR: Path = Field(
+        json_schema_extra={
+            "description": "The directory used to store outgoing messages after encoding."
+        }
+    )
 
-    INCOMING_ENCODED_MESSAGE_DIR: Path
-    INCOMING_DECODED_MESSAGE_DIR: Path
-    OUTGOING_DECODED_MESSAGE_DIR: Path
-    OUTGOING_ENCODED_MESSAGE_DIR: Path
-
-    # Configuration objects for each protocol.
-    protocol_configuration: dict[str, ProtocolConfig] = {}
+    # Configuration objects for each protocol. This is excluded from the JSON
+    # schema generation, since it's handled completely separately. The JSON schema
+    # only covers general agent configuration; the JSON file passed for build
+    # configuration is composed of global configuration, and *then* protocol-specific
+    # configuration.
+    #
+    # The reason for this is that it's not necessarily the case a user wants to
+    # configure *every* supported protocol for an agent. So the protocol configuration
+    # is handled as part of the payload generation script completely separately
+    # from the main config schema.
+    protocol_configuration: SkipJsonSchema[dict[str, ProtocolConfig]] = {}
 
     # The names of all object attributes that are directories and should be
     # resolved and created upon creation. Attributes with leading underscores

@@ -18,7 +18,12 @@ import redis
 # from celery.result import AsyncResult
 
 from src.agent_code import config, utility, tasks
-from deaddrop_meta.protocol_lib import DeadDropMessageType, DeadDropMessage
+from deaddrop_meta.protocol_lib import (
+    DeadDropMessageType,
+    DeadDropMessage,
+    CommandResponsePayload,
+    CommandRequestPayload,
+)
 
 # Default configuration path. This is the configuration file included with the
 # agent by default.
@@ -234,23 +239,30 @@ def construct_cmd_response(
     Construct a command_repsonse messsage from the result of a task.
     """
     assert task_result.successful()
+    assert isinstance(cmd_request.payload, CommandRequestPayload)
+
+    # There are higher-level assumptions besides the assertion above, but
+    # this is valid and is guaranteed to always be CommandRequestPayload
+    # and not any of the other payload types.
+    payload: CommandRequestPayload = cmd_request.payload  # type[assignment]
 
     # Note that the message is unsigned at this point. Message signatures are
     # the message dispatch unit's problem.
+    #
+    # mypy complains with end_time because the date might not be set,
+    # which is true for unfinished tasks. But this should only be called
+    # for finished tasks (assertion above).
     return DeadDropMessage(
-        message_type=DeadDropMessageType.CMD_RESPONSE,
         user_id=cmd_request.user_id,
         source_id=cfg.AGENT_ID,
-        payload={
-            "cmd_name": cmd_request.payload["cmd_name"],
-            "start_time": start_time.timestamp(),
-            # mypy complains because the date might not be set, which is true
-            # for unfinished tasks. But this should only be called for finished
-            # tasks (assertion above).
-            "end_time": task_result.date_done.timestamp(),  # type: ignore[union-attr]
-            "request_id": cmd_request.message_id,
-            "result": task_result.get(),
-        },
+        payload=CommandResponsePayload(
+            message_type=DeadDropMessageType.CMD_RESPONSE,
+            cmd_name=payload.cmd_name,
+            start_time=start_time,
+            end_time=task_result.date_done,  # type: ignore[arg-type]
+            request_id=cmd_request.message_id,
+            result=task_result.get(),
+        ),
     )
 
 
@@ -292,9 +304,12 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
         # be command_request), invoke the command execution task. Store that
         # unfinished AsyncResult.
         for message in get_new_msgs(cfg_obj, app):
-            if message.message_type != DeadDropMessageType.CMD_REQUEST:
+            if message.payload.message_type != DeadDropMessageType.CMD_REQUEST:
                 logger.error(f"Got unexpected message from server: {message}")
                 continue
+
+            # The assertion that this will always be CommandRequestPayload is above.
+            payload: CommandRequestPayload = message.payload  # type: ignore[assignment]
 
             logger.debug(f"Got the following message: {message}")
             logger.info(f"Received message with message ID {message.message_id}")
@@ -302,9 +317,7 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
                 # TODO: mypy complains here because again, the structure of
                 # the payload isn't known but IS well defined... see the
                 # proposal on discriminating unions for how this can be fixed
-                task = tasks.execute_command.delay(
-                    message.payload["cmd_name"], message.payload["cmd_args"]
-                )
+                task = tasks.execute_command.delay(payload.cmd_name, payload.cmd_args)
                 running_commands.append(CommandTask(datetime.utcnow(), message, task))
             except Exception as e:
                 # Handle arbitrary exceptions for scheduling itself.
