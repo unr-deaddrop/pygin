@@ -10,13 +10,11 @@ import socket
 import time
 import errno
 
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 
-from deaddrop_meta.argument_lib import Argument, ArgumentType, DefaultParsers
 from deaddrop_meta.protocol_lib import (
     ProtocolBase,
     ProtocolConfig,
-    ProtocolArgumentParser,
     DeadDropMessage,
 )
 
@@ -28,93 +26,70 @@ class PlaintextTCPConfig(ProtocolConfig):
     Model detailing available configuration options for plaintext_tcp.
     """
 
-    PLAINTEXT_TCP_CHECKIN_FREQUENCY: int
-    PLAINTEXT_TCP_LISTEN_TIMEOUT: int
+    PLAINTEXT_TCP_CHECKIN_FREQUENCY: int = Field(
+        default=10,
+        json_schema_extra={
+            "description": "The frequency with which to start the TCP listener."
+        },
+    )
+    PLAINTEXT_TCP_LISTEN_TIMEOUT: int = Field(
+        default=8,
+        json_schema_extra={"description": "The timeout duration of a single listener."},
+    )
 
-    PLAINTEXT_TCP_LISTEN_BIND_HOST: str
-    PLAINTEXT_TCP_LISTEN_RECV_PORT: int
-    PLAINTEXT_TCP_LISTEN_SEND_PORT: int
+    PLAINTEXT_TCP_LISTEN_BIND_HOST: str = Field(
+        default="0.0.0.0",
+        json_schema_extra={
+            "description": "The host to bind to when setting up any listener."
+        },
+    )
+    PLAINTEXT_TCP_LISTEN_RECV_PORT: int = Field(
+        default=12345,
+        json_schema_extra={
+            "description": "The port to bind to when receiving messages."
+        },
+    )
+    PLAINTEXT_TCP_LISTEN_SEND_PORT: int = Field(
+        default=12346,
+        json_schema_extra={
+            "description": "The port to bind to when sending messages via a listener."
+        },
+    )
 
     # Debug only
-    PLAINTEXT_TCP_INITIATE_RECV_HOST: str
-    PLAINTEXT_TCP_INITIATE_RECV_PORT: int
+    PLAINTEXT_TCP_INITIATE_RECV_HOST: str = Field(
+        default="localhost",
+        json_schema_extra={
+            "description": "When receiving messages by initiating a connection, the host to connect to."
+        },
+    )
+    PLAINTEXT_TCP_INITIATE_RECV_PORT: int = Field(
+        default=12346,
+        json_schema_extra={
+            "description": "When receiving messages by initiating a connection, the port to connect to."
+        },
+    )
 
-    PLAINTEXT_TCP_USE_LISTENER_TO_SEND: bool
-    PLAINTEXT_TCP_INITIATE_SEND_HOST: str
-    PLAINTEXT_TCP_INITIATE_SEND_PORT: int
+    PLAINTEXT_TCP_USE_LISTENER_TO_SEND: bool = Field(
+        default=True,
+        json_schema_extra={"description": "Whether to send messages via a listener."},
+    )
+    PLAINTEXT_TCP_INITIATE_SEND_HOST: str = Field(
+        default="localhost",
+        json_schema_extra={
+            "description": "The target host when sending messages by initiating connections."
+        },
+    )
+    PLAINTEXT_TCP_INITIATE_SEND_PORT: int = Field(
+        default=12346,
+        json_schema_extra={
+            "description": "The target port when sending messages by initiating connections."
+        },
+    )
 
     checkin_interval_name: ClassVar[str] = "PLAINTEXT_TCP_CHECKIN_FREQUENCY"
     section_name: ClassVar[str] = "plaintext_tcp"
     dir_attrs: ClassVar[list[str]] = []  # No directories needed
-
-
-class PlaintextTCPArgumentParser(ProtocolArgumentParser):
-    """
-    Parser for the plaintext_local configuration.
-    """
-
-    arguments: list[Argument] = [
-        Argument(
-            arg_type=ArgumentType.INTEGER,
-            name="PLAINTEXT_TCP_CHECKIN_FREQUENCY",
-            description="The frequency with which to start the TCP listener.",
-            _parser=DefaultParsers.parse_integer,
-        ),
-        Argument(
-            arg_type=ArgumentType.INTEGER,
-            name="PLAINTEXT_TCP_LISTEN_TIMEOUT",
-            description="The timeout duration of a single listener.",
-            _parser=DefaultParsers.parse_integer,
-        ),
-        Argument(
-            arg_type=ArgumentType.INTEGER,
-            name="PLAINTEXT_TCP_LISTEN_BIND_HOST",
-            description="The host to bind to when setting up any listener.",
-            _parser=DefaultParsers.parse_string,
-        ),
-        Argument(
-            arg_type=ArgumentType.INTEGER,
-            name="PLAINTEXT_TCP_LISTEN_RECV_PORT",
-            description="The port to bind to when receiving messages.",
-            _parser=DefaultParsers.parse_integer,
-        ),
-        Argument(
-            arg_type=ArgumentType.INTEGER,
-            name="PLAINTEXT_TCP_LISTEN_SEND_PORT",
-            description="The port to bind to when sending messages via a listener.",
-            _parser=DefaultParsers.parse_integer,
-        ),
-        Argument(
-            arg_type=ArgumentType.INTEGER,
-            name="PLAINTEXT_TCP_INITIATE_RECV_HOST",
-            description="When receiving messages by initiating a connection, the host to connect to.",
-            _parser=DefaultParsers.parse_integer,
-        ),
-        Argument(
-            arg_type=ArgumentType.INTEGER,
-            name="PLAINTEXT_TCP_INITIATE_RECV_PORT",
-            description="When receiving messages by initiating a connection, the port to connect to.",
-            _parser=DefaultParsers.parse_integer,
-        ),
-        Argument(
-            arg_type=ArgumentType.INTEGER,
-            name="PLAINTEXT_TCP_USE_LISTENER_TO_SEND",
-            description="Whether to send messages via a listener.",
-            _parser=DefaultParsers.parse_boolean,
-        ),
-        Argument(
-            arg_type=ArgumentType.INTEGER,
-            name="PLAINTEXT_TCP_INITIATE_SEND_HOST",
-            description="The target host when sending messages by initiating connections.",
-            _parser=DefaultParsers.parse_string,
-        ),
-        Argument(
-            arg_type=ArgumentType.INTEGER,
-            name="PLAINTEXT_TCP_INITIATE_SEND_PORT",
-            description="The target port when sending messages by initiating connections.",
-            _parser=DefaultParsers.parse_integer,
-        ),
-    ]
 
 
 class PlaintextTCPProtocol(ProtocolBase):
@@ -163,7 +138,7 @@ class PlaintextTCPProtocol(ProtocolBase):
     name: str = "plaintext_tcp"
     description: str = __doc__
     version: str = "0.0.1"
-    config_parser: Type[ProtocolArgumentParser] = PlaintextTCPArgumentParser
+    config_parser: Type[ProtocolConfig] = PlaintextTCPConfig
 
     @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:

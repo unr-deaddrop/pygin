@@ -9,11 +9,11 @@ from typing import Type, Any, ClassVar
 from tempfile import NamedTemporaryFile
 import logging
 
-from deaddrop_meta.argument_lib import Argument, ArgumentType, DefaultParsers
+from pydantic import Field
+
 from deaddrop_meta.protocol_lib import (
     ProtocolBase,
     ProtocolConfig,
-    ProtocolArgumentParser,
     DeadDropMessage,
 )
 
@@ -25,9 +25,19 @@ class PlaintextLocalConfig(ProtocolConfig):
     Model detailing available configuration options for plaintext_local.
     """
 
-    PLAINTEXT_LOCAL_CHECKIN_FREQUENCY: int
-    PLAINTEXT_LOCAL_INBOX_DIR: Path
-    PLAINTEXT_LOCAL_OUTBOX_DIR: Path
+    PLAINTEXT_LOCAL_CHECKIN_FREQUENCY: int = Field(
+        json_schema_extra={
+            "description": "The frequency with which to check for new messages."
+        }
+    )
+    PLAINTEXT_LOCAL_INBOX_DIR: Path = Field(
+        json_schema_extra={
+            "description": "The location to expect incoming messages in."
+        }
+    )
+    PLAINTEXT_LOCAL_OUTBOX_DIR: Path = Field(
+        json_schema_extra={"description": "The location to send outgoing messages to."}
+    )
 
     # Should be plaintext_local
     checkin_interval_name: ClassVar[str] = "PLAINTEXT_LOCAL_CHECKIN_FREQUENCY"
@@ -35,33 +45,6 @@ class PlaintextLocalConfig(ProtocolConfig):
     dir_attrs: ClassVar[list[str]] = [
         "PLAINTEXT_LOCAL_INBOX_DIR",
         "PLAINTEXT_LOCAL_OUTBOX_DIR",
-    ]
-
-
-class PlaintextLocalArgumentParser(ProtocolArgumentParser):
-    """
-    Parser for the plaintext_local configuration.
-    """
-
-    arguments: list[Argument] = [
-        Argument(
-            arg_type=ArgumentType.INTEGER,
-            name="PLAINTEXT_LOCAL_CHECKIN_FREQUENCY",
-            description="The frequency with which to check for new messages.",
-            _parser=DefaultParsers.parse_integer,
-        ),
-        Argument(
-            arg_type=ArgumentType.PATH,
-            name="PLAINTEXT_LOCAL_INBOX_DIR",
-            description="The location to expect incoming messages in.",
-            _parser=DefaultParsers.parse_path,
-        ),
-        Argument(
-            arg_type=ArgumentType.PATH,
-            name="PLAINTEXT_LOCAL_OUTBOX_DIR",
-            description="The location to send outgoing messages to.",
-            _parser=DefaultParsers.parse_path,
-        ),
     ]
 
 
@@ -94,7 +77,7 @@ class PlaintextLocalProtocol(ProtocolBase):
     name: str = "plaintext_local"
     description: str = __doc__
     version: str = "0.0.1"
-    config_parser: Type[ProtocolArgumentParser] = PlaintextLocalArgumentParser
+    config_model: Type[ProtocolConfig] = PlaintextLocalConfig
 
     @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:

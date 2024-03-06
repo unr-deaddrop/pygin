@@ -25,19 +25,20 @@ class PingArguments(BaseModel):
         default="",
         json_schema_extra={
             "description": "Extra message to include in the ping response."
-        }
+        },
     )
     delay: float = Field(
-        default = 0,
+        default=0,
         json_schema_extra={
             "description": "The number of seconds to delay the reponse for."
-        }
+        },
     )
     ping_timestamp: float = Field(
         json_schema_extra={
             "description": "The reference timestamp for the ping request."
         }
     )
+
 
 class PingCommand(CommandBase):
     """

@@ -9,14 +9,13 @@ demonstrations of DeadDrop that do not involve an actual remote service.
 
 from pathlib import Path
 from typing import Type, Any, ClassVar
-
 from tempfile import NamedTemporaryFile
 
-from deaddrop_meta.argument_lib import Argument, ArgumentType, DefaultParsers
+from pydantic import Field
+
 from deaddrop_meta.protocol_lib import (
     ProtocolBase,
     ProtocolConfig,
-    ProtocolArgumentParser,
     DeadDropMessage,
 )
 
@@ -26,41 +25,24 @@ class dddbLocalConfig(ProtocolConfig):
     Model detailing available configuration options for dddb_local.
     """
 
-    DDDB_LOCAL_CHECKIN_FREQUENCY: int
-    DDDB_LOCAL_INBOX_DIR: Path
-    DDDB_LOCAL_OUTBOX_DIR: Path
+    DDDB_LOCAL_CHECKIN_FREQUENCY: int = Field(
+        json_schema_extra={
+            "description": "The frequency with which to check for new messages."
+        }
+    )
+    DDDB_LOCAL_INBOX_DIR: Path = Field(
+        json_schema_extra={
+            "description": "The location to expect incoming messages in."
+        }
+    )
+    DDDB_LOCAL_OUTBOX_DIR: Path = Field(
+        json_schema_extra={"description": "The location to send outgoing messages to."}
+    )
 
     # Should be dddb_local
     checkin_interval_name: ClassVar[str] = "DDDB_LOCAL_CHECKIN_FREQUENCY"
     section_name: ClassVar[str] = "dddb_local"
     dir_attrs: ClassVar[list[str]] = ["DDDB_LOCAL_INBOX_DIR", "DDDB_LOCAL_OUTBOX_DIR"]
-
-
-class dddbLocalArgumentParser(ProtocolArgumentParser):
-    """
-    Parser for the dddb_local configuration.
-    """
-
-    arguments: list[Argument] = [
-        Argument(
-            arg_type=ArgumentType.INTEGER,
-            name="DDDB_LOCAL_CHECKIN_FREQUENCY",
-            description="The frequency with which to check for new messages.",
-            _parser=DefaultParsers.parse_integer,
-        ),
-        Argument(
-            arg_type=ArgumentType.PATH,
-            name="DDDB_LOCAL_INBOX_DIR",
-            description="The location to expect incoming messages in.",
-            _parser=DefaultParsers.parse_path,
-        ),
-        Argument(
-            arg_type=ArgumentType.PATH,
-            name="DDDB_LOCAL_OUTBOX_DIR",
-            description="The location to send outgoing messages to.",
-            _parser=DefaultParsers.parse_path,
-        ),
-    ]
 
 
 class dddbLocalProtocol(ProtocolBase):
@@ -87,7 +69,7 @@ class dddbLocalProtocol(ProtocolBase):
     name: str = "dddb_local"
     description: str = __doc__
     version: str = "0.0.1"
-    config_parser: Type[ProtocolArgumentParser] = dddbLocalArgumentParser
+    config_parser: Type[ProtocolConfig] = dddbLocalConfig
 
     @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:

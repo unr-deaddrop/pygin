@@ -30,108 +30,102 @@ class PyginConfig(BaseModel):
 
     # Strictly speaking, these aren't constants and therefore shouldn't be in
     # all caps, but that's the intent.
-    AGENT_ID: uuid.UUID = Field(
-        json_schema_extra={
-            "description": "The agent's UUID."
-        }
-    )
+    AGENT_ID: uuid.UUID = Field(json_schema_extra={"description": "The agent's UUID."})
 
     CONTROL_UNIT_THROTTLE_TIME: float = Field(
         default=2,
         json_schema_extra={
             "description": "The time, in seconds, the control unit should sleep on each cycle."
-        }
+        },
     )
 
-    AGENT_PRIVATE_KEY_PATH: Optional[Path] = Field(
-        json_schema_extra={
-            "description": "The reference timestamp for the ping request."
-        }
+    # These are generated at build time and are not user configured, and therefore
+    # should not be included in any forms constructed from this schema. In turn,
+    # the payload generation script is responsible for actually creating these with
+    # the configuration file.
+    #
+    # That said, the json_schema_extra fields are filled out anyways since I didn't
+    # want to lose them if we had to turn around.
+    AGENT_PRIVATE_KEY_PATH: SkipJsonSchema[Optional[Path]] = Field(
+        json_schema_extra={"description": "The path to the agent's private key."}
     )
-    SERVER_PUBLIC_KEY_PATH: Optional[Path] = Field(
-        json_schema_extra={
-            "description": "The reference timestamp for the ping request."
-        }
+    SERVER_PUBLIC_KEY_PATH: SkipJsonSchema[Optional[Path]] = Field(
+        json_schema_extra={"description": "The path to the agent's public key."}
     )
-
-    ENCRYPTION_KEY: bytes = Field(
+    ENCRYPTION_KEY: SkipJsonSchema[bytes] = Field(
         json_schema_extra={
-            "description": "The reference timestamp for the ping request."
+            "description": "The agent's symmetric encryption key, base64 encoded."
         }
     )
 
     INCOMING_PROTOCOLS: list[str] = Field(
         json_schema_extra={
-            "description": "The reference timestamp for the ping request."
+            "description": "A list of supported agent names for which periodic listener tasks should be scheduled."
         }
     )
 
     HEARTBEAT_PROTOCOL: str = Field(
-        json_schema_extra={
-            "description": "The reference timestamp for the ping request."
-        }
+        json_schema_extra={"description": "The protocol used to send heartbeats."}
     )
     LOGGING_PROTOCOL: str = Field(
-        json_schema_extra={
-            "description": "The reference timestamp for the ping request."
-        }
+        json_schema_extra={"description": "The protocol used to send log bundles."}
     )
     SENDING_PROTOCOL: str = Field(
         json_schema_extra={
-            "description": "The reference timestamp for the ping request."
+            "description": "The protocol used to send all other messages."
         }
     )
 
     LOGGING_INTERVAL: int = Field(
         json_schema_extra={
-            "description": "The reference timestamp for the ping request."
+            "description": "The frequency, in seconds, with which log bundles should be conditionally sent."
         }
     )
     HEARTBEAT_INTERVAL: int = Field(
         json_schema_extra={
-            "description": "The reference timestamp for the ping request."
+            "description": "The frequency, in seconds, with which heartbeats should be conditionally sent."
         }
     )
 
     REDIS_MESSAGES_SEEN_KEY: str = Field(
         json_schema_extra={
-            "description": "The reference timestamp for the ping request."
+            "description": "The key used by the message dispatch unit to drop duplicate messages."
         }
     )
     REDIS_NEW_MESSAGES_KEY: str = Field(
         json_schema_extra={
-            "description": "The reference timestamp for the ping request."
+            "description": "The key used by the control unit to discover completed message tasking."
         }
     )
     REDIS_MAIN_PROCESS_MESSAGES_SEEN_KEY: str = Field(
         json_schema_extra={
-            "description": "The reference timestamp for the ping request."
+            "description": "The key used by the control unit to drop duplicated messages."
         }
     )
     RESULT_RETRIEVAL_REATTEMPT_LIMIT: int = Field(
         json_schema_extra={
-            "description": "The reference timestamp for the ping request."
+            "description": "The number of times a Celery task may be observed to be pending before dropped."
         }
     )
 
     INCOMING_ENCODED_MESSAGE_DIR: Path = Field(
         json_schema_extra={
-            "description": "The reference timestamp for the ping request."
+            "description": "The directory used to store incoming messages before decoding."
         }
     )
     INCOMING_DECODED_MESSAGE_DIR: Path = Field(
         json_schema_extra={
-            "description": "The reference timestamp for the ping request."
+            "description": "The directory used to store incoming messages after decoding."
         }
     )
     OUTGOING_DECODED_MESSAGE_DIR: Path = Field(
         json_schema_extra={
-            "description": "The reference timestamp for the ping request."
+            "description": "The directory used to store outgoing messages before encoding."
         }
     )
     OUTGOING_ENCODED_MESSAGE_DIR: Path = Field(
         json_schema_extra={
-            "description": "The reference timestamp for the ping request."
+            "description": "The directory used to store outgoing messages after encoding."
         }
     )
 
@@ -139,8 +133,8 @@ class PyginConfig(BaseModel):
     # schema generation, since it's handled completely separately. The JSON schema
     # only covers general agent configuration; the JSON file passed for build
     # configuration is composed of global configuration, and *then* protocol-specific
-    # configuration. 
-    # 
+    # configuration.
+    #
     # The reason for this is that it's not necessarily the case a user wants to
     # configure *every* supported protocol for an agent. So the protocol configuration
     # is handled as part of the payload generation script completely separately

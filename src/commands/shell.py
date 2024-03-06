@@ -22,21 +22,17 @@ class ShellArguments(BaseModel):
     Simple helper class used for holding arguments.
     """
 
-    command: str = Field(
-        json_schema_extra = {
-            'description': "The command to execute."
-        }
-    )
+    command: str = Field(json_schema_extra={"description": "The command to execute."})
     use_shell: bool = Field(
-        json_schema_extra = {
-            'description': "Whether to use `shell=True`. If True, this does not use `shlex.split()`."
+        json_schema_extra={
+            "description": "Whether to use `shell=True`. If True, this does not use `shlex.split()`."
         }
     )
     timeout: Optional[int] = Field(
-        default = None,
-        json_schema_extra = {
-            'description': "The timeout for the command; returns an empty result on failure."
-        }
+        default=None,
+        json_schema_extra={
+            "description": "The timeout for the command; returns an empty result on failure."
+        },
     )
 
 
