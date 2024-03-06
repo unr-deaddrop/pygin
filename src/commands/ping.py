@@ -33,10 +33,29 @@ class PingArguments(BaseModel):
             "description": "The number of seconds to delay the reponse for."
         },
     )
-    ping_timestamp: float = Field(
+    ping_timestamp: datetime = Field(
         json_schema_extra={
             "description": "The reference timestamp for the ping request."
         }
+    )
+
+
+class PingResult(BaseModel):
+    """
+    Model representing the results of the ping command.
+    """
+
+    ping_timestamp: datetime = Field(
+        json_schema_extra={"description": "The time at which the ping was issued."},
+    )
+    pong_timestamp: datetime = Field(
+        json_schema_extra={"description": "The time at which the ping was received."},
+    )
+    message: Optional[str] = Field(
+        default=None,
+        json_schema_extra={
+            "description": "The optional message included with the original ping."
+        },
     )
 
 
@@ -77,9 +96,12 @@ class PingCommand(CommandBase):
         # Sleep as desired
         time.sleep(cmd_args.delay)
 
-        # Construct the dictionary response
-        return {
-            "ping_timestamp": cmd_args.ping_timestamp,
-            "pong_timestamp": datetime.utcnow().timestamp(),
-            "message": cmd_args.message,
-        }
+        # Raw result object (assumes agent is configured UTC)
+        result = PingResult(
+            ping_timestamp=cmd_args.ping_timestamp,
+            pong_timestamp=datetime.utcnow(),
+            message=cmd_args.message,
+        )
+
+        # Return as dictionary
+        return result.model_dump()

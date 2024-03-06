@@ -36,6 +36,51 @@ class ShellArguments(BaseModel):
     )
 
 
+class ShellResult(BaseModel):
+    """
+    Model representing the results of the shell command.
+    """
+
+    success: bool = Field(
+        json_schema_extra={
+            "description": (
+                "Whether or not the command executed without exception. For"
+                " example, executing binaries that do not exist when shell=False"
+                " will raise FileNotFoundError, and this will be set to False."
+            )
+        },
+    )
+    exception: Optional[str] = Field(
+        json_schema_extra={"description": "If success=False, the exception raised."},
+    )
+    stdout: Optional[str] = Field(
+        json_schema_extra={
+            "description": "The stdout of the command if no exception was raised."
+        },
+    )
+    stderr: Optional[str] = Field(
+        json_schema_extra={
+            "description": "The stderr of the command if no exception was raised."
+        },
+    )
+    returncode: Optional[int] = Field(
+        json_schema_extra={
+            "description": "The return code if no exception was raised."
+        },
+    )
+    shell: bool = Field(
+        json_schema_extra={"description": "Whether or not shell=True was used."},
+    )
+    start_time: datetime = Field(
+        json_schema_extra={"description": "When the command was invoked."},
+    )
+    finish_time: datetime = Field(
+        json_schema_extra={
+            "description": "When the command finished (even on exception)."
+        },
+    )
+
+
 class ShellCommand(CommandBase):
     """
     Generic command to execute arbitrary shell commands.
@@ -86,7 +131,7 @@ class ShellCommand(CommandBase):
         logger.debug(
             f"Executing {cmd_args.command} with shell={cmd_args.use_shell}, timeout={cmd_args.timeout} "
         )
-        start_time = datetime.utcnow().timestamp()
+        start_time = datetime.utcnow()
         if cmd_args.use_shell:
             # If shell=True, we don't use shlex to parse the input since it's
             # unnecessary.
@@ -117,30 +162,34 @@ class ShellCommand(CommandBase):
 
     @staticmethod
     def parse_process_result(
-        p: subprocess.CompletedProcess, cmd_args: ShellArguments, start_time: float
+        p: subprocess.CompletedProcess, cmd_args: ShellArguments, start_time: datetime
     ) -> dict[str, Any]:
-        return {
-            "success": True,
-            "exception": "",
-            "stdout": p.stdout,
-            "stderr": p.stderr,
-            "returncode": p.returncode,
-            "shell": cmd_args.use_shell,
-            "start_time": start_time,
-            "end_time": datetime.utcnow().timestamp(),
-        }
+        result = ShellResult(
+            success=True,
+            exception=None,
+            stdout=p.stdout,
+            stderr=p.stderr,
+            returncode=p.returncode,
+            shell=cmd_args.use_shell,
+            start_time=start_time,
+            finish_time=datetime.utcnow(),
+        )
+
+        return result.model_dump()
 
     @staticmethod
     def parse_exception_result(
-        traceback_str: str, cmd_args: ShellArguments, start_time: float
+        traceback_str: str, cmd_args: ShellArguments, start_time: datetime
     ) -> dict[str, Any]:
-        return {
-            "success": False,
-            "exception": traceback_str,
-            "stdout": "",
-            "stderr": "",
-            "returncode": -1,
-            "shell": cmd_args.use_shell,
-            "start_time": start_time,
-            "end_time": datetime.utcnow().timestamp(),
-        }
+        result = ShellResult(
+            success=False,
+            exception=traceback_str,
+            stdout=None,
+            stderr=None,
+            returncode=None,
+            shell=cmd_args.use_shell,
+            start_time=start_time,
+            finish_time=datetime.utcnow(),
+        )
+
+        return result.model_dump()
