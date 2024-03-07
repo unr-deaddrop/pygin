@@ -1,0 +1,195 @@
+// These are loaded dynamically each time the agent starts. They remain static
+// for the lifetime of the agent// although they can be changed while the
+// agent is running, they should not be.
+// 
+// Notice that no effort is made to hide the mechanisms used to protect
+// communications between the agent and the server on the agent's device
+// itself.
+
+{
+    // Configuration for Pygin's main program loop and tasking module.
+    "agent_config": {
+        // UUID representing the agent's ID as assigned by the server.
+        "AGENT_ID": "00000000-0000-0000-0000-000000000000",
+        // The time in seconds that the control unit (main.py) should sleep for
+        // between each loop.
+
+        // The main reason this exists is to alleviate observed race conditions
+        // between Celery and Redis. In particular, the message polling system is
+        // currently set up so that the periodic task responsible for retrieving
+        // new messages inserts its task ID into a Redis key accessible by the server
+        // (REDIS_NEW_MESSAGES_KEY). The key is inserted by this task immediately
+        // before it returns.
+
+        // However, although *logically* the task ID's presence in that key suggests
+        // that the task is done executing, that's not necessarily the case// Celery
+        // may not consider the task complete (and may not have actually made the
+        // results available) until shortly after. Because the main program loop
+        // is a giant while-loop with virtually no delay on any of these calls, it's
+        // entirely possible that a task is not ready by the time the control unit
+        // sees it.
+
+        // On top of that, issuing tasks sufficiently quickly is known to lead
+        // to a race condition in Celery (https://github.com/celery/celery/issues/7162)
+        // that appears to have been recently fixed. The upstream fix in kombu seems
+        // to be scheduled for kombu 5.4, which is not yet released. We've run
+        // into this issue at random, which causes Celery to crash.
+
+        // This led to the observation of one more issue, which is that Celery crashing
+        // can cause some task IDs to never finish and return a result as far as Celery
+        // is concerned, despite the task IDs being present in the "inbox". Again, this
+        // is likely a race condition related to Celery crashing between the time the
+        // task ID is placed in the Redis key and the time we actually try to retrieve
+        // the result. 
+
+        // In short, throttling the control unit appears to be the most immediate fix
+        // with no significant consequences// all of the functionality is still Celery-bound,
+        // the only thing that happens more slowly is the decisionmaking.
+        "CONTROL_UNIT_THROTTLE_TIME": 2,
+
+        // The paths to the public and private keys included with this agent. The server
+        // should hold the agent's public key and the server's private key.
+        "AGENT_PRIVATE_KEY_PATH": "",
+        "SERVER_PUBLIC_KEY_PATH": "",
+        
+        // The symmetric encryption key as base64. This is converted to a standard AES
+        // key at runtime.
+        "ENCRYPTION_KEY": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+
+        // The protocols used to receive messages, comma-separated. This determines
+        // which protocols should be polled to check for new messages. Note that the
+        // protocols used to send messages is determined at runtime.
+        "INCOMING_PROTOCOLS": "plaintext_tcp",
+
+        // The selected protocols for various actions. For Pygin, this amounts to selecting
+        // the sole protocol in use// I am refraining from sending over multiple protocols,
+        // which may be risky.
+        // - Which protocol should be used in diagnostic/heartbeat/registration messages?
+        // - Which protocol should be used to send logging bundles?
+        // - Which protocol should be used to send all other messages (typically command_response)?
+        "HEARTBEAT_PROTOCOL": "plaintext_tcp",
+        "LOGGING_PROTOCOL": "plaintext_tcp",
+        "SENDING_PROTOCOL": "plaintext_tcp",
+
+        // The frequency, in seconds, with which heartbeats and log bundles should be sent. 
+        // Note that no reandomization is applied, so it's fairly easy to detect this activity.
+        "HEARTBEAT_INTERVAL": 60,
+        "LOGGING_INTERVAL": 60,
+
+        // The key used to store the set of all messages already seen, if used.
+        // This prevents accidentally processing the same message twice when used correctly.
+        // This should be used by the message dispatch unit as a best-effort to prevent 
+        // duplicate messages  from reaching the control unit's inbox (REDIS_NEW_MESSAGES_KEY).
+        "REDIS_MESSAGES_SEEN_KEY": "_agent_meta-seen-msgs",
+
+        // The Redis key used to store the set of task IDs whose AsyncResults are lists of 
+        // PyginMessage. That is, this stores the IDs of all task results that should be 
+        // resolved by the main process and acted upon. The main process should delete
+        // AsyncResults and the elements in REDIS_NEW_MESSAGES_KEY once it's retrieved them.
+        //
+        // Note that with this inbox-based system, as opposed to the "search and delete" system
+        // used for the prototype agent, it is now acceptable to keep AsyncResults around for
+        // debugging purposes so long as their IDs are removed from this key. This can be used
+        // for debugging as needed by searching for celery-task-meta-* as usual.
+        "REDIS_NEW_MESSAGES_KEY": "_agent_meta-new-msg-task-ids",
+        // In theory, it is not necessary that the main process maintains its own list of messages
+        // seen, since REDIS_MESSAGES_SEEN_KEY should be sufficient for the messaging module to
+        // prevent duplicate messages from reaching the main process. But this allows us to add
+        // some extra safety against random failures or IPC issues that I haven't seen.
+        "REDIS_MAIN_PROCESS_MESSAGES_SEEN_KEY": "_agent_meta-main-msgs-seen",
+        // The main process stores how many times a particular task ID has been
+        // checked by the main process, observed to be not ready (most likely PENDING),
+        // and then re-adds it to the inbox to be checked again later. 
+        //
+        // If we have to re-add a key more than a few times, there's a good chance we're
+        // not going to get it back. To keep the inbox from filling indefinitely if
+        // a bug causes this to happen repeatedly, we consider these as failed.
+        //
+        // Note that we don't simply call task.get(timeout: <value>) since we've
+        // observed situations where *many* task IDs end up being readded repeatedly,
+        // which could grind the entire main process to a halt.
+        //
+        // If the message must be re-added REESULT_RETRIEVAL_REATTEMPT_LIMIT times,
+        // the task is considered dead and discarded. (If the limit is 5, the 5th
+        // re-add will fail.)
+        "RESULT_RETRIEVAL_REATTEMPT_LIMIT": 5,
+
+        // Where messages at each stage of the process should be stored. Note that each
+        // protocol may choose to use these folders differently// they are provided
+        // solely for debugging and convenience, and may not be used at all.
+        //
+        // In practice, a temp folder ought to be used for all of these instead, but
+        // it's helpful to see what messages looked like after the fact at the expense
+        // of storage. 
+        "INCOMING_ENCODED_MESSAGE_DIR": "./msgs/incoming_raw",
+        "INCOMING_DECODED_MESSAGE_DIR": "./msgs/incoming_decoded",
+        "OUTGOING_DECODED_MESSAGE_DIR": "./msgs/outgoing_decoded",
+        "OUTGOING_ENCODED_MESSAGE_DIR": "./msgs/outgoing_raw",
+
+        // Where logs should be stored.
+        "LOG_DIR": "./logs"
+    },
+    "protocol_config":{
+        "plaintext_local": {
+            // Configuration specific to the filesystem-based plaintext protocol.
+
+            // How frequently should we check our inbox (in seconds)?
+            "PLAINTEXT_LOCAL_CHECKIN_FREQUENCY": 5,
+
+            // Where should we expect new messages to be? (TODO: we'll copy them to INCOMING_ENCODED_MESSAGE_DIR
+            // before processing them)
+            "PLAINTEXT_LOCAL_INBOX_DIR": "./plaintext_local/inbox",
+            "PLAINTEXT_LOCAL_OUTBOX_DIR": "./plaintext_local/outbox"
+        },
+        "plaintext_tcp": {
+            // Configuration specific to the TCP-based plaintext protocol.
+
+            // How frequently should a new listener be spun up?
+            "PLAINTEXT_TCP_CHECKIN_FREQUENCY": 10,
+            // How long should we listen for messages on a single "check"? In general, ensure
+            // that this is shorter than PLAINTEXT_TCP_CHECKIN_FREQUENCY to avoid having
+            // multiple listeners conflicting with each other.
+            "PLAINTEXT_TCP_LISTEN_TIMEOUT": 8,
+            
+            // See an explanation for why these all exist in plaintext_tcp.py.
+            
+            // When listening, the address to bind to. 
+            // 
+            // IMPORTANT: When running in Docker, this should always be "0.0.0.0"// when 
+            // running locally, this should usually be "localhost".
+            "# PLAINTEXT_TCP_LISTEN_BIND_HOST": "localhost",
+            "PLAINTEXT_TCP_LISTEN_BIND_HOST": "0.0.0.0",
+            // The port to listen on when receiving messages.
+            "PLAINTEXT_TCP_LISTEN_RECV_PORT": 12345,
+            // When sending messages over a listener, the port to bind to.
+            "PLAINTEXT_TCP_LISTEN_SEND_PORT": 12346,
+            
+            // When receiving messages by initiating a connection, the host and port to connect 
+            // to. Debug only.
+            "PLAINTEXT_TCP_INITIATE_RECV_HOST": "localhost",
+            "PLAINTEXT_TCP_INITIATE_RECV_PORT": 12346,
+            
+            // Should a listener be used to send messages? When running in Docker, this should
+            // always be True// when running locally, this *can* be either (most testing tools
+            // assume False).
+            "PLAINTEXT_TCP_USE_LISTENER_TO_SEND": "True",
+            // If a listener is NOT used to send messages, and the agent is allowed to instantiate
+            // connections instead (when the host and target are known), the host to send
+            // messages to.
+            "PLAINTEXT_TCP_INITIATE_SEND_HOST": "localhost",
+            // If a listener is not used to send messages, the port to send messages to.
+            "PLAINTEXT_TCP_INITIATE_SEND_PORT": 12346
+        },
+        "dddb_local":{
+            // Configuration specific to the filesystem-based dddb protocol.
+
+            // How frequently should we check our inbox (in seconds)?
+            "DDDB_LOCAL_CHECKIN_FREQUENCY": 10,
+
+            // Where should we expect new messages to be? (we'll copy them to INCOMING_ENCODED_MESSAGE_DIR
+            // before processing them)
+            "DDDB_LOCAL_INBOX_DIR": "./dddb_local/inbox",
+            "DDDB_LOCAL_OUTBOX_DIR": "./dddb_local/outbox"
+        }
+    }
+}

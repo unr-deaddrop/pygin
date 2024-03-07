@@ -191,7 +191,7 @@ PROTOCOL_ENTRYPOINTS: dict[str, ProtocolEntrypoints] = {
 
 if __name__ == "__main__":
     # Load configuration
-    cfg = PyginConfig.from_cfg_file(Path("./agent.cfg"))
+    cfg = PyginConfig.from_json5_file(Path("./agent_cfg.json"))
 
     # Construct the command_request message
     msg = DeadDropMessage(

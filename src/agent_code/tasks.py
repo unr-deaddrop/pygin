@@ -53,7 +53,7 @@ app.conf.result_serializer = "pickle"
 # arguments to work, but I've decided that (theoretically) there should never
 # really be a need to hot-swap agent configurations anyways.
 #
-CONFIG_PATH = Path("./agent.cfg")
+CONFIG_PATH = Path("./agent_cfg.json")
 
 
 @app.on_after_configure.connect
@@ -78,7 +78,7 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
     """
     # TODO: Can't figure out how to pass the name of the config file in
     # at runtime
-    _g_config = config.PyginConfig.from_cfg_file(CONFIG_PATH)
+    _g_config = config.PyginConfig.from_json5_file(CONFIG_PATH)
 
     # Schedule checkins for each configured protocol.
     for protocol_name, protocol_cfg in _g_config.protocol_configuration.items():
