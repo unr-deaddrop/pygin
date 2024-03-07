@@ -1,0 +1,10 @@
+# Should be called from within the main container.
+# There's only one container right now, but in theory you might need multiple
+# for an agent to build if they have disparate platforms for one payload.
+services:
+  pygin_build:
+    container_name: pygin_build
+    build:
+      context: .
+      dockerfile: Dockerfile.payload
+    command: make payload

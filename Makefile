@@ -37,4 +37,8 @@ deps:
 	sudo apt-get install redis
 	pip install -r requirements.txt -U
 
+# To be run *inside* the build container.
+payload:
+	python3 -m src.meta.generate_config
+	zip -r payload.zip .
 
