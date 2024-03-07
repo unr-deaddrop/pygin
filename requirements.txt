@@ -3,6 +3,7 @@ deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@main
 
 # Functional
 celery[redis]==5.3.6
+json5==0.9.14
 pycryptodome==3.20.0
 pydantic==2.6.1
 python-dotenv==1.0.0

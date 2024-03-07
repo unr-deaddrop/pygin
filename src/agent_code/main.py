@@ -27,7 +27,7 @@ from deaddrop_meta.protocol_lib import (
 
 # Default configuration path. This is the configuration file included with the
 # agent by default.
-DEFAULT_CFG_PATH = Path("./agent.cfg")
+DEFAULT_CFG_PATH = Path("./agent_cfg.json")
 
 # Set up logging
 logging.basicConfig(
@@ -370,7 +370,7 @@ if __name__ == "__main__":
     # Load configuration from path specified on the command line. Note that
     # this also implicitly creates the directories specified in the configuration
     # file, if they don't already exist.
-    cfg_obj = config.PyginConfig.from_cfg_file(args.cfg_path)
+    cfg_obj = config.PyginConfig.from_json5_file(args.cfg_path)
 
     # Start the main agent loop with the new configuration information and the
     # global Celery tasking.

@@ -14,6 +14,9 @@ import uuid
 from pydantic import BaseModel, field_validator, Field
 from pydantic.json_schema import SkipJsonSchema
 
+# json5 is not typed, but we know that json5.load() exists so we're fine
+import json5  # type: ignore[import-untyped]
+
 # Intentional star import, with the goal of getting all of the protocol
 # configuration objects available.
 from src.protocols import *  # noqa: F403, F401
@@ -175,6 +178,38 @@ class PyginConfig(BaseModel):
             protocol_name = protocol_cfg_type.section_name
             cfg_obj.protocol_configuration[protocol_name] = (  # type: ignore[index]
                 protocol_cfg_type.from_cfg_parser(cfg_parser)
+            )
+
+        return cfg_obj
+
+    @classmethod
+    def from_json5_file(cls, cfg_path: Path) -> "PyginConfig":
+        """
+        Construct the global Pygin configuration object from a JSON5-compliant
+        file.
+
+        This assumes that Pygin's configuration is under the top-level key
+        "agent_config", while each protocol's configuration is a separate
+        key under the top-level key "protocol_config".
+        """
+        # Read the full file
+        with open(cfg_path) as fp:
+            data = json5.load(fp)
+
+        # Retrieve agent configuration, instantiate the model without
+        # protocol configuration
+        cfg_obj = PyginConfig.model_validate(data["agent_config"])
+        cfg_obj.create_dirs()
+
+        # Now, for each built-in protocol, generate their configuration and add
+        # it to our own.
+        #
+        # The type ignore is, again, due to properties.
+        for protocol_cfg_type in export_all_protocol_configs():
+            protocol_name = protocol_cfg_type.section_name
+            protocol_config = data["protocol_config"][protocol_name]
+            cfg_obj.protocol_configuration[protocol_name] = (  # type: ignore[index]
+                protocol_cfg_type.model_validate(protocol_config)
             )
 
         return cfg_obj
