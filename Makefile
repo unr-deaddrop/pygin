@@ -37,6 +37,19 @@ deps:
 	sudo apt-get install redis
 	pip install -r requirements.txt -U
 
+# To be run on the host or container currently running the DeadDrop server.
+#
+# This script is the standard entrypoint for the package manager to generate
+# the three agent metadata files: agent.json, commands.json, and protocols.json.
+# 
+# This script should be run immediately after the server decompresses the package,
+# after which it can be assumed that all relevant metadata files are available
+# (and future metadata files, if any) and can be used to generate the relevant
+# models for the Django backend.
+install:
+	pip3 install -r install-requirements.txt
+	python3 -m src.meta.generate_metadata
+
 # To be run *inside* the build container.
 payload:
 	python3 -m src.meta.generate_config
