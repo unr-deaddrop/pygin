@@ -157,7 +157,7 @@
             // 
             // IMPORTANT: When running in Docker, this should always be "0.0.0.0"// when 
             // running locally, this should usually be "localhost".
-            "# PLAINTEXT_TCP_LISTEN_BIND_HOST": "localhost",
+            //"PLAINTEXT_TCP_LISTEN_BIND_HOST": "localhost",
             "PLAINTEXT_TCP_LISTEN_BIND_HOST": "0.0.0.0",
             // The port to listen on when receiving messages.
             "PLAINTEXT_TCP_LISTEN_RECV_PORT": 12345,
