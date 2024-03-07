@@ -55,3 +55,10 @@ payload:
 	python3 -m src.meta.generate_config
 	zip -r payload.zip .
 
+# To be run *outside* the build container. Note this assumes that the container
+# will exit on its own (or else bad things happen!)
+build:
+	docker compose -f docker-compose-payload.yml up 
+	docker cp pygin_build:/app/agent_cfg.json ./agent_cfg.json
+	docker cp pygin_build:/app/payload.zip ./payload.zip
+	docker cp pygin_build:/app/payload-logs.txt ./payload-logs.txt
