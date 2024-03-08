@@ -120,8 +120,8 @@ def process_config_file(json_path: Path) -> PyginConfig:
         cfg_obj.ENCRYPTION_KEY = base64.b64encode(encryption_key)
     if not cfg_obj.AGENT_PRIVATE_KEY:
         # Keypairs are assigned together.
-        cfg_obj.AGENT_PRIVATE_KEY = base64.b64encode(private_key)
-        cfg_obj.AGENT_PUBLIC_KEY = base64.b64encode(public_key)
+        cfg_obj.AGENT_PRIVATE_KEY = base64.b64encode(bytes(private_key, 'utf-8'))
+        cfg_obj.AGENT_PUBLIC_KEY = base64.b64encode(bytes(public_key, 'utf-8'))
     
     return cfg_obj
 
