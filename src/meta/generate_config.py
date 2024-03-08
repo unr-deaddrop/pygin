@@ -49,7 +49,7 @@ config keys and protocols actually exist.
 
 from pathlib import Path
 import argparse
-import json
+import base64
 import logging
 import os
 import sys
@@ -117,11 +117,11 @@ def process_config_file(json_path: Path) -> PyginConfig:
     # the agent will not perform signature verification (but will still
     # sign and encrypt its own messages).
     if not cfg_obj.ENCRYPTION_KEY:
-        cfg_obj.ENCRYPTION_KEY = encryption_key
+        cfg_obj.ENCRYPTION_KEY = base64.b64encode(encryption_key)
     if not cfg_obj.AGENT_PRIVATE_KEY:
         # Keypairs are assigned together.
-        cfg_obj.AGENT_PRIVATE_KEY = private_key
-        cfg_obj.AGENT_PUBLIC_KEY = public_key
+        cfg_obj.AGENT_PRIVATE_KEY = base64.b64encode(private_key)
+        cfg_obj.AGENT_PUBLIC_KEY = base64.b64encode(public_key)
     
     return cfg_obj
 
