@@ -7,7 +7,7 @@ startup and remains constant throughout the lifetime of the agent.
 
 from base64 import b64decode, b64encode
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Union
 import configparser
 import uuid
 
@@ -243,9 +243,9 @@ class PyginConfig(BaseModel):
         for protocol_cfg_type in export_all_protocol_configs():
             protocol_name = protocol_cfg_type.section_name
             protocol_config = data["protocol_config"][protocol_name]
-            
+
             proto_cfg_obj = protocol_cfg_type.model_validate(protocol_config)
-            cfg_obj.protocol_configuration[protocol_name] = proto_cfg_obj # type: ignore[index]
+            cfg_obj.protocol_configuration[protocol_name] = proto_cfg_obj  # type: ignore[index]
 
         return cfg_obj
 
@@ -253,7 +253,7 @@ class PyginConfig(BaseModel):
         "AGENT_PRIVATE_KEY", "AGENT_PUBLIC_KEY", "SERVER_PUBLIC_KEY", mode="before"
     )
     @classmethod
-    def validate_base64(cls, v: Any) -> bytes:
+    def validate_base64(cls, v: Any) -> Union[bytes, None]:
         """
         If the value passed into the configuration object is not bytes,
         assume base64.
@@ -270,7 +270,7 @@ class PyginConfig(BaseModel):
 
     @field_validator("ENCRYPTION_KEY", mode="before")
     @classmethod
-    def validate_encryption_key(cls, v: Any) -> bytes:
+    def validate_encryption_key(cls, v: Any) -> Union[bytes, None]:
         """
         If the encryption key passed into the configuration object is not bytes,
         assume base64.
@@ -303,14 +303,14 @@ class PyginConfig(BaseModel):
         """
         Turn bytes into their base64 representation before it pops out of a JSON file.
         """
-        return b64encode(v).decode('utf-8')
+        return b64encode(v).decode("utf-8")
 
     @field_serializer("protocol_configuration")
     @classmethod
     def serialize_protocol_cfg(cls, cfg: dict[str, ProtocolConfig]) -> dict[str, Any]:
         """
         Convert the dictionary of ProtocolConfig elements recursively.
-        
+
         Pydantic (for some reason) doesn't seem to do this, so we convert the field
         ourselves.
         """
@@ -319,7 +319,7 @@ class PyginConfig(BaseModel):
     def as_standard_json(self) -> str:
         """
         Convert the model to the standard build JSON format.
-        
+
         In short, the model is converted to the following:
         ```json
         {
@@ -335,26 +335,21 @@ class PyginConfig(BaseModel):
         # Dump the entire model as-is to JSON; Pydantic can handle the conversion
         # of unusual types like UUID, but json/json5 cannot.
         model_json = self.model_dump_json()
-        
+
         # Read the whole thing back in.
         data = json5.loads(model_json)
-        
+
         # Pop the protocol configuration key, have that be its own dictionary
-        proto_cfg = data.pop('protocol_configuration')
-        
+        proto_cfg = data.pop("protocol_configuration")
+
         # Construct the final result. Various formatting options are applied to
         # make it as close to stock JSON as possible.
         return json5.dumps(
-            {
-                'agent_config': data,
-                'protocol_config': proto_cfg
-            },
+            {"agent_config": data, "protocol_config": proto_cfg},
             quote_keys=True,
             trailing_commas=False,
-            indent=2
+            indent=2,
         )
-        
-        
 
     @field_validator("INCOMING_PROTOCOLS", mode="before")
     @classmethod

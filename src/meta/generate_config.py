@@ -54,7 +54,6 @@ import os
 import sys
 
 from Cryptodome.PublicKey import ECC
-import json5
 
 from src.agent_code.config import PyginConfig
 
@@ -89,6 +88,7 @@ sys.excepthook = handle_exception
 # the "initial" configuration for the payload, which is validated and filled in
 # as needed.
 DEFAULT_JSON_PATH = Path("./build_config.json")
+DEFAULT_TARGET_PATH = Path("./agent_cfg.json")
 
 
 def process_config_file(json_path: Path) -> PyginConfig:
@@ -143,12 +143,23 @@ def get_args() -> argparse.Namespace:
         dest="cfg_path",
     )
 
+    parser.add_argument(
+        "--out",
+        "-o",
+        default=DEFAULT_TARGET_PATH,
+        type=Path,
+        help="The output path.",
+        required=False,
+        dest="target_path",
+    )
+
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = get_args()
     json_path = Path(args.cfg_path).resolve()
+    target_path = Path(args.target_path).resolve()
 
     # Assert that our JSON5 file is there
     if not json_path.exists():
@@ -169,13 +180,15 @@ if __name__ == "__main__":
     # Write the final PyginConfig instance back to disk. This is the configuration
     # that the agent will use (take care that you're not overwriting it in a real
     # repository!)
-    with open('agent_cfg.json', "wt") as fp:
+    with open(target_path, "wt") as fp:
         fp.write(cfg_obj.as_standard_json())
-        
+
     # Verify it can still be read, and that the contents are the exact same as
     # the object we just spit out
-    result = PyginConfig.from_json5_file('agent_cfg.json')
+    result = PyginConfig.from_json5_file(target_path)
     if result == cfg_obj:
         logger.info("Configuration done, output verified")
     else:
-        raise AssertionError("The generated configuration file was not identically read in!")
+        raise AssertionError(
+            "The generated configuration file was not identically read in!"
+        )
