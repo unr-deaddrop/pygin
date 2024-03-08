@@ -55,7 +55,6 @@ import os
 import sys
 
 from Cryptodome.PublicKey import ECC
-
 from src.agent_code.config import PyginConfig
 
 # Logs are written to payload-logs.txt as per convention. There is no convention 
@@ -69,6 +68,7 @@ logging.basicConfig(
     format="%(filename)s:%(lineno)d | %(asctime)s | [%(levelname)s] - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+# TODO: https://stackoverflow.com/questions/6234405/logging-uncaught-exceptions-in-python
 
 # The default "input" JSON path. This is a user-supplied JSON file that contains
 # the "initial" configuration for the payload, which is validated and filled in 
