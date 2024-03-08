@@ -61,7 +61,6 @@ from src.agent_code.config import PyginConfig
 # for the log file itself, since this all becomes one giant Log entry anyways.
 logging.basicConfig(
     handlers=[
-        logging.FileHandler("payload-logs.txt", mode="a", encoding="utf-8"),
         logging.StreamHandler(sys.stdout),
     ],
     level=logging.DEBUG,

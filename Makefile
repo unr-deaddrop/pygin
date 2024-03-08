@@ -62,7 +62,4 @@ payload:
 # To be run *outside* the build container. Note this assumes that the container
 # will exit on its own (or else bad things happen!)
 payload_entry:
-	docker compose -f docker-compose-payload.yml up --build
-	docker cp pygin_build:/app/agent_cfg.json ./agent_cfg.json
-	docker cp pygin_build:/app/payload.zip ./payload.zip
-	docker cp pygin_build:/app/payload-logs.txt ./payload-logs.txt
+	python3 -m src.meta.exec_payload

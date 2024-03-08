@@ -4,5 +4,6 @@ celery-types==0.22.0
 types-click==7.1.8
 pydantic==2.6.1
 json5==0.9.14
+pyyaml==6.0.1
 pycryptodomex==3.20.0
 deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@main
