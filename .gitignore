@@ -1,3 +1,8 @@
+# Payload generation outputs.
+build_config.json
+payload-logs.txt
+payload.zip
+
 # Build/bundle outputs.
 pygin-build.zip
 build/
