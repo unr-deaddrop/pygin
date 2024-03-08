@@ -22,7 +22,7 @@ class PyginInfo(AgentBase):
 
     name: str = "pygin"
     description: str = __doc__
-    version: str = "0.0.1"
+    version: str = "0.0.2"
     author: str = "lgactna"
     source: str = "https://github.com/unr-deaddrop/pygin/"
     supported_operating_systems: list[SupportedOSTypes] = [SupportedOSTypes.LINUX]
