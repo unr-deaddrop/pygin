@@ -5,13 +5,13 @@ This module defines a global configuration object that generated at agent
 startup and remains constant throughout the lifetime of the agent.
 """
 
-from base64 import b64decode
+from base64 import b64decode, b64encode
 from pathlib import Path
 from typing import Any, Optional
 import configparser
 import uuid
 
-from pydantic import BaseModel, field_validator, Field
+from pydantic import BaseModel, field_validator, Field, field_serializer
 from pydantic.json_schema import SkipJsonSchema
 
 # json5 is not typed, but we know that json5.load() exists so we're fine
@@ -49,15 +49,26 @@ class PyginConfig(BaseModel):
     #
     # That said, the json_schema_extra fields are filled out anyways since I didn't
     # want to lose them if we had to turn around.
-    AGENT_PRIVATE_KEY_PATH: SkipJsonSchema[Optional[Path]] = Field(
-        json_schema_extra={"description": "The path to the agent's private key."}
+    AGENT_PRIVATE_KEY: SkipJsonSchema[Optional[bytes]] = Field(
+        json_schema_extra={"description": "The agent's private key as base64."}
     )
-    SERVER_PUBLIC_KEY_PATH: SkipJsonSchema[Optional[Path]] = Field(
-        json_schema_extra={"description": "The path to the agent's public key."}
+    AGENT_PUBLIC_KEY: SkipJsonSchema[Optional[bytes]] = Field(
+        json_schema_extra={"description": "The agent's public key as base64."}
     )
-    ENCRYPTION_KEY: SkipJsonSchema[bytes] = Field(
+    ENCRYPTION_KEY: SkipJsonSchema[Optional[bytes]] = Field(
         json_schema_extra={
-            "description": "The agent's symmetric encryption key, base64 encoded."
+            "description": "The agent's symmetric encryption key as base64."
+        }
+    )
+    
+    # This *is* visible to the schema. The server is hinted that it should substitute
+    # the default value of this with the agent's public key, as defined in the app's
+    # settings.py (as base64).
+    SERVER_PUBLIC_KEY: SkipJsonSchema[Optional[bytes]] = Field(
+        json_schema_extra={
+            "description": "The server's public key as base64.",
+            # Let default = settings.AGENT_PUBLIC_KEY
+            "_preprocess_val": "AGENT_PUBLIC_KEY", 
         }
     )
 
@@ -214,6 +225,23 @@ class PyginConfig(BaseModel):
 
         return cfg_obj
 
+    @field_validator("AGENT_PRIVATE_KEY", "AGENT_PUBLIC_KEY", "SERVER_PUBLIC_KEY", mode="before")
+    @classmethod
+    def validate_base64(cls, v: Any) -> bytes:
+        """
+        If the value passed into the configuration object is not bytes,
+        assume base64.
+        """
+        if isinstance(v, bytes):
+            return v
+        
+        try:
+            val = b64decode(v)
+        except Exception as e:
+            raise ValueError(f"Assumed b64decode of {v} failed.") from e 
+        
+        return val
+
     @field_validator("ENCRYPTION_KEY", mode="before")
     @classmethod
     def validate_encryption_key(cls, v: Any) -> bytes:
@@ -224,16 +252,26 @@ class PyginConfig(BaseModel):
         Then, check that the encryption key is 16, 24, or 32 bytes in length
         (AES-128, AES-192, and AES-256 respectively).
         """
-        if type(v) is not bytes:
-            try:
-                v = b64decode(v)
-            except Exception as e:
-                raise ValueError(f"Assumed b64decode of {v} failed.") from e
+        if isinstance(v, bytes):
+            return v
+        
+        try:
+            val = b64decode(v)
+        except Exception as e:
+            raise ValueError(f"Assumed b64decode of {v} failed.") from e
 
-        if len(v) not in (16, 24, 32):
-            raise ValueError("Decoded key is of invalid length.")
+        if len(val) not in (16, 24, 32):
+            raise ValueError("Decoded key is of invalid length.")    
+        
+        return val
 
-        return v
+    @field_serializer("AGENT_PRIVATE_KEY", "AGENT_PUBLIC_KEY", "SERVER_PUBLIC_KEY", "ENCRYPTION_KEY", when_used="json-unless-none")
+    @classmethod
+    def serialize_bytes(cls, v: bytes) -> str:
+        """
+        Turn bytes into their base64 representation before it pops out of a JSON file.
+        """
+        return b64encode(v)
 
     @field_validator("INCOMING_PROTOCOLS", mode="before")
     @classmethod
@@ -263,4 +301,4 @@ class PyginConfig(BaseModel):
         Create all associated directories.
         """
         for field in self._DIR_ATTRS:
-            getattr(self, field).resolve().mkdir(exist_ok=True, parents=True)
+            getattr(self, field).resolve().mkdir(exist_ok=True, parents=True)#
