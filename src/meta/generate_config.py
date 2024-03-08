@@ -68,7 +68,19 @@ logging.basicConfig(
     format="%(filename)s:%(lineno)d | %(asctime)s | [%(levelname)s] - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-# TODO: https://stackoverflow.com/questions/6234405/logging-uncaught-exceptions-in-python
+
+logger = logging.getLogger(__name__)
+
+# Log uncaught excepptions
+# https://stackoverflow.com/questions/6234405/logging-uncaught-exceptions-in-python
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logger.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+sys.excepthook = handle_exception
 
 # The default "input" JSON path. This is a user-supplied JSON file that contains
 # the "initial" configuration for the payload, which is validated and filled in 
@@ -100,14 +112,17 @@ def process_config_file(json_path: Path) -> PyginConfig:
     private_key = agent_key.export_key(format='PEM')
     public_key = agent_key.public_key().export_key(format='PEM')
     
-    # These values are now applied to PyginConfig. Note that if the server has
-    # neglected to include its own public key, the agent will not perform
-    # signature verification.
-    cfg_obj.ENCRYPTION_KEY = encryption_key
-    cfg_obj.AGENT_PRIVATE_KEY = private_key
-    cfg_obj.AGENT_PUBLIC_KEY = public_key
+    # These values are now conditionally applied to PyginConfig. 
+    # Note that if the server has neglected to include its own public key, 
+    # the agent will not perform signature verification (but will still
+    # sign and encrypt its own messages).
+    if not cfg_obj.ENCRYPTION_KEY:
+        cfg_obj.ENCRYPTION_KEY = encryption_key
+    if not cfg_obj.AGENT_PRIVATE_KEY:
+        # Keypairs are assigned together.
+        cfg_obj.AGENT_PRIVATE_KEY = private_key
+        cfg_obj.AGENT_PUBLIC_KEY = public_key
     
-    # The result is returned as-is.
     return cfg_obj
 
 def get_args() -> argparse.Namespace:

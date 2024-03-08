@@ -33,7 +33,18 @@ class PyginConfig(BaseModel):
 
     # Strictly speaking, these aren't constants and therefore shouldn't be in
     # all caps, but that's the intent.
-    AGENT_ID: uuid.UUID = Field(json_schema_extra={"description": "The agent's UUID."})
+    
+    # The agent's ID. The server should set this, not the agent; this guarantees
+    # uniqueness even in the astronomically low chance a UUIDv4 collides. The
+    # preprocessor action indicates to the preprocessor that this should be filled
+    # in with a randomly-generated UUID as the default in the schema before 
+    # presenting the resulting form to the user.
+    AGENT_ID: uuid.UUID = Field(
+        json_schema_extra={
+            "description": "The agent's UUID.",
+            "_preprocess_action": "AGENT_ID"
+        },
+    )
 
     CONTROL_UNIT_THROTTLE_TIME: float = Field(
         default=2,
@@ -231,8 +242,8 @@ class PyginConfig(BaseModel):
         """
         If the value passed into the configuration object is not bytes,
         assume base64.
-        """
-        if isinstance(v, bytes):
+        """        
+        if v is None or isinstance(v, bytes):
             return v
         
         try:
@@ -252,7 +263,7 @@ class PyginConfig(BaseModel):
         Then, check that the encryption key is 16, 24, or 32 bytes in length
         (AES-128, AES-192, and AES-256 respectively).
         """
-        if isinstance(v, bytes):
+        if v is None or isinstance(v, bytes):
             return v
         
         try:
