@@ -33,16 +33,16 @@ class PyginConfig(BaseModel):
 
     # Strictly speaking, these aren't constants and therefore shouldn't be in
     # all caps, but that's the intent.
-    
+
     # The agent's ID. The server should set this, not the agent; this guarantees
     # uniqueness even in the astronomically low chance a UUIDv4 collides. The
     # preprocessor action indicates to the preprocessor that this should be filled
-    # in with a randomly-generated UUID as the default in the schema before 
+    # in with a randomly-generated UUID as the default in the schema before
     # presenting the resulting form to the user.
     AGENT_ID: uuid.UUID = Field(
         json_schema_extra={
             "description": "The agent's UUID.",
-            "_preprocess_action": "AGENT_ID"
+            "_preprocess_action": "AGENT_ID",
         },
     )
 
@@ -71,15 +71,28 @@ class PyginConfig(BaseModel):
             "description": "The agent's symmetric encryption key as base64."
         }
     )
-    
+
     # This *is* visible to the schema. The server is hinted that it should substitute
-    # the default value of this with the agent's public key, as defined in the app's
-    # settings.py (as base64).
-    SERVER_PUBLIC_KEY: SkipJsonSchema[Optional[bytes]] = Field(
+    # the default value of this with the its own public key, as defined in the app's
+    # settings.py (as base64). This should be done in all cases (since the server's
+    # public key should never change).
+    SERVER_PUBLIC_KEY: Optional[bytes] = Field(
         json_schema_extra={
             "description": "The server's public key as base64.",
-            # Let default = settings.AGENT_PUBLIC_KEY
-            "_preprocess_val": "AGENT_PUBLIC_KEY", 
+            # Let default = settings.SERVER_PUBLIC_KEY
+            "_preprocess_val": "SERVER_PUBLIC_KEY",
+        }
+    )
+    # This is also visible to the schema, but the server is hinted that it should
+    # only substitute this when sending messages. In all other cases, it should
+    # remain null.
+    SERVER_PRIVATE_KEY: Optional[bytes] = Field(
+        json_schema_extra={
+            "description": "The server's private key as base64.",
+            # Only substitute this with settings.SERVER_PRIVATE_KEY when sending
+            # messages. This should be sent to the container responsible for
+            # sending messages.
+            "_preprocess_send_val": "SERVER_PRIVATE_KEY",
         }
     )
 
@@ -230,27 +243,29 @@ class PyginConfig(BaseModel):
         for protocol_cfg_type in export_all_protocol_configs():
             protocol_name = protocol_cfg_type.section_name
             protocol_config = data["protocol_config"][protocol_name]
-            cfg_obj.protocol_configuration[protocol_name] = (  # type: ignore[index]
-                protocol_cfg_type.model_validate(protocol_config)
-            )
+            
+            proto_cfg_obj = protocol_cfg_type.model_validate(protocol_config)
+            cfg_obj.protocol_configuration[protocol_name] = proto_cfg_obj # type: ignore[index]
 
         return cfg_obj
 
-    @field_validator("AGENT_PRIVATE_KEY", "AGENT_PUBLIC_KEY", "SERVER_PUBLIC_KEY", mode="before")
+    @field_validator(
+        "AGENT_PRIVATE_KEY", "AGENT_PUBLIC_KEY", "SERVER_PUBLIC_KEY", mode="before"
+    )
     @classmethod
     def validate_base64(cls, v: Any) -> bytes:
         """
         If the value passed into the configuration object is not bytes,
         assume base64.
-        """        
+        """
         if v is None or isinstance(v, bytes):
             return v
-        
+
         try:
             val = b64decode(v)
         except Exception as e:
-            raise ValueError(f"Assumed b64decode of {v} failed.") from e 
-        
+            raise ValueError(f"Assumed b64decode of {v} failed.") from e
+
         return val
 
     @field_validator("ENCRYPTION_KEY", mode="before")
@@ -265,24 +280,81 @@ class PyginConfig(BaseModel):
         """
         if v is None or isinstance(v, bytes):
             return v
-        
+
         try:
             val = b64decode(v)
         except Exception as e:
             raise ValueError(f"Assumed b64decode of {v} failed.") from e
 
         if len(val) not in (16, 24, 32):
-            raise ValueError("Decoded key is of invalid length.")    
-        
+            raise ValueError("Decoded key is of invalid length.")
+
         return val
 
-    @field_serializer("AGENT_PRIVATE_KEY", "AGENT_PUBLIC_KEY", "SERVER_PUBLIC_KEY", "ENCRYPTION_KEY", when_used="json-unless-none")
+    @field_serializer(
+        "AGENT_PRIVATE_KEY",
+        "AGENT_PUBLIC_KEY",
+        "SERVER_PUBLIC_KEY",
+        "ENCRYPTION_KEY",
+        when_used="json-unless-none",
+    )
     @classmethod
     def serialize_bytes(cls, v: bytes) -> str:
         """
         Turn bytes into their base64 representation before it pops out of a JSON file.
         """
-        return b64encode(v)
+        return b64encode(v).decode('utf-8')
+
+    @field_serializer("protocol_configuration")
+    @classmethod
+    def serialize_protocol_cfg(cls, cfg: dict[str, ProtocolConfig]) -> dict[str, Any]:
+        """
+        Convert the dictionary of ProtocolConfig elements recursively.
+        
+        Pydantic (for some reason) doesn't seem to do this, so we convert the field
+        ourselves.
+        """
+        return {k: v.model_dump() for k, v in cfg.items()}
+
+    def as_standard_json(self) -> str:
+        """
+        Convert the model to the standard build JSON format.
+        
+        In short, the model is converted to the following:
+        ```json
+        {
+            "agent_config":{
+                ...
+            },
+            "protocol_config":{
+                ...
+            }
+        }
+        ```
+        """
+        # Dump the entire model as-is to JSON; Pydantic can handle the conversion
+        # of unusual types like UUID, but json/json5 cannot.
+        model_json = self.model_dump_json()
+        
+        # Read the whole thing back in.
+        data = json5.loads(model_json)
+        
+        # Pop the protocol configuration key, have that be its own dictionary
+        proto_cfg = data.pop('protocol_configuration')
+        
+        # Construct the final result. Various formatting options are applied to
+        # make it as close to stock JSON as possible.
+        return json5.dumps(
+            {
+                'agent_config': data,
+                'protocol_config': proto_cfg
+            },
+            quote_keys=True,
+            trailing_commas=False,
+            indent=2
+        )
+        
+        
 
     @field_validator("INCOMING_PROTOCOLS", mode="before")
     @classmethod
@@ -312,4 +384,4 @@ class PyginConfig(BaseModel):
         Create all associated directories.
         """
         for field in self._DIR_ATTRS:
-            getattr(self, field).resolve().mkdir(exist_ok=True, parents=True)#
+            getattr(self, field).resolve().mkdir(exist_ok=True, parents=True)  #
