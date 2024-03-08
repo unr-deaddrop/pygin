@@ -1,14 +1,14 @@
 {
-    "message_type": "command_request",
     "message_id": "0ab6c1fd-9bb0-4b42-a720-9ddbab53758e",
     "user_id": "00000000-0000-0000-0000-000000000000",
     "source_id": "00000000-0000-0000-0000-000000000000",
-    "timestamp": 1709442984.988941,
+    "timestamp": "2024-03-08T21:11:25.714Z",
     "payload": {
+      "message_type": "command_request",
       "cmd_name": "ping",
       "cmd_args": {
         "message": "test",
-        "ping_timestamp": 1709442984.879301
+        "ping_timestamp": "2024-03-08T21:11:25.714Z"
       }
     },
     "digest": null

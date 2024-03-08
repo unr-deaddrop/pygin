@@ -15,8 +15,9 @@ rm -rf ./build
 echo "Copying files to build output"
 mkdir ./build
 
-# Copy the source directory and the git repo
+# Copy the source directory, the resources directory, and the git repo
 cp ./src ./build/src -r
+cp ./resources ./build/resources -r
 cp ./.git ./build/.git -r 
 
 # Copy all files shallowly, ignore errors

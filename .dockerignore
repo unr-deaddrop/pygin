@@ -2,6 +2,11 @@
 # but I don't want to set that up right now
 # ---------------------------------------------------------------
 
+# Payload generation outputs. These will get overwritten, but they shouldn't
+# be in the payload or regular execution container anyways.
+payload-logs.txt
+payload.zip
+
 # Build/bundle outputs.
 pygin-build.zip
 build/

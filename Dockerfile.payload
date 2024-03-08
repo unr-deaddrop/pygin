@@ -1,0 +1,17 @@
+# This dockerfile is intended to be used in payload generation.
+
+FROM python:3.11.4
+
+WORKDIR /app
+
+# Don't use .pyc files.
+ENV PYTHONDONTWRITEBYTECODE 1
+# Send stdout to terminal without buffering.
+ENV PYTHONUNBUFFERED 1
+
+COPY . .
+
+# Execute the main script. Right now, all this does is overwrite agent_cfg.json
+# with the final configuration that the agent will actually run on, but
+# in theory you could get this to run PyInstaller.
+CMD make payload

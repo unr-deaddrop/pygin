@@ -1,7 +1,7 @@
 # Note that this DOES NOT use supervisor for daemonization; rather, all services
 # run independently in the same host container. Taken in part from Han's
 # Dockerfile for the backend.
-version: '1'
+version: '3'
 services:
   redis:
     image: redis:7.0.11-alpine
