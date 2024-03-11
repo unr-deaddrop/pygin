@@ -46,10 +46,14 @@ logger = logging.getLogger()
 #     "message": "test",
 #     "ping_timestamp": datetime.utcnow().timestamp(),
 # }
-CMD_NAME: str = "shell"
+# CMD_NAME: str = "shell"
+# CMD_ARGS: dict[str, Any] = {
+#     "command": "cat Makefile",
+#     "use_shell": True,
+# }
+CMD_NAME: str = "download"
 CMD_ARGS: dict[str, Any] = {
-    "command": "cat Makefile",
-    "use_shell": True,
+    "filepath": "Makefile",
 }
 
 
