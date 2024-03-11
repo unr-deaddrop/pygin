@@ -47,6 +47,7 @@ deps:
 # (and future metadata files, if any) and can be used to generate the relevant
 # models for the Django backend.
 install:
+	cp -a ./resources/install/. .
 	pip3 install -r ./resources/requirements/install-requirements.txt
 	python3 -m src.meta.generate_metadata
 
