@@ -2,6 +2,9 @@
 # but I don't want to set that up right now
 # ---------------------------------------------------------------
 
+# Demonstration build outputs.
+fake-builds/
+
 # Payload generation outputs. These will get overwritten, but they shouldn't
 # be in the payload or regular execution container anyways.
 payload-logs.txt

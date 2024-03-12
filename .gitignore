@@ -1,3 +1,6 @@
+# Demonstration build outputs.
+fake-builds/
+
 # Payload generation outputs.
 build_config.json
 payload-logs.txt
