@@ -302,8 +302,8 @@ if __name__ == "__main__":
         with open(temp_dir_path / Path("src/meta/agent.py"), "rt") as fp:
             data = fp.read()
         
-        data = re.sub(r"name: str = \"(.*)\"$", f"name: str = \"{package_name}\"", data)
-        data = re.sub(r"version: str = \"(.*)\"$", f"version: str = \"{version}\"", data)
+        data = re.sub(r"name: str = \"(.*)\"$", f"name: str = \"{package_name}\"", data, flags=re.MULTILINE)
+        data = re.sub(r"version: str = \"(.*)\"$", f"version: str = \"{version}\"", data, flags=re.MULTILINE)
         
         # Write agent.py back.
         with open(temp_dir_path / Path("src/meta/agent.py"), "wt+") as fp:
