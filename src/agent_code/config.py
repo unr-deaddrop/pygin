@@ -42,7 +42,7 @@ class PyginConfig(BaseModel):
     AGENT_ID: uuid.UUID = Field(
         json_schema_extra={
             "description": "The agent's UUID.",
-            "_preprocess_action": "AGENT_ID",
+            "_preprocess_create_id": True,
         },
     )
 
@@ -80,21 +80,13 @@ class PyginConfig(BaseModel):
         json_schema_extra={
             "description": "The server's public key as base64.",
             # Let default = settings.SERVER_PUBLIC_KEY
-            "_preprocess_val": "SERVER_PUBLIC_KEY",
+            "_preprocess_settings_val": "SERVER_PUBLIC_KEY",
         }
     )
-    # This is also visible to the schema, but the server is hinted that it should
-    # only substitute this when sending messages. In all other cases, it should
-    # remain null.
-    SERVER_PRIVATE_KEY: Optional[bytes] = Field(
-        json_schema_extra={
-            "description": "The server's private key as base64.",
-            # Only substitute this with settings.SERVER_PRIVATE_KEY when sending
-            # messages. This should be sent to the container responsible for
-            # sending messages.
-            "_preprocess_send_val": "SERVER_PRIVATE_KEY",
-        }
-    )
+    # Note that if a message is being received and must be verified, it is up to
+    # the server to send its private key independently as part of the "overhead",
+    # which includes things like the agent's name, hostname, and other server-levle
+    # fields.
 
     INCOMING_PROTOCOLS: list[str] = Field(
         json_schema_extra={
