@@ -72,6 +72,12 @@ class PyginConfig(BaseModel):
         }
     )
 
+    # This *is not* visible to the schema and should only be set at runtime.
+    SERVER_PRIVATE_KEY: SkipJsonSchema[Optional[bytes]] = Field(
+        json_schema_extra={
+            "description": "The server's private key as base64. Set at runtime."
+        }
+    )
     # This *is* visible to the schema. The server is hinted that it should substitute
     # the default value of this with the its own public key, as defined in the app's
     # settings.py (as base64). This should be done in all cases (since the server's
@@ -242,7 +248,11 @@ class PyginConfig(BaseModel):
         return cfg_obj
 
     @field_validator(
-        "AGENT_PRIVATE_KEY", "AGENT_PUBLIC_KEY", "SERVER_PUBLIC_KEY", mode="before"
+        "AGENT_PRIVATE_KEY", 
+        "AGENT_PUBLIC_KEY", 
+        "SERVER_PUBLIC_KEY", 
+        "SERVER_PRIVATE_KEY",
+        mode="before"
     )
     @classmethod
     def validate_base64(cls, v: Any) -> Union[bytes, None]:
@@ -287,6 +297,7 @@ class PyginConfig(BaseModel):
         "AGENT_PRIVATE_KEY",
         "AGENT_PUBLIC_KEY",
         "SERVER_PUBLIC_KEY",
+        "SERVER_PRIVATE_KEY",
         "ENCRYPTION_KEY",
         when_used="json-unless-none",
     )
