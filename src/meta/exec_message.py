@@ -40,9 +40,9 @@ def send_message(msg_cfg: MessagingObject, msg: DeadDropMessage) -> dict[str, An
     """    
     # Invoke translator, returns dict suitable as input to the function as-is
     
-    # Invoke message dispatch unit (we don't have a Redis connection, we'll
-    # probably have to make it optional? the alternative is to do protocol lookup
-    # ourself)
+    # Invoke message dispatch unit (should we just use the already available
+    # Redis service that the server uses? we're assuming that Celery is in use,
+    # so it *is* available for message checking if needed)
     
     # Return whatever the relevant protocol class returns
     
@@ -58,9 +58,9 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
     """
     # Invoke translator, returns dict suitable as input to the function as-is
     
-    # Invoke message dispatch unit (we don't have a Redis connection, we'll
-    # probably have to make it optional? the alternative is to do protocol lookup
-    # ourself)
+    # Invoke message dispatch unit (should we just use the already available
+    # Redis service that the server uses? we're assuming that Celery is in use,
+    # so it *is* available for message checking if needed)
     
     # Return whatever the relevant protocol class returns
     raise NotImplementedError
