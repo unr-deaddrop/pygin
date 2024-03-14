@@ -79,13 +79,15 @@ def run_compose_file(
     # Copy out the container's payload and agent_cfg.json
     logger.info("Copying inner container results out")
     for file in copy_out:
-        subprocess.run(
-            shlex.split(f"docker cp {container_name}:/app/{file} ./{file}")
+        p = subprocess.run(
+            shlex.split(f"docker cp {container_name}:/app/{file} ./{file}"),
+            capture_output=True
         )
+        logger.info(f"{p.stdout=} {p.stderr=}")
     
     # Destroy the container and associated image
     folder_name = Path(".").resolve().name
     image_name = f"{folder_name}-{container_name}"
     logger.info(f"Destroying container {container_name} and {image_name}")
-    subprocess.run(shlex.split(f"docker rm {container_name}"))
-    subprocess.run(shlex.split(f"docker image rm {image_name} -f"))
+    # subprocess.run(shlex.split(f"docker rm {container_name}"))
+    # subprocess.run(shlex.split(f"docker image rm {image_name} -f"))
