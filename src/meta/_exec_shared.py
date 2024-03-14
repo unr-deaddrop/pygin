@@ -29,11 +29,6 @@ def overwrite_compose_file(
     with open(compose_path.resolve()) as fp:
         data: dict[str, Any] = yaml.safe_load(fp)
 
-    # Generate a random container name with reasonably low collision chance
-    # https://stackoverflow.com/questions/2257441/random-string-generation-with-upper-case-letters-and-digits
-    container_name = "".join([random.choice(RANDOM_CHARSET) for _ in range(16)])
-    logger.info(f"Selected {container_name=}")
-
     # Overwrite the service and container names accordingly
     data["services"][service_name]["container_name"] = container_name
     data["services"][container_name] = data["services"].pop(service_name)
@@ -70,15 +65,23 @@ def run_compose_file(
     logger.info("Starting Docker Compose")
     command = shlex.split(f"docker compose -f {compose_name} up")
     p = subprocess.run(command, capture_output=True)
-    logger.info("Docker Compose exited")
+    logger.info("Docker Compose exited, stdout/stderr follows")
+
+    stdout = p.stdout.decode("utf-8")
+    stderr = p.stderr.decode("utf-8")
+    
+    logger.info(f"{stdout=}")
+    logger.info(f"{stderr=}")
 
     # Write its stdout to payload-logs.txt
     with open(stdout_file, "a") as fp:
-        fp.write(p.stdout.decode("utf-8"))
+        fp.write(stdout)
+        fp.write(stderr)
         
     # Copy out the container's payload and agent_cfg.json
     logger.info("Copying inner container results out")
     for file in copy_out:
+        logger.info(f"Copying {file} with docker cp, stdout/stderr follows")
         p = subprocess.run(
             shlex.split(f"docker cp {container_name}:/app/{file} ./{file}"),
             capture_output=True
