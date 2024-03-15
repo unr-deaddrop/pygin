@@ -77,9 +77,7 @@ def translate_config(msg_cfg: MessagingObject) -> PyginConfig:
     dispatch unit *as if* it were built for the server.
     """
     # Construct PyginConfig
-    cfg_obj = PyginConfig(
-        protocol_configuration=msg_cfg.protocol_config, **msg_cfg.agent_config
-    )
+    cfg_obj = PyginConfig.from_msg_obj(msg_cfg)
 
     # Select desired protocol. In our case, we completely ignore the preferred
     # protocol set in msg_cfg, because Pygin is only configured to listen/send

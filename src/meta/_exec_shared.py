@@ -30,12 +30,15 @@ def overwrite_compose_file(compose_path: Path, service_name: str, container_name
     data["services"][container_name] = data["services"].pop(service_name)
 
     # Rewrite the file
-    with open("docker-compose-payload.yml", "wt+") as fp:
+    with open(compose_path, "wt+") as fp:
         yaml.dump(data, fp)
 
 
 def run_compose_file(
-    compose_name: Path, service_name: str, stdout_file: Path, copy_out: list[str]
+    compose_name: Path, 
+    service_name: str, 
+    stdout_file: Path, 
+    copy_out: list[str],
 ):
     """
     Run a compose file to completion using a randomized container name.
@@ -86,5 +89,15 @@ def run_compose_file(
     folder_name = Path(".").resolve().name
     image_name = f"{folder_name}-{container_name}"
     logger.info(f"Destroying container {container_name} and {image_name}")
+    
+    # TODO: reenable me!
     # subprocess.run(shlex.split(f"docker rm {container_name}"))
     # subprocess.run(shlex.split(f"docker image rm {image_name} -f"))
+    
+    logger.info(f"Pruning unused docker networks")
+    p2 = subprocess.run(
+        shlex.split(f"docker network prune -f"),
+        capture_output=True,
+    )
+    logger.info(f"{p2.stdout=}")
+    

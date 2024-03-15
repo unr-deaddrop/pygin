@@ -21,7 +21,7 @@ import json5  # type: ignore[import-untyped]
 # configuration objects available.
 from src.protocols import *  # noqa: F403, F401
 from deaddrop_meta.protocol_lib import ProtocolConfig, export_all_protocol_configs
-
+from deaddrop_meta.interface_lib import MessagingObject
 
 class PyginConfig(BaseModel):
     """
@@ -245,6 +245,20 @@ class PyginConfig(BaseModel):
             proto_cfg_obj = protocol_cfg_type.model_validate(protocol_config)
             cfg_obj.protocol_configuration[protocol_name] = proto_cfg_obj  # type: ignore[index]
 
+        return cfg_obj
+
+    @classmethod
+    def from_msg_obj(cls, msg_cfg: MessagingObject) -> "PyginConfig":        
+        cfg_obj = PyginConfig.model_validate(msg_cfg.agent_config)
+        cfg_obj.create_dirs()
+        
+        for protocol_cfg_type in export_all_protocol_configs():
+            protocol_name = protocol_cfg_type.section_name
+            protocol_config = cfg_obj.protocol_configuration[protocol_name]
+
+            proto_cfg_obj = protocol_cfg_type.model_validate(protocol_config)
+            cfg_obj.protocol_configuration[protocol_name] = proto_cfg_obj  # type: ignore[index]
+            
         return cfg_obj
 
     @field_validator(
