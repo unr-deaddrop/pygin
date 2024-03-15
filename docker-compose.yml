@@ -7,7 +7,6 @@ services:
     image: redis:7.0.11-alpine
 
   pygin:
-    container_name: pygin
     build:
       context: .
     command: python3 -m src.agent_code.main
@@ -17,7 +16,6 @@ services:
       - redis
 
   celery_beat:
-    container_name: celery_beat
     build:
       context: .
     command: celery -A src.agent_code.tasks beat --loglevel=DEBUG
@@ -25,7 +23,6 @@ services:
       - redis
 
   celery_worker:
-    container_name: celery_worker
     build:
       context: .
     command: celery -A src.agent_code.tasks worker --loglevel=DEBUG
