@@ -71,7 +71,7 @@ class PlaintextTCPConfig(ProtocolConfig):
         },
     )
     PLAINTEXT_TCP_INITIATE_RETRY_COUNT: int = Field(
-        default = 120,
+        default=120,
         json_schema_extra={
             "description": "When receiving messages by initiating a connection, the number of times to attempt to connect."
         },
@@ -375,7 +375,7 @@ class PlaintextTCPProtocol(ProtocolBase):
         port = local_cfg.PLAINTEXT_TCP_INITIATE_RECV_PORT
 
         result: list[DeadDropMessage] = []
-        
+
         attempts = local_cfg.PLAINTEXT_TCP_INITIATE_RETRY_COUNT
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -400,9 +400,11 @@ class PlaintextTCPProtocol(ProtocolBase):
                     # TimeoutError is a subclass of OSError, but I leave it here
                     # for readability
                     if attempts <= 0:
-                        logger.warning(f"{local_cfg.PLAINTEXT_TCP_INITIATE_RETRY_COUNT} attempts expired, returning {len(result)} msgs")
+                        logger.warning(
+                            f"{local_cfg.PLAINTEXT_TCP_INITIATE_RETRY_COUNT} attempts expired, returning {len(result)} msgs"
+                        )
                         break
-                    
+
                     attempts -= 1
                     logger.info(f"Did not get any new messages, retrying ({attempts=})")
                     time.sleep(1)

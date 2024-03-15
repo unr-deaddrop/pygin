@@ -35,9 +35,9 @@ def overwrite_compose_file(compose_path: Path, service_name: str, container_name
 
 
 def run_compose_file(
-    compose_name: Path, 
-    service_name: str, 
-    stdout_file: Path, 
+    compose_name: Path,
+    service_name: str,
+    stdout_file: Path,
     copy_out: list[str],
 ):
     """
@@ -89,15 +89,14 @@ def run_compose_file(
     folder_name = Path(".").resolve().name
     image_name = f"{folder_name}-{container_name}"
     logger.info(f"Destroying container {container_name} and {image_name}")
-    
+
     # TODO: reenable me!
     # subprocess.run(shlex.split(f"docker rm {container_name}"))
     # subprocess.run(shlex.split(f"docker image rm {image_name} -f"))
-    
-    logger.info(f"Pruning unused docker networks")
+
+    logger.info("Pruning unused docker networks")
     p2 = subprocess.run(
-        shlex.split(f"docker network prune -f"),
+        shlex.split("docker network prune -f"),
         capture_output=True,
     )
     logger.info(f"{p2.stdout=}")
-    

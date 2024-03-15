@@ -26,6 +26,7 @@ from deaddrop_meta.interface_lib import MessagingObject
 
 logger = logging.getLogger(__name__)
 
+
 class PyginConfig(BaseModel):
     """
     Agent-wide configuration definitions. Includes both non-sensitive and
@@ -251,17 +252,17 @@ class PyginConfig(BaseModel):
         return cfg_obj
 
     @classmethod
-    def from_msg_obj(cls, msg_cfg: MessagingObject) -> "PyginConfig":        
+    def from_msg_obj(cls, msg_cfg: MessagingObject) -> "PyginConfig":
         cfg_obj = PyginConfig.model_validate(msg_cfg.agent_config)
         cfg_obj.create_dirs()
-        
+
         for protocol_cfg_type in export_all_protocol_configs():
             protocol_name = protocol_cfg_type.section_name
-            protocol_config = msg_cfg.protocol_config[protocol_name]
+            protocol_config = msg_cfg.protocol_config[protocol_name] # type: ignore[index]
 
             proto_cfg_obj = protocol_cfg_type.model_validate(protocol_config)
             cfg_obj.protocol_configuration[protocol_name] = proto_cfg_obj  # type: ignore[index]
-            
+
         return cfg_obj
 
     @field_validator(
