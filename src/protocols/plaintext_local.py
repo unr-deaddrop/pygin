@@ -47,6 +47,9 @@ class PlaintextLocalConfig(ProtocolConfig):
         "PLAINTEXT_LOCAL_OUTBOX_DIR",
     ]
 
+    def convert_to_server_config(self) -> "PlaintextTCPConfig":
+        raise NotImplementedError
+
 
 class PlaintextLocalProtocol(ProtocolBase):
     """

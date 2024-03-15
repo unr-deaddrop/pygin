@@ -248,11 +248,11 @@ class PyginConfig(BaseModel):
         return cfg_obj
 
     @field_validator(
-        "AGENT_PRIVATE_KEY", 
-        "AGENT_PUBLIC_KEY", 
-        "SERVER_PUBLIC_KEY", 
+        "AGENT_PRIVATE_KEY",
+        "AGENT_PUBLIC_KEY",
+        "SERVER_PUBLIC_KEY",
         "SERVER_PRIVATE_KEY",
-        mode="before"
+        mode="before",
     )
     @classmethod
     def validate_base64(cls, v: Any) -> Union[bytes, None]:

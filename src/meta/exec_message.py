@@ -24,56 +24,60 @@ from deaddrop_meta.protocol_lib import DeadDropMessage
 from src.agent_code import message_dispatch
 from src.agent_code.config import PyginConfig
 
+
 def translate_config(msg_cfg: MessagingObject) -> dict[str, Any]:
     # Construct PyginConfig
-    
+
     # Select desired protocol
-    
+
     # Get PyginConfig to ProtocolConfig to dict translator
-    
+
     # Invoke translator, returns dict suitable as input to the function as-is
     raise RuntimeError
+
 
 def send_message(msg_cfg: MessagingObject, msg: DeadDropMessage) -> dict[str, Any]:
     """
     Send a message through the command dispatch unit.
-    """    
+    """
     # Invoke translator, returns dict suitable as input to the function as-is
-    
+
     # Invoke message dispatch unit (should we just use the already available
     # Redis service that the server uses? we're assuming that Celery is in use,
     # so it *is* available for message checking if needed)
-    
+
     # Return whatever the relevant protocol class returns
-    
+
     raise NotImplementedError
+
 
 def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
     """
     Receive messages through the command dispatch unit.
-    
+
     Note that it is up to the server to drop duplicate messages as needed. With
     the exception of certain protocols, no effort is made to keep track of messages
     that have already been seen.
     """
     # Invoke translator, returns dict suitable as input to the function as-is
-    
+
     # Invoke message dispatch unit (should we just use the already available
     # Redis service that the server uses? we're assuming that Celery is in use,
     # so it *is* available for message checking if needed)
-    
+
     # Return whatever the relevant protocol class returns
     raise NotImplementedError
 
+
 if __name__ == "__main__":
     # Get message_config.json, convert to MessagingObject
-    
+
     # Get message.json if present, convert to msg
-    
+
     # Select the correct function to invoke
-    
+
     # If receiving messages, write out the messages as messages.json
-    
+
     # Write out the resulting MessagingObject with updated protocol state,
     # if needed
     raise NotImplementedError

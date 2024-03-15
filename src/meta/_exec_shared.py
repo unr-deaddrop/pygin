@@ -16,15 +16,11 @@ logger = logging.getLogger(__name__)
 RANDOM_CHARSET = string.ascii_lowercase + string.digits
 
 
-def overwrite_compose_file(
-    compose_path: Path, 
-    service_name: str, 
-    container_name: str
-):
+def overwrite_compose_file(compose_path: Path, service_name: str, container_name: str):
     """
     Overwrite a particular service in a Compose file with a random name.
     """
-    
+
     logger.info(f"Overwriting {compose_path.resolve()}")
     with open(compose_path.resolve()) as fp:
         data: dict[str, Any] = yaml.safe_load(fp)
@@ -37,15 +33,13 @@ def overwrite_compose_file(
     with open("docker-compose-payload.yml", "wt+") as fp:
         yaml.dump(data, fp)
 
+
 def run_compose_file(
-    compose_name: Path, 
-    service_name: str, 
-    stdout_file: Path,
-    copy_out: list[str]
+    compose_name: Path, service_name: str, stdout_file: Path, copy_out: list[str]
 ):
     """
     Run a compose file to completion using a randomized container name.
-    
+
     :param compose_name: The path to the Docker Compose file to invoke.
     :param service_name: The name of the service to overwrite with a random name.
     :param stdout_file: The path to write the Docker Compose stdout to.
@@ -56,7 +50,7 @@ def run_compose_file(
     # https://stackoverflow.com/questions/2257441/random-string-generation-with-upper-case-letters-and-digits
     container_name = "".join([random.choice(RANDOM_CHARSET) for _ in range(16)])
     logger.info(f"Selected {container_name=}")
-    
+
     # Overwrite the pygin_build service with a random name
     overwrite_compose_file(compose_name, service_name, container_name)
 
@@ -69,7 +63,7 @@ def run_compose_file(
 
     stdout = p.stdout.decode("utf-8")
     stderr = p.stderr.decode("utf-8")
-    
+
     logger.info(f"{stdout=}")
     logger.info(f"{stderr=}")
 
@@ -77,17 +71,17 @@ def run_compose_file(
     with open(stdout_file, "a") as fp:
         fp.write(stdout)
         fp.write(stderr)
-        
+
     # Copy out the container's payload and agent_cfg.json
     logger.info("Copying inner container results out")
     for file in copy_out:
         logger.info(f"Copying {file} with docker cp, stdout/stderr follows")
         p = subprocess.run(
             shlex.split(f"docker cp {container_name}:/app/{file} ./{file}"),
-            capture_output=True
+            capture_output=True,
         )
         logger.info(f"{p.stdout=} {p.stderr=}")
-    
+
     # Destroy the container and associated image
     folder_name = Path(".").resolve().name
     image_name = f"{folder_name}-{container_name}"

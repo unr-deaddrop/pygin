@@ -85,7 +85,7 @@ def set_ports(cfg: PyginConfig, recv_port: int, send_port: int) -> None:
     # mypy error - this will always be true for design reasons
     protocol_cfg: PlaintextTCPConfig = cfg.protocol_configuration["plaintext_tcp"] # type: ignore[assignment]
     protocol_cfg.PLAINTEXT_TCP_LISTEN_RECV_PORT = recv_port
-    protocol_cfg.PLAINTEXT_TCP_SEND_PORT = send_port
+    protocol_cfg.PLAINTEXT_TCP_LISTEN_SEND_PORT = send_port
 
 
 def get_plaintext_local_args(cfg: PyginConfig) -> dict[str, Any]:

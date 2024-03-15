@@ -44,6 +44,9 @@ class dddbLocalConfig(ProtocolConfig):
     section_name: ClassVar[str] = "dddb_local"
     dir_attrs: ClassVar[list[str]] = ["DDDB_LOCAL_INBOX_DIR", "DDDB_LOCAL_OUTBOX_DIR"]
 
+    def convert_to_server_config(self) -> "dddbLocalConfig":
+        raise NotImplementedError
+
 
 class dddbLocalProtocol(ProtocolBase):
     """

@@ -17,10 +17,7 @@ LOG_OUTPUT = Path("payload-logs.txt")
 DOCKER_COMPOSE_SERVICE = "pygin_build"
 
 # The files to copy out of the container.
-COPY_OUT = [
-    "agent_cfg.json",
-    "payload.zip"
-]
+COPY_OUT = ["agent_cfg.json", "payload.zip"]
 
 logging.basicConfig(
     handlers=[
@@ -34,6 +31,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+
 # Log uncaught excepptions
 # https://stackoverflow.com/questions/6234405/logging-uncaught-exceptions-in-python
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -42,6 +40,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         return
 
     logger.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
 
 sys.excepthook = handle_exception
 

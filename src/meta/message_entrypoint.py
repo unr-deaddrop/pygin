@@ -29,10 +29,7 @@ DOCKER_COMPOSE_SERVICE = "pygin_message"
 
 # The files to copy out of the container (noting that message-logs.txt exists
 # on the server's container already, so no need to copy it out)
-COPY_OUT = [
-    "messages.json",
-    "protocol_state.json"
-]
+COPY_OUT = ["messages.json", "protocol_state.json"]
 
 logging.basicConfig(
     handlers=[
@@ -46,6 +43,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+
 # Log uncaught excepptions
 # https://stackoverflow.com/questions/6234405/logging-uncaught-exceptions-in-python
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -54,6 +52,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         return
 
     logger.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
 
 sys.excepthook = handle_exception
 
