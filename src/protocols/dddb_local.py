@@ -18,6 +18,7 @@ from deaddrop_meta.protocol_lib import (
     ProtocolConfig,
     DeadDropMessage,
 )
+from deaddrop_meta.interface_lib import EndpointMessagingData
 
 
 class dddbLocalConfig(ProtocolConfig):
@@ -44,7 +45,9 @@ class dddbLocalConfig(ProtocolConfig):
     section_name: ClassVar[str] = "dddb_local"
     dir_attrs: ClassVar[list[str]] = ["DDDB_LOCAL_INBOX_DIR", "DDDB_LOCAL_OUTBOX_DIR"]
 
-    def convert_to_server_config(self) -> "dddbLocalConfig":
+    def convert_to_server_config(
+        self, endpoint: EndpointMessagingData
+    ) -> "dddbLocalConfig":
         raise NotImplementedError
 
 

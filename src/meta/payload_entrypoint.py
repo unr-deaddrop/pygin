@@ -1,6 +1,7 @@
 """
 Entrypoint for generating a payload from the server's container.
 """
+
 from pathlib import Path
 import logging
 import sys

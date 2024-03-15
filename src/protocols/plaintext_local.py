@@ -16,6 +16,7 @@ from deaddrop_meta.protocol_lib import (
     ProtocolConfig,
     DeadDropMessage,
 )
+from deaddrop_meta.interface_lib import EndpointMessagingData
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,9 @@ class PlaintextLocalConfig(ProtocolConfig):
         "PLAINTEXT_LOCAL_OUTBOX_DIR",
     ]
 
-    def convert_to_server_config(self) -> "PlaintextTCPConfig":
+    def convert_to_server_config(
+        self, endpoint: EndpointMessagingData
+    ) -> "PlaintextLocalConfig":
         raise NotImplementedError
 
 

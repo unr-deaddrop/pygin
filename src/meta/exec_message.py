@@ -2,7 +2,7 @@
 The in-container entrypoint for sending messages.
 
 At this point, it is assumed that a message_config.json exists, and if
-a message is being sent, that a message.json exists. These are parsed 
+a message is being sent, that a message.json exists. These are parsed
 accordingly.
 
 This works in a pretty simple manner.
@@ -13,16 +13,47 @@ This works in a pretty simple manner.
   "agent-side" PyginConfig.protocol_config elements into "server-side" config.
 - The message dispatch unit is invoked with the modified configuration.
 
-Each protocol specifies its own translator. 
-
-TODO: How do we expose these translators?
+Each protocol specifies its own translator, as provided in its ProtocolConfig
+object.
 """
+
+from pathlib import Path
 from typing import Any
+import logging
+import sys
 
 from deaddrop_meta.interface_lib import MessagingObject
 from deaddrop_meta.protocol_lib import DeadDropMessage
 from src.agent_code import message_dispatch
 from src.agent_code.config import PyginConfig
+
+logging.basicConfig(
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+    ],
+    level=logging.DEBUG,
+    format="%(filename)s:%(lineno)d | %(asctime)s | [%(levelname)s] - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+logger = logging.getLogger(__name__)
+
+
+# Log uncaught excepptions
+# https://stackoverflow.com/questions/6234405/logging-uncaught-exceptions-in-python
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logger.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+
+sys.excepthook = handle_exception
+
+LOG_FILE_NAME = "message-logs.txt"
+PROTOCOL_STATE_NAME = "protocol_state.json"
+MESSAGE_OUTPUT_NAME = "messages.json"
 
 
 def translate_config(msg_cfg: MessagingObject) -> dict[str, Any]:
@@ -33,7 +64,7 @@ def translate_config(msg_cfg: MessagingObject) -> dict[str, Any]:
     # Get PyginConfig to ProtocolConfig to dict translator
 
     # Invoke translator, returns dict suitable as input to the function as-is
-    raise RuntimeError
+    raise NotImplementedError
 
 
 def send_message(msg_cfg: MessagingObject, msg: DeadDropMessage) -> dict[str, Any]:
@@ -78,6 +109,6 @@ if __name__ == "__main__":
 
     # If receiving messages, write out the messages as messages.json
 
-    # Write out the resulting MessagingObject with updated protocol state,
-    # if needed
+    # Write out the updated protocol state from MessagingObject if needed
+    # TODO: Not currently supported, because nothing uses this
     raise NotImplementedError

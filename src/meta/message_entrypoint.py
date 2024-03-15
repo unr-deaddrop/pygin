@@ -1,7 +1,7 @@
 """
 The script entrypoint for the server's messaging system.
 
-This operates by spinning up a container in which all of the agent's 
+This operates by spinning up a container in which all of the agent's
 messaging modules are available with dependencies involved, then passing
 in the normal arguments for that protocol as if it were called from the
 message dispatch unit.

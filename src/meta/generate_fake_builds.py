@@ -1,6 +1,7 @@
 """
 Small script to generate many different name-version combinations from Pygin's codebase.
 """
+
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import ClassVar, Type
@@ -288,8 +289,6 @@ if __name__ == "__main__":
     temp_dir = TemporaryDirectory()
     temp_dir_path = Path(temp_dir.name).resolve()
 
-    import zipfile
-
     with zipfile.ZipFile("pygin-build.zip", "r") as zip_ref:
         zip_ref.extractall(temp_dir_path)
 
@@ -327,7 +326,7 @@ if __name__ == "__main__":
 
         # Rezip that folder, copy out.
         shutil.make_archive(
-            OUTPUT_DIR / Path(f"{package_name}-{version}"), "zip", temp_dir_path
+            str(OUTPUT_DIR / Path(f"{package_name}-{version}")), "zip", temp_dir_path
         )
 
     # Blow up the temporary directory

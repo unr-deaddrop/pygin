@@ -221,9 +221,9 @@ class PlaintextTCPProtocol(ProtocolBase):
         local_cfg: PlaintextTCPConfig = PlaintextTCPConfig.model_validate(args)
 
         if local_cfg.PLAINTEXT_TCP_USE_LISTENER_TO_RECV:
-            return cls.recv_msg_by_listening
+            return cls.recv_msg_by_listening(args)
 
-        return cls.recv_msg_by_initiating
+        return cls.recv_msg_by_initiating(args)
 
     @staticmethod
     def send_msg_by_initiating(msg, args: dict[str, Any]) -> dict[str, Any]:

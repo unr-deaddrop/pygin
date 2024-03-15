@@ -1,13 +1,13 @@
 """
 Performs a bunch of Docker Compose overhead stuff.
 """
+
 from typing import Any
 from pathlib import Path
 import logging
 import random
 import shlex
 import string
-import sys
 import subprocess
 import yaml
 
