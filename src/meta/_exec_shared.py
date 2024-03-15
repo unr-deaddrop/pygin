@@ -91,8 +91,8 @@ def run_compose_file(
     logger.info(f"Destroying container {container_name} and {image_name}")
 
     # TODO: reenable me!
-    # subprocess.run(shlex.split(f"docker rm {container_name}"))
-    # subprocess.run(shlex.split(f"docker image rm {image_name} -f"))
+    subprocess.run(shlex.split(f"docker rm {container_name}"))
+    subprocess.run(shlex.split(f"docker image rm {image_name} -f"))
 
     logger.info("Pruning unused docker networks")
     p2 = subprocess.run(
