@@ -29,7 +29,7 @@ from src.agent_code import message_dispatch
 from src.agent_code.config import PyginConfig
 
 from pydantic import TypeAdapter
-import redis
+# import redis
 
 logging.basicConfig(
     handlers=[
@@ -132,7 +132,12 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
     # Create new Redis connection (should be valid on the Python implementation
     # of the DeadDrop server, when containerized). Do not use decode_responses=True,
     # since this assumption is not used internally.
-    redis_con = redis.Redis(host="redis", port=6379, decode_responses=False)
+    #
+    # FIXME: Since they operate in different Compose stacks, the "redis" container
+    # is unfortunately unavailable to the agent, so we can't do this after all..
+    # we might have to revisit (e.g. making the network bridged)
+    # redis_con = redis.Redis(host="redis", port=6379, decode_responses=False)
+    redis_con = None
 
     # Invoke message dispatch unit, and return whatever it returns
     protocol_name = select_protocol(msg_cfg, cfg_obj)

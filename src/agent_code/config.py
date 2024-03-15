@@ -258,7 +258,7 @@ class PyginConfig(BaseModel):
 
         for protocol_cfg_type in export_all_protocol_configs():
             protocol_name = protocol_cfg_type.section_name
-            protocol_config = msg_cfg.protocol_config[protocol_name] # type: ignore[index]
+            protocol_config = msg_cfg.protocol_config[protocol_name]  # type: ignore[index]
 
             proto_cfg_obj = protocol_cfg_type.model_validate(protocol_config)
             cfg_obj.protocol_configuration[protocol_name] = proto_cfg_obj  # type: ignore[index]

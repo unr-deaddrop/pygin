@@ -12,7 +12,7 @@ to this module, allowing the protocols to remain (relatively) loosely bound
 from the rest of Pygin's libraries.
 """
 
-from typing import Any, Type
+from typing import Any, Type, Optional
 import logging
 
 import redis
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 def retrieve_new_messages(
     protocol_name: str,
     cfg: config.PyginConfig,
-    redis_con: redis.Redis,
+    redis_con: Optional[redis.Redis] = None,
     drop_seen: bool = True,
 ) -> list[DeadDropMessage]:
     """
@@ -53,7 +53,8 @@ def retrieve_new_messages(
     :param cfg: The Pygin configuration object, which may also contain static
         configuration for the underlying protocols.
     :param redis_con: A Redis connection, typically `app.backend.client` when
-        invoked from Celery's tasking module.
+        invoked from Celery's tasking module. If None, then no duplicate message
+        checking is performed.
     :param drop_seen: Whether to drop any messages with IDs that have already
         been seen, as stored by the Redis database.
     """
@@ -87,16 +88,17 @@ def retrieve_new_messages(
         # the strings contained in the Redis database
         msg_id = str(msg.message_id)
 
-        # TODO: This wasn't working earlier because Redis likes returning things as
-        # bytes, not str.
-        if redis_con.sismember(cfg.REDIS_MESSAGES_SEEN_KEY, msg_id):
-            logger.debug(f"Duplicate message {msg_id} seen by message dispatch unit")
-            if drop_seen:
-                logger.debug(f"Dropping duplicate message {msg_id}")
-                continue
+        if redis_con is not None:
+            if redis_con.sismember(cfg.REDIS_MESSAGES_SEEN_KEY, msg_id):
+                logger.debug(
+                    f"Duplicate message {msg_id} seen by message dispatch unit"
+                )
+                if drop_seen:
+                    logger.debug(f"Dropping duplicate message {msg_id}")
+                    continue
 
-        # Add this new message to the set if it hasn't been seen already
-        redis_con.sadd(cfg.REDIS_MESSAGES_SEEN_KEY, msg_id)
+            # Add this new message to the set if it hasn't been seen already
+            redis_con.sadd(cfg.REDIS_MESSAGES_SEEN_KEY, msg_id)
 
         result.append(msg)
 
