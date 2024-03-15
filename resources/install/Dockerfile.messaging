@@ -1,0 +1,15 @@
+# This dockerfile is intended to be used in payload generation.
+
+FROM python:3.11.4
+
+WORKDIR /app
+
+# Don't use .pyc files.
+ENV PYTHONDONTWRITEBYTECODE 1
+# Send stdout to terminal without buffering.
+ENV PYTHONUNBUFFERED 1
+
+COPY . .
+
+# Execute the main script.
+CMD make message

@@ -1,7 +1,8 @@
 {
     "message_id": "0ab6c1fd-9bb0-4b42-a720-9ddbab53758e",
-    "user_id": "00000000-0000-0000-0000-000000000000",
+    "user_id": 1,
     "source_id": "00000000-0000-0000-0000-000000000000",
+    "destination_id": "0ab6c1fd-9bb0-4b42-a720-9ddbab53758e",
     "timestamp": "2024-03-08T21:11:25.714Z",
     "payload": {
       "message_type": "command_request",
