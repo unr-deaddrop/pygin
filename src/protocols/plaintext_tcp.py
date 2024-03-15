@@ -17,6 +17,7 @@ from deaddrop_meta.protocol_lib import (
     ProtocolConfig,
     DeadDropMessage,
 )
+from deaddrop_meta.interface_lib import EndpointMessagingData
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,12 @@ class PlaintextTCPConfig(ProtocolConfig):
         },
     )
 
+    PLAINTEXT_TCP_USE_LISTENER_TO_RECV: bool = Field(
+        default=True,
+        json_schema_extra={
+            "description": "Whether to receive messages via a listener."
+        },
+    )
     PLAINTEXT_TCP_USE_LISTENER_TO_SEND: bool = Field(
         default=True,
         json_schema_extra={"description": "Whether to send messages via a listener."},
@@ -90,6 +97,66 @@ class PlaintextTCPConfig(ProtocolConfig):
     checkin_interval_name: ClassVar[str] = "PLAINTEXT_TCP_CHECKIN_FREQUENCY"
     section_name: ClassVar[str] = "plaintext_tcp"
     dir_attrs: ClassVar[list[str]] = []  # No directories needed
+
+    def convert_to_server_config(
+        self, endpoint: EndpointMessagingData
+    ) -> "PlaintextTCPConfig":
+        # Make deep copy of current config
+        new_cfg = self.model_copy(deep=True)
+
+        # The agent always listens to receive messages. In turn, to send a message
+        # by initiating, we need to disable using the listener to send, and we also
+        # need to update the port/host combo.
+        #
+        # The host is not known to the agent itself, so it must be pulled from the
+        # model; the port *is* known, and we can just switch it around.
+        logger.info(
+            "Setting up server to initiate a connection to"
+            f" {endpoint.address}:{self.PLAINTEXT_TCP_LISTEN_RECV_PORT}"
+        )
+        new_cfg.PLAINTEXT_TCP_USE_LISTENER_TO_SEND = False
+        new_cfg.PLAINTEXT_TCP_INITIATE_SEND_HOST = endpoint.address
+        new_cfg.PLAINTEXT_TCP_INITIATE_SEND_PORT = self.PLAINTEXT_TCP_LISTEN_RECV_PORT
+
+        # When containerized, the agent uses a listener to send. But when standalone,
+        # it's up to the agent to decide what it wants to do.
+        if self.PLAINTEXT_TCP_USE_LISTENER_TO_SEND:
+            logger.info(
+                "Agent is configured to use listeners to send messages,"
+                " configuring to initiate connections to"
+                f" {endpoint.address}:{self.PLAINTEXT_TCP_LISTEN_SEND_PORT}"
+            )
+            # If the agent is using a listener to send, this means that we need
+            # to be using an initiator to receive.
+            new_cfg.PLAINTEXT_TCP_USE_LISTENER_TO_RECV = False
+
+            # Only we know the host, so this must be taken from the model.
+            # However, the port to connect to is determined by the port
+            # bound when sending.
+            new_cfg.PLAINTEXT_TCP_INITIATE_RECV_HOST = endpoint.address
+            new_cfg.PLAINTEXT_TCP_INITIATE_RECV_PORT = (
+                self.PLAINTEXT_TCP_LISTEN_SEND_PORT
+            )
+        else:
+            logger.info(
+                "Agent is configured to initiate connections to send messages,"
+                f"binding to 0.0.0.0:{self.PLAINTEXT_TCP_INITIATE_SEND_PORT}"
+            )
+            # If the agent is initiating connections to send, this means that we
+            # need to be listening to receive.
+            new_cfg.PLAINTEXT_TCP_USE_LISTENER_TO_RECV = True
+
+            # In this case, the agent knows the host/port combination it needs
+            # to reach out to in order to contact the server, so all we need to
+            # do is listen to all interfaces on the specified port.
+            new_cfg.PLAINTEXT_TCP_LISTEN_BIND_HOST = "0.0.0.0"
+            new_cfg.PLAINTEXT_TCP_LISTEN_RECV_PORT = (
+                self.PLAINTEXT_TCP_INITIATE_SEND_PORT
+            )
+
+        logger.info(f"Agent configuration:{self}")
+        logger.info(f"Server configuration:{new_cfg}")
+        return new_cfg
 
 
 class PlaintextTCPProtocol(ProtocolBase):
@@ -142,8 +209,6 @@ class PlaintextTCPProtocol(ProtocolBase):
 
     @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:
-        # Since we don't use any arguments besides those in the configuration
-        # object, we convert the argument dictionary back to the model.
         local_cfg: PlaintextTCPConfig = PlaintextTCPConfig.model_validate(args)
 
         if local_cfg.PLAINTEXT_TCP_USE_LISTENER_TO_SEND:
@@ -153,87 +218,12 @@ class PlaintextTCPProtocol(ProtocolBase):
 
     @classmethod
     def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
-        # Since we don't use any arguments besides those in the configuration
-        # object, we convert the argument dictionary back to the model.
         local_cfg: PlaintextTCPConfig = PlaintextTCPConfig.model_validate(args)
 
-        # Bit of an odd pattern. What we're going to do is set up the listener
-        # for the specified duration, accept all messages that come our way,
-        # and return the result. The architecture was not really built around
-        # direct, real-time communication, so this is why we don't just keep
-        # a listener around forever.
-        #
-        # Because this is all "internal" and for testing only, we make the assumption
-        # that clients are kind enough to close the connection so we don't need to
-        # include the length of the message with the message itself. In general,
-        # it's assumed that one connection = one message; multiple messages must
-        # be sent by repeatedly opening ocnnections.
-        #
-        # see https://stackoverflow.com/questions/2444178/how-to-make-socket-listen1-work-for-some-time-and-then-continue-rest-of-code
-        result: list[DeadDropMessage] = []
+        if local_cfg.PLAINTEXT_TCP_USE_LISTENER_TO_RECV:
+            return cls.recv_msg_by_listening
 
-        host = local_cfg.PLAINTEXT_TCP_LISTEN_BIND_HOST
-        port = local_cfg.PLAINTEXT_TCP_LISTEN_RECV_PORT
-
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            start_time = time.time()
-
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-            # This sets an absolute limit on blocking operations, but is not
-            # the primary form of guaranteeing this operates for a short period
-            # of time
-            s.settimeout(local_cfg.PLAINTEXT_TCP_LISTEN_TIMEOUT)
-            logger.debug(f"Binding to {host}:{port} to receive new messages")
-
-            try:
-                s.bind((host, port))
-                s.listen()
-            except OSError as e:
-                # We only ever expect this to raise "address already in use"
-                if e.errno != errno.EADDRINUSE:
-                    raise e
-                else:
-                    logger.debug(
-                        f"{host}:{port} is not yet ready for listening, returning nothing"
-                    )
-                    return []
-
-            while True:
-                # Accept connections
-                try:
-                    # This can take up to the duration set by `s.settimeout`;
-                    # if nothing is received during that time, assume there
-                    # are no new messages to receive
-                    logger.debug(f"Checking for connection over {host}:{port}")
-                    client, addr = s.accept()
-                    logger.debug(f"Got connection from {addr}")
-                except TimeoutError:
-                    break
-
-                # Get all data
-                data = b""
-                while True:
-                    new_data = client.recv(1024)
-                    if not new_data:
-                        break
-                    data += new_data
-                logger.debug(f"Got {len(data)} bytes from connection")
-
-                # Assume utf-8 encoding and JSON, attempt to convert to message
-                try:
-                    result.append(DeadDropMessage.model_validate_json(data))
-                except ValidationError as e:
-                    logger.error(
-                        f"Failed to convert {repr(data)} to a DeadDropMessage, ignoring message: {e}"
-                    )
-
-                # Only evaluate the timeout period after the client disconnects
-                # to prevent accidentally disconnecting earlier
-                if time.time() - start_time >= local_cfg.PLAINTEXT_TCP_LISTEN_TIMEOUT:
-                    break
-
-        return result
+        return cls.recv_msg_by_initiating
 
     @staticmethod
     def send_msg_by_initiating(msg, args: dict[str, Any]) -> dict[str, Any]:
@@ -418,4 +408,88 @@ class PlaintextTCPProtocol(ProtocolBase):
                     )
 
         # Arbitrary response
+        return result
+
+    @classmethod
+    def recv_msg_by_listening(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
+        # Since we don't use any arguments besides those in the configuration
+        # object, we convert the argument dictionary back to the model.
+        local_cfg: PlaintextTCPConfig = PlaintextTCPConfig.model_validate(args)
+
+        # Bit of an odd pattern. What we're going to do is set up the listener
+        # for the specified duration, accept all messages that come our way,
+        # and return the result. The architecture was not really built around
+        # direct, real-time communication, so this is why we don't just keep
+        # a listener around forever.
+        #
+        # Because this is all "internal" and for testing only, we make the assumption
+        # that clients are kind enough to close the connection so we don't need to
+        # include the length of the message with the message itself. In general,
+        # it's assumed that one connection = one message; multiple messages must
+        # be sent by repeatedly opening ocnnections.
+        #
+        # see https://stackoverflow.com/questions/2444178/how-to-make-socket-listen1-work-for-some-time-and-then-continue-rest-of-code
+        result: list[DeadDropMessage] = []
+
+        host = local_cfg.PLAINTEXT_TCP_LISTEN_BIND_HOST
+        port = local_cfg.PLAINTEXT_TCP_LISTEN_RECV_PORT
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            start_time = time.time()
+
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+            # This sets an absolute limit on blocking operations, but is not
+            # the primary form of guaranteeing this operates for a short period
+            # of time
+            s.settimeout(local_cfg.PLAINTEXT_TCP_LISTEN_TIMEOUT)
+            logger.debug(f"Binding to {host}:{port} to receive new messages")
+
+            try:
+                s.bind((host, port))
+                s.listen()
+            except OSError as e:
+                # We only ever expect this to raise "address already in use"
+                if e.errno != errno.EADDRINUSE:
+                    raise e
+                else:
+                    logger.debug(
+                        f"{host}:{port} is not yet ready for listening, returning nothing"
+                    )
+                    return []
+
+            while True:
+                # Accept connections
+                try:
+                    # This can take up to the duration set by `s.settimeout`;
+                    # if nothing is received during that time, assume there
+                    # are no new messages to receive
+                    logger.debug(f"Checking for connection over {host}:{port}")
+                    client, addr = s.accept()
+                    logger.debug(f"Got connection from {addr}")
+                except TimeoutError:
+                    break
+
+                # Get all data
+                data = b""
+                while True:
+                    new_data = client.recv(1024)
+                    if not new_data:
+                        break
+                    data += new_data
+                logger.debug(f"Got {len(data)} bytes from connection")
+
+                # Assume utf-8 encoding and JSON, attempt to convert to message
+                try:
+                    result.append(DeadDropMessage.model_validate_json(data))
+                except ValidationError as e:
+                    logger.error(
+                        f"Failed to convert {repr(data)} to a DeadDropMessage, ignoring message: {e}"
+                    )
+
+                # Only evaluate the timeout period after the client disconnects
+                # to prevent accidentally disconnecting earlier
+                if time.time() - start_time >= local_cfg.PLAINTEXT_TCP_LISTEN_TIMEOUT:
+                    break
+
         return result
