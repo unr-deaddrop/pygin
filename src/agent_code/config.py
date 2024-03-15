@@ -9,6 +9,7 @@ from base64 import b64decode, b64encode
 from pathlib import Path
 from typing import Any, Optional, Union
 import configparser
+import logging
 import uuid
 
 from pydantic import BaseModel, field_validator, Field, field_serializer
@@ -22,6 +23,8 @@ import json5  # type: ignore[import-untyped]
 from src.protocols import *  # noqa: F403, F401
 from deaddrop_meta.protocol_lib import ProtocolConfig, export_all_protocol_configs
 from deaddrop_meta.interface_lib import MessagingObject
+
+logger = logging.getLogger(__name__)
 
 class PyginConfig(BaseModel):
     """

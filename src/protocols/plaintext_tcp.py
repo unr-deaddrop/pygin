@@ -57,7 +57,7 @@ class PlaintextTCPConfig(ProtocolConfig):
         },
     )
 
-    # Debug only
+    # Debug/server only
     PLAINTEXT_TCP_INITIATE_RECV_HOST: str = Field(
         default="localhost",
         json_schema_extra={
@@ -68,6 +68,12 @@ class PlaintextTCPConfig(ProtocolConfig):
         default=12346,
         json_schema_extra={
             "description": "When receiving messages by initiating a connection, the port to connect to."
+        },
+    )
+    PLAINTEXT_TCP_INITIATE_RETRY_COUNT: int = Field(
+        default = 120,
+        json_schema_extra={
+            "description": "When receiving messages by initiating a connection, the number of times to attempt to connect."
         },
     )
 
@@ -369,6 +375,8 @@ class PlaintextTCPProtocol(ProtocolBase):
         port = local_cfg.PLAINTEXT_TCP_INITIATE_RECV_PORT
 
         result: list[DeadDropMessage] = []
+        
+        attempts = local_cfg.PLAINTEXT_TCP_INITIATE_RETRY_COUNT
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             # Note that SO_REUSEPORT is a thing as well, but I haven't seen
@@ -391,10 +399,14 @@ class PlaintextTCPProtocol(ProtocolBase):
                 except (TimeoutError, OSError):  # noqa: B014
                     # TimeoutError is a subclass of OSError, but I leave it here
                     # for readability
-                    logger.info(
-                        "Connection failed - assuming no more messages are ready"
-                    )
-                    break
+                    if attempts <= 0:
+                        logger.warning(f"{local_cfg.PLAINTEXT_TCP_INITIATE_RETRY_COUNT} attempts expired, returning {len(result)} msgs")
+                        break
+                    
+                    attempts -= 1
+                    logger.info(f"Did not get any new messages, retrying ({attempts=})")
+                    time.sleep(1)
+                    continue
 
                 if not data:
                     continue
