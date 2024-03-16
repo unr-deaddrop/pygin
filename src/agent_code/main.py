@@ -4,9 +4,9 @@ The main process loop.
 
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 import argparse
+import datetime
 import logging
 import sys
 import time
@@ -53,7 +53,7 @@ class CommandTask:
     command_request.
     """
 
-    start_time: datetime
+    start_time: datetime.datetime
     cmd_request: DeadDropMessage
     task_result: AsyncResult
 
@@ -231,7 +231,7 @@ def get_stored_tasks(
 
 def construct_cmd_response(
     cfg: config.PyginConfig,
-    start_time: datetime,
+    start_time: datetime.datetime,
     cmd_request: DeadDropMessage,
     task_result: AsyncResult,
 ) -> DeadDropMessage:
@@ -318,7 +318,7 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
                 # the payload isn't known but IS well defined... see the
                 # proposal on discriminating unions for how this can be fixed
                 task = tasks.execute_command.delay(payload.cmd_name, payload.cmd_args)
-                running_commands.append(CommandTask(datetime.utcnow(), message, task))
+                running_commands.append(CommandTask(datetime.datetime.now(datetime.UTC), message, task))
             except Exception as e:
                 # Handle arbitrary exceptions for scheduling itself.
                 logger.error(

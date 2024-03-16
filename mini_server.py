@@ -6,11 +6,11 @@ This is currently hardcoded for Pygin's local protocols, since it's
 reliable and won't randomly explode (and won't cause any ToS violations).
 """
 
-from datetime import datetime
 from dataclasses import dataclass
 from pathlib import Path
 from pprint import pprint
 from typing import Type, Any, Callable
+import datetime
 import logging
 import time
 import sys
@@ -241,7 +241,7 @@ if __name__ == "__main__":
             if CMD_NAME == "ping":
                 start_time = float(payload.result["ping_timestamp"])
                 end_time = float(payload.result["pong_timestamp"])
-                return_time = datetime.utcnow().timestamp()
+                return_time = datetime.datetime.now(datetime.UTC)
                 logger.info(
                     f"The ping time was {end_time-start_time:.2f} seconds to receive, {return_time-start_time:.2f} seconds RTT"
                 )
