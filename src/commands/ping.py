@@ -3,10 +3,11 @@ Implements the ping command.
 """
 
 from typing import Any, Optional, Type
+import datetime
 import time
-from datetime import datetime
 
-from pydantic import BaseModel, Field
+
+from pydantic import BaseModel, Field, AwareDatetime
 
 from deaddrop_meta.command_lib import CommandBase, RendererBase
 
@@ -33,7 +34,7 @@ class PingArguments(BaseModel):
             "description": "The number of seconds to delay the reponse for."
         },
     )
-    ping_timestamp: datetime = Field(
+    ping_timestamp: AwareDatetime = Field(
         json_schema_extra={
             "description": "The reference timestamp for the ping request."
         }
@@ -45,10 +46,10 @@ class PingResult(BaseModel):
     Model representing the results of the ping command.
     """
 
-    ping_timestamp: datetime = Field(
+    ping_timestamp: AwareDatetime = Field(
         json_schema_extra={"description": "The time at which the ping was issued."},
     )
-    pong_timestamp: datetime = Field(
+    pong_timestamp: AwareDatetime = Field(
         json_schema_extra={"description": "The time at which the ping was received."},
     )
     message: Optional[str] = Field(
@@ -100,7 +101,7 @@ class PingCommand(CommandBase):
         # Raw result object (assumes agent is configured UTC)
         result = PingResult(
             ping_timestamp=cmd_args.ping_timestamp,
-            pong_timestamp=datetime.utcnow(),
+            pong_timestamp=datetime.datetime.now(datetime.UTC),
             message=cmd_args.message,
         )
 
