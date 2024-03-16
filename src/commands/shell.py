@@ -4,13 +4,13 @@ non-interactive command.
 """
 
 from typing import Any, Optional, Type
-from datetime import datetime
+import datetime
 import logging
 import shlex
 import subprocess
 import traceback
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AwareDatetime
 
 from deaddrop_meta.command_lib import CommandBase, RendererBase
 
@@ -71,10 +71,10 @@ class ShellResult(BaseModel):
     shell: bool = Field(
         json_schema_extra={"description": "Whether or not shell=True was used."},
     )
-    start_time: datetime = Field(
+    start_time: AwareDatetime = Field(
         json_schema_extra={"description": "When the command was invoked."},
     )
-    finish_time: datetime = Field(
+    finish_time: AwareDatetime = Field(
         json_schema_extra={
             "description": "When the command finished (even on exception)."
         },
@@ -132,7 +132,7 @@ class ShellCommand(CommandBase):
         logger.debug(
             f"Executing {cmd_args.command} with shell={cmd_args.use_shell}, timeout={cmd_args.timeout} "
         )
-        start_time = datetime.utcnow()
+        start_time = datetime.datetime.now(datetime.UTC)
         if cmd_args.use_shell:
             # If shell=True, we don't use shlex to parse the input since it's
             # unnecessary.
@@ -163,7 +163,9 @@ class ShellCommand(CommandBase):
 
     @staticmethod
     def parse_process_result(
-        p: subprocess.CompletedProcess, cmd_args: ShellArguments, start_time: datetime
+        p: subprocess.CompletedProcess,
+        cmd_args: ShellArguments,
+        start_time: datetime.datetime,
     ) -> dict[str, Any]:
         result = ShellResult(
             success=True,
@@ -173,14 +175,14 @@ class ShellCommand(CommandBase):
             returncode=p.returncode,
             shell=cmd_args.use_shell,
             start_time=start_time,
-            finish_time=datetime.utcnow(),
+            finish_time=datetime.datetime.now(datetime.UTC),
         )
 
         return result.model_dump()
 
     @staticmethod
     def parse_exception_result(
-        traceback_str: str, cmd_args: ShellArguments, start_time: datetime
+        traceback_str: str, cmd_args: ShellArguments, start_time: datetime.datetime
     ) -> dict[str, Any]:
         result = ShellResult(
             success=False,
@@ -190,7 +192,7 @@ class ShellCommand(CommandBase):
             returncode=None,
             shell=cmd_args.use_shell,
             start_time=start_time,
-            finish_time=datetime.utcnow(),
+            finish_time=datetime.datetime.now(datetime.UTC),
         )
 
         return result.model_dump()

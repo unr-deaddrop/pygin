@@ -6,7 +6,7 @@ This asserts two things:
 """
 
 from pathlib import Path
-from datetime import datetime
+import datetime
 
 from deaddrop_meta.protocol_lib import DeadDropMessage
 
@@ -53,10 +53,12 @@ class TestClass:
         # Check that the pong timestamp is greater than that of the "base" message.
         # This is valid check provided that the system time is correct, since
         # all timestamps are assumed to be UTC.
-        assert result.pong_timestamp.timestamp() > args.ping_timestamp.timestamp()
+        assert result.pong_timestamp > args.ping_timestamp
 
         # Assert that the listed pong timestamp is within 10 seconds of true time.
-        assert (datetime.utcnow().timestamp() - result.pong_timestamp.timestamp()) <= 10
+        assert (
+            datetime.datetime.now(datetime.UTC) - result.pong_timestamp
+        ).total_seconds() <= 10
 
         # Assert that the user's message, if any, was echoed back.
         assert result.message == args.message
