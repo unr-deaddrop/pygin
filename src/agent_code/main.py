@@ -251,7 +251,8 @@ def construct_cmd_response(
     #
     # mypy complains with end_time because the date might not be set,
     # which is true for unfinished tasks. But this should only be called
-    # for finished tasks (assertion above).
+    # for finished tasks (assertion above). Likewise, there is no 
+    # replace() on None, but this is fine.
     return DeadDropMessage(
         user_id=cmd_request.user_id,
         source_id=cfg.AGENT_ID,
@@ -259,7 +260,7 @@ def construct_cmd_response(
             message_type=DeadDropMessageType.CMD_RESPONSE,
             cmd_name=payload.cmd_name,
             start_time=start_time,
-            end_time=task_result.date_done.replace(datetime.UTC),  # type: ignore[arg-type]
+            end_time=task_result.date_done.replace(tzinfo=datetime.timezone.utc),  # type: ignore[arg-type, union-attr]
             request_id=cmd_request.message_id,
             result=task_result.get(),
         ),
@@ -318,7 +319,9 @@ def entrypoint(cfg_obj: config.PyginConfig, app: celery.Celery) -> None:
                 # the payload isn't known but IS well defined... see the
                 # proposal on discriminating unions for how this can be fixed
                 task = tasks.execute_command.delay(payload.cmd_name, payload.cmd_args)
-                running_commands.append(CommandTask(datetime.datetime.now(datetime.UTC), message, task))
+                running_commands.append(
+                    CommandTask(datetime.datetime.now(datetime.UTC), message, task)
+                )
             except Exception as e:
                 # Handle arbitrary exceptions for scheduling itself.
                 logger.error(
