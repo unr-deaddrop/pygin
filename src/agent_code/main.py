@@ -259,7 +259,7 @@ def construct_cmd_response(
             message_type=DeadDropMessageType.CMD_RESPONSE,
             cmd_name=payload.cmd_name,
             start_time=start_time,
-            end_time=task_result.date_done,  # type: ignore[arg-type]
+            end_time=task_result.date_done.replace(datetime.UTC),  # type: ignore[arg-type]
             request_id=cmd_request.message_id,
             result=task_result.get(),
         ),
