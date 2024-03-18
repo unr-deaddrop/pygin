@@ -11,6 +11,10 @@ pyyaml==6.0.1
 redis==5.0.1
 supervisor==4.2.5
 
+# Windows only. Recent versions of Celery are not directly supported on Windows.
+# https://stackoverflow.com/questions/45744992/celery-raises-valueerror-not-enough-values-to-unpack
+eventlet==0.35.2
+
 # Linting
 black==24.1.1
 mypy==1.8.0
