@@ -2,6 +2,10 @@
 # but I don't want to set that up right now
 # ---------------------------------------------------------------
 
+# Docker-land doesn't need any of these.
+bin/
+contribs/
+
 # Demonstration build outputs.
 fake-builds/
 
