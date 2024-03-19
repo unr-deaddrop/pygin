@@ -142,8 +142,18 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
 
     # Invoke message dispatch unit, and return whatever it returns
     protocol_name = select_protocol(msg_cfg, cfg_obj)
-    return message_dispatch.retrieve_new_messages(protocol_name, cfg_obj, redis_con)
-
+    target_id = msg_cfg.server_config.listen_for_id
+    all_msgs = []
+    while True:
+        new_msgs = message_dispatch.retrieve_new_messages(protocol_name, cfg_obj, redis_con)
+        all_msgs += new_msgs
+        if target_id and target_id not in [msg.message_id for msg in new_msgs]:
+            # If we're looking for a specific message, continue retrying until we
+            # see it, but *don't* drop any messages we do see in the meantime.
+            # Celery will time us out if this takes too long, anyways.
+            logger.info(f"Did not see desired command response, retrying ({new_msgs=})")
+        else:
+            break
 
 if __name__ == "__main__":
     # Get message_config.json, convert to MessagingObject
