@@ -110,8 +110,8 @@ class dddbCraigslistProtocol(ProtocolBase):
                 msg = DeadDropMessage.model_validate_json(raw_msg)
                 res.append(msg)
             except Exception as e:
-                raise RuntimeError(
-                    f"Failed to decode message to DeadDropMessage: {raw_msg}"
-                ) from e
+                # Could be a fragment of an older message, fine to ignore.
+                logger.error(f"Failed to decode message to DeadDropMessage: {raw_msg}")
+                continue
 
         return res
