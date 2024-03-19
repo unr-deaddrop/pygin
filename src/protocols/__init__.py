@@ -3,9 +3,6 @@
 
 from pathlib import Path
 
-import dddb_local
-
-
 # Get all Python files, don't recurse
 paths = Path(__file__).parent.resolve().glob("*.py")
 
