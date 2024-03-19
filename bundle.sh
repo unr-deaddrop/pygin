@@ -33,6 +33,9 @@ git clean -f -x -d
 echo "Removing .git"
 rm -rf ./.git
 
+echo "Invoking metadata generator"
+python3 -m src.meta.generate_metadata
+
 # Zip the remaining contents of the directory. Make a copy in the parent folder, too.
 echo "Zipping to pygin-build.zip"
 zip -r pygin-build.zip .
