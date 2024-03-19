@@ -1,6 +1,6 @@
 {
   "agent_config": {
-    "AGENT_ID": "00000000-0000-0000-0000-000000000018",
+    "AGENT_ID": "00000000-0000-0000-0000-000000000019",
     "CONTROL_UNIT_THROTTLE_TIME": 2.0,
     "AGENT_PRIVATE_KEY": null,
     "AGENT_PUBLIC_KEY": null,
@@ -54,7 +54,7 @@
       "DDDB_CRAIGSLIST_EMAIL": "unrdeaddrop@gmail.com",
       "DDDB_CRAIGSLIST_PASSWORD": "7g2Eu+up*$]ww8L",
       "DDDB_CRAIGSLIST_LOCKFILE": "./craigslist_lockfile",
-      "DDDB_CRAIGSLIST_HEADLESS": true
+      "DDDB_CRAIGSLIST_HEADLESS": false
     }
   }
 }

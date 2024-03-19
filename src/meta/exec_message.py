@@ -167,13 +167,13 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
                     # see it, but *don't* drop any messages we do see in the meantime.
                     # Celery will time us out if this takes too long, anyways.
                     logger.info("Did not see desired response ID, retrying")
+                    continue
                 else:
                     logger.info(f"{target_id} seen, breaking and returning")
-                    break
+                    return all_msgs
         else:
-            break
-
-    return all_msgs
+            return all_msgs
+        
 
 
 if __name__ == "__main__":
