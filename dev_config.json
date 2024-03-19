@@ -204,7 +204,9 @@
             "DDDB_CRAIGSLIST_CHECKIN_FREQUENCY": 30,
             // Credentials to use.
             "DDDB_CRAIGSLIST_EMAIL": "",
-            "DDDB_CRAIGSLIST_PASSWORD": ""
+            "DDDB_CRAIGSLIST_PASSWORD": "",
+            // Should Selenium be run headless?
+            "DDDB_CRAIGSLIST_HEADLESS": true
           }
 
     }

@@ -40,6 +40,9 @@ class dddbCraigslistConfig(ProtocolConfig):
     DDDB_CRAIGSLIST_PASSWORD: str = Field(
         json_schema_extra={"description": "The Craigslist password."},
     )
+    DDDB_CRAIGSLIST_HEADLESS: bool = Field(
+        json_schema_extra={"description": "Whether to use --headless for Firefox."},
+    )
 
     checkin_interval_name: ClassVar[str] = "DDDB_CRAIGSLIST_CHECKIN_FREQUENCY"
     section_name: ClassVar[str] = "dddb_craigslist"

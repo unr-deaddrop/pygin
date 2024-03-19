@@ -52,7 +52,8 @@
     "dddb_craigslist": {
       "DDDB_CRAIGSLIST_CHECKIN_FREQUENCY": 30,
       "DDDB_CRAIGSLIST_EMAIL": "unrdeaddrop@gmail.com",
-      "DDDB_CRAIGSLIST_PASSWORD": "7g2Eu+up*$]ww8L"
+      "DDDB_CRAIGSLIST_PASSWORD": "",
+      "DDDB_CRAIGSLIST_HEADLESS": true
     }
   }
 }
