@@ -1,4 +1,4 @@
-# This dockerfile is intended to be used in payload generation.
+# This dockerfile is intended to be used in messaging.
 
 FROM python:3.11.4-bookworm
 
@@ -8,6 +8,10 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE 1
 # Send stdout to terminal without buffering.
 ENV PYTHONUNBUFFERED 1
+
+COPY ./resources ./resources
+RUN chmod +x ./resources/runtime/install-firefox.sh
+RUN ./resources/runtime/install-firefox.sh
 
 COPY . .
 
