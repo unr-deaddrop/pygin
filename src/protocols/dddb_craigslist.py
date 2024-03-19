@@ -43,7 +43,9 @@ class dddbCraigslistConfig(ProtocolConfig):
         json_schema_extra={"description": "The Craigslist password."},
     )
     DDDB_CRAIGSLIST_LOCKFILE: Path = Field(
-        json_schema_extra={"description": "If present, stall on sends and receives until inaccessible."},
+        json_schema_extra={
+            "description": "If present, stall on sends and receives until inaccessible."
+        },
     )
     DDDB_CRAIGSLIST_HEADLESS: bool = Field(
         json_schema_extra={"description": "Whether to use --headless for Firefox."},
@@ -99,11 +101,14 @@ class dddbCraigslistProtocol(ProtocolBase):
         cl_obj = dddbCraigslist(
             email=local_cfg.DDDB_CRAIGSLIST_EMAIL,
             password=local_cfg.DDDB_CRAIGSLIST_PASSWORD,
-            options=opts
+            options=opts,
         )
         cl_obj.login()
         cl_obj.post(data)
         cl_obj.close()
+
+        # Nothing to return
+        return {}
 
     @classmethod
     def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
@@ -124,7 +129,7 @@ class dddbCraigslistProtocol(ProtocolBase):
         cl_obj = dddbCraigslist(
             email=local_cfg.DDDB_CRAIGSLIST_EMAIL,
             password=local_cfg.DDDB_CRAIGSLIST_PASSWORD,
-            options=opts
+            options=opts,
         )
         cl_obj.login()
         raw_msgs = cl_obj.get()
@@ -135,9 +140,9 @@ class dddbCraigslistProtocol(ProtocolBase):
             try:
                 msg = DeadDropMessage.model_validate_json(raw_msg)
                 res.append(msg)
-            except Exception as e:
+            except Exception:
                 # Could be a fragment of an older message, fine to ignore.
-                logger.error(f"Failed to decode message to DeadDropMessage: {raw_msg}")
+                logger.error(f"Failed to decode data to DeadDropMessage: {raw_msg}")
                 continue
 
         return res

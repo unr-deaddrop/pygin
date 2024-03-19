@@ -145,7 +145,9 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
     target_id = msg_cfg.server_config.listen_for_id
     all_msgs = []
     while True:
-        new_msgs = message_dispatch.retrieve_new_messages(protocol_name, cfg_obj, redis_con)
+        new_msgs = message_dispatch.retrieve_new_messages(
+            protocol_name, cfg_obj, redis_con
+        )
         all_msgs += new_msgs
         if target_id and target_id not in [msg.message_id for msg in new_msgs]:
             # If we're looking for a specific message, continue retrying until we
@@ -154,6 +156,9 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
             logger.info(f"Did not see desired command response, retrying ({new_msgs=})")
         else:
             break
+
+    return all_msgs
+
 
 if __name__ == "__main__":
     # Get message_config.json, convert to MessagingObject

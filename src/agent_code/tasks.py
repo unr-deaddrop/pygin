@@ -31,9 +31,9 @@ logger = get_task_logger(__name__)
 #   if somebody wants to sabotage the framework, they would either need to break
 #   the encryption system or gain access to the machine the agent is running on
 #   (in which case there's basically nothing we can really do right now).
-REDIS_HOST = "redis" # The name of the docker container
+REDIS_HOST = "redis"  # The name of the docker container
 if os.name == "nt":
-    REDIS_HOST = "127.0.0.1" # redis-server.exe
+    REDIS_HOST = "127.0.0.1"  # redis-server.exe
 
 app = Celery(
     # FIXME: This ought to be declared as an envvar.
