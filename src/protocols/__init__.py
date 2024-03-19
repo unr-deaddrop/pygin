@@ -10,7 +10,7 @@ import dddb_local
 paths = Path(__file__).parent.resolve().glob("*.py")
 
 # Construct the avilable modules
-__all__ = ["dddb_local"]
+__all__ = []
 for path in paths:
     if not path.is_file():
         continue
