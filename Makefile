@@ -67,7 +67,11 @@ payload_entry:
 	python3 -m src.meta.payload_entrypoint
 
 # To be run *inside* the build container.
+#
+# dddb requires Firefox to be installed, allowing Selenium to operate.
 message:
+	chmod +x install-firefox.sh
+	./install-firefox.sh
 	pip3 install -r ./resources/requirements/message-requirements.txt
 	python3 -m src.meta.exec_message
 

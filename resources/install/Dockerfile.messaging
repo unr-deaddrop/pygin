@@ -1,6 +1,6 @@
 # This dockerfile is intended to be used in payload generation.
 
-FROM python:3.11.4
+FROM python:3.11.4-bookworm
 
 WORKDIR /app
 

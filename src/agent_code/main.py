@@ -251,7 +251,7 @@ def construct_cmd_response(
     #
     # mypy complains with end_time because the date might not be set,
     # which is true for unfinished tasks. But this should only be called
-    # for finished tasks (assertion above). Likewise, there is no 
+    # for finished tasks (assertion above). Likewise, there is no
     # replace() on None, but this is fine.
     return DeadDropMessage(
         user_id=cmd_request.user_id,

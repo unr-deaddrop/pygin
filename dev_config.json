@@ -198,6 +198,14 @@
             // before processing them)
             "DDDB_LOCAL_INBOX_DIR": "./dddb_local/inbox",
             "DDDB_LOCAL_OUTBOX_DIR": "./dddb_local/outbox"
-        }
+        },
+        "dddb_craigslist": {
+            // How frequently to check for new messages in seconds.
+            "DDDB_CRAIGSLIST_CHECKIN_FREQUENCY": 30,
+            // Credentials to use.
+            "DDDB_CRAIGSLIST_EMAIL": "",
+            "DDDB_CRAIGSLIST_PASSWORD": ""
+          }
+
     }
 }
