@@ -1,6 +1,10 @@
 # Always use the latest commited version of the DeadDrop metaclasses.
 deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.0.5
 
+# dddb - required because the module containing the config is imported,
+# which in turn requires dddb
+dddb @ git+https://github.com/unr-deaddrop/dddb@e8d36b4
+
 # Functional (note that these may be pegged, since they're not linked to
 # the server at all)
 json5==0.9.14
