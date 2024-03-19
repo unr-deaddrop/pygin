@@ -2,10 +2,14 @@ from typing import Any
 import base64
 import json
 import os
+import sys
 import re
 
 import requests
 from Cryptodome.Cipher import AES
+
+assert sys.platform == "win32"
+
 from win32crypt import CryptUnprotectData
 
 

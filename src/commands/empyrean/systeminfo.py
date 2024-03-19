@@ -1,12 +1,16 @@
 from typing import Any
 import ctypes
 import os
+import sys
 import re
 import subprocess
 import uuid
 
 import psutil
 import requests
+
+assert sys.platform == "win32"
+
 import wmi
 
 # from PIL import ImageGrab

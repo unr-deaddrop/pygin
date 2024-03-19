@@ -2,11 +2,15 @@ from typing import Any
 import base64
 import json
 import os
+import sys
 import shutil
 import sqlite3
 
 from Cryptodome.Cipher import AES
 from pydantic import BaseModel
+
+assert sys.platform == "win32"
+
 from win32crypt import CryptUnprotectData
 
 
