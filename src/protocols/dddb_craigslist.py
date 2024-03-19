@@ -4,8 +4,10 @@ Plaintext TCP-based implementation of the dddb messaging protocol.
 Used for debugging, doesn't have any dependencies.
 """
 
+from pathlib import Path
 from typing import Type, Any, ClassVar
 import logging
+import time
 
 from pydantic import Field
 
@@ -39,6 +41,9 @@ class dddbCraigslistConfig(ProtocolConfig):
     )
     DDDB_CRAIGSLIST_PASSWORD: str = Field(
         json_schema_extra={"description": "The Craigslist password."},
+    )
+    DDDB_CRAIGSLIST_LOCKFILE: Path = Field(
+        json_schema_extra={"description": "If present, stall on sends and receives until inaccessible."},
     )
     DDDB_CRAIGSLIST_HEADLESS: bool = Field(
         json_schema_extra={"description": "Whether to use --headless for Firefox."},
@@ -77,8 +82,17 @@ class dddbCraigslistProtocol(ProtocolBase):
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:
         local_cfg: dddbCraigslistConfig = dddbCraigslistConfig.model_validate(args)
 
+        # Demo code/throttling
+        lockfile = local_cfg.DDDB_CRAIGSLIST_LOCKFILE.resolve()
+        while True:
+            if not lockfile.exists():
+                break
+            logger.info(f"Lockfile {lockfile} present, waiting before sending")
+            time.sleep(2)
+
         opts = FirefoxOptions()
-        opts.add_argument("--headless")
+        if local_cfg.DDDB_CRAIGSLIST_HEADLESS:
+            opts.add_argument("--headless")
 
         data = msg.model_dump_json().encode("utf-8")
 
@@ -95,8 +109,17 @@ class dddbCraigslistProtocol(ProtocolBase):
     def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
         local_cfg: dddbCraigslistConfig = dddbCraigslistConfig.model_validate(args)
 
+        # Demo code/throttling
+        lockfile = local_cfg.DDDB_CRAIGSLIST_LOCKFILE.resolve()
+        while True:
+            if not lockfile.exists():
+                break
+            logger.info(f"Lockfile {lockfile} present, waiting before receiving")
+            time.sleep(2)
+
         opts = FirefoxOptions()
-        opts.add_argument("--headless")
+        if local_cfg.DDDB_CRAIGSLIST_HEADLESS:
+            opts.add_argument("--headless")
 
         cl_obj = dddbCraigslist(
             email=local_cfg.DDDB_CRAIGSLIST_EMAIL,
