@@ -4,6 +4,7 @@ This module contains all available tasking for Celery.
 
 from pathlib import Path
 from typing import Any
+import os
 
 from celery import Celery, Task
 from celery.utils.log import get_task_logger
@@ -30,18 +31,17 @@ logger = get_task_logger(__name__)
 #   if somebody wants to sabotage the framework, they would either need to break
 #   the encryption system or gain access to the machine the agent is running on
 #   (in which case there's basically nothing we can really do right now).
+REDIS_HOST = "redis" # The name of the docker container
+if os.name == "nt":
+    REDIS_HOST = "127.0.0.1" # redis-server.exe
+
 app = Celery(
-    # FIXME: When in a Docker container, the host "redis" should be used (the
-    # name of the container/service). But normally, the host "localhost" should
-    # be used.
-    #
-    # I don't know how to reconcile this; the simplest way would be to expose an
-    # envvar, but surely there's a better way to deal with this?
+    # FIXME: This ought to be declared as an envvar.
     "tasks",
     # backend="redis://localhost:6379/0",
     # broker="redis://localhost:6379/0",
-    backend="redis://redis:6379/0",
-    broker="redis://redis:6379/0",
+    backend=f"redis://{REDIS_HOST}:6379/0",
+    broker=f"redis://{REDIS_HOST}:6379/0",
 )
 
 app.conf.enable_utc = False
