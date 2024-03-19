@@ -4,6 +4,7 @@ This module contains all available tasking for Celery.
 
 from pathlib import Path
 from typing import Any
+import os
 
 from celery import Celery, Task
 from celery.utils.log import get_task_logger
@@ -30,18 +31,21 @@ logger = get_task_logger(__name__)
 #   if somebody wants to sabotage the framework, they would either need to break
 #   the encryption system or gain access to the machine the agent is running on
 #   (in which case there's basically nothing we can really do right now).
+
+REDIS_HOST = "127.0.0.1"
+if os.name == "posix":
+    # Assume running in container. Can be better managed through os.getenv;
+    # right now, there is no reason to assume we'll ever be running outside
+    # of Docker if Linux is available.
+    REDIS_HOST = "redis"
+
 app = Celery(
-    # FIXME: When in a Docker container, the host "redis" should be used (the
-    # name of the container/service). But normally, the host "localhost" should
-    # be used.
-    #
-    # I don't know how to reconcile this; the simplest way would be to expose an
-    # envvar, but surely there's a better way to deal with this?
     "tasks",
-    # backend="redis://localhost:6379/0",
-    # broker="redis://localhost:6379/0",
-    backend="redis://redis:6379/0",
-    broker="redis://redis:6379/0",
+    include=['src.agent_code.tasks'],
+    backend=f"redis://127.0.0.1:6379/0",
+    broker=f"redis://127.0.0.1:6379/0",
+    # backend=f"redis://{REDIS_HOST}:6379/0",
+    # broker=f"redis://{REDIS_HOST}:6379/0",
 )
 
 app.conf.enable_utc = False
@@ -124,7 +128,8 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 # number of retries is 3.
 #
 # TODO: shouldn't the time limit be documented somewhere? lol
-@app.task(bind=True, serializer="pickle", soft_time_limit=60)
+# @app.task(bind=True, serializer="pickle", soft_time_limit=60)
+@app.task(bind=True, serializer="pickle", time_limit=10)
 def get_new_msgs(
     self: Task, cfg: config.PyginConfig, protocol_name: str, drop_seen_msgs: bool
 ) -> list[DeadDropMessage]:
@@ -218,3 +223,24 @@ def send_heartbeat(cfg: config.PyginConfig, protocol_name: str):
     logger.warning(
         "Heartbeats haven't been implemented yet, but it would be executed right now"
     )
+
+# https://stackoverflow.com/questions/67023208/run-celery-worker-with-a-compiled-python-module-compiled-using-pyinstaller
+if __name__ == "__main__":
+    # For some reason, neither gevents nor eventlet will work when run 
+    # programmatically. From observation, the tasks won't *start* even though
+    # they're received by the worker... unless Redis is inaccessible. Then,
+    # the tasks will start, and then the worker pool can post the result to Redis.
+    #
+    # It's an absolute mystery to me why this is, considering the fact that you
+    # can run Celery from the command line and it'll work just fine. But so it is.
+    # I dug into the Worker implementation at 
+    # https://github.com/celery/celery/blob/main/celery/bin/worker.py#L108
+    # with no success, so the best we're getting is this thing that basically works.
+    #
+    # In turn, we're using threads here, which works when compiled to an executable.
+    # See https://celery.school/celery-on-windows. In all other cases, continue using
+    # the standard prefook pool.
+    # app.start(argv=['-A', 'src.agent_code.tasks', 'worker', '--loglevel=debug', '--pool=threads', '--concurrency=8'])
+    # app.start(argv=['worker', '--loglevel=debug', '--pool=threads', '--concurrency=8'])
+    # app.Worker(loglevel="DEBUG", pool_cls='eventlet').start()
+    pass

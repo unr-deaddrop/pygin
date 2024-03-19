@@ -3,11 +3,14 @@
 
 from pathlib import Path
 
+import dddb_local
+
+
 # Get all Python files, don't recurse
 paths = Path(__file__).parent.resolve().glob("*.py")
 
 # Construct the avilable modules
-__all__ = []
+__all__ = ["dddb_local"]
 for path in paths:
     if not path.is_file():
         continue

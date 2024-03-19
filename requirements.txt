@@ -14,6 +14,8 @@ supervisor==4.2.5
 # Windows only. Recent versions of Celery are not directly supported on Windows.
 # https://stackoverflow.com/questions/45744992/celery-raises-valueerror-not-enough-values-to-unpack
 eventlet==0.35.2
+# Required for PyInstaller.
+dnspython==2.6.1
 
 # Linting
 black==24.1.1
