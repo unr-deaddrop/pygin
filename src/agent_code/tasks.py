@@ -42,10 +42,10 @@ if os.name == "posix":
 app = Celery(
     "tasks",
     include=['src.agent_code.tasks'],
-    backend=f"redis://127.0.0.1:6379/0",
-    broker=f"redis://127.0.0.1:6379/0",
-    # backend=f"redis://{REDIS_HOST}:6379/0",
-    # broker=f"redis://{REDIS_HOST}:6379/0",
+    # backend=f"redis://127.0.0.1:6379/0",
+    # broker=f"redis://127.0.0.1:6379/0",
+    backend=f"redis://{REDIS_HOST}:6379/0",
+    broker=f"redis://{REDIS_HOST}:6379/0",
 )
 
 app.conf.enable_utc = False
@@ -128,8 +128,7 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 # number of retries is 3.
 #
 # TODO: shouldn't the time limit be documented somewhere? lol
-# @app.task(bind=True, serializer="pickle", soft_time_limit=60)
-@app.task(bind=True, serializer="pickle", time_limit=10)
+@app.task(bind=True, serializer="pickle", soft_time_limit=60)
 def get_new_msgs(
     self: Task, cfg: config.PyginConfig, protocol_name: str, drop_seen_msgs: bool
 ) -> list[DeadDropMessage]:

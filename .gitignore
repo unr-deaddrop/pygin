@@ -2,6 +2,7 @@
 celerybeat-schedule.bak
 celerybeat-schedule.dat
 celerybeat-schedule.dir
+celerybeat-schedule.db
 
 # Demonstration build outputs.
 fake-builds/

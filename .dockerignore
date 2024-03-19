@@ -5,6 +5,10 @@
 # Docker-land doesn't need any of these.
 bin/
 contribs/
+celerybeat-schedule.bak
+celerybeat-schedule.dat
+celerybeat-schedule.dir
+celerybeat-schedule.db
 
 # Demonstration build outputs.
 fake-builds/
