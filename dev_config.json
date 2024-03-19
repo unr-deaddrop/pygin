@@ -198,6 +198,19 @@
             // before processing them)
             "DDDB_LOCAL_INBOX_DIR": "./dddb_local/inbox",
             "DDDB_LOCAL_OUTBOX_DIR": "./dddb_local/outbox"
-        }
+        },
+        "dddb_craigslist": {
+            // How frequently to check for new messages in seconds.
+            "DDDB_CRAIGSLIST_CHECKIN_FREQUENCY": 15,
+            // Credentials to use.
+            "DDDB_CRAIGSLIST_EMAIL": "",
+            "DDDB_CRAIGSLIST_PASSWORD": "",
+            // If present, refuse to start Selenium until it goes away. Note that
+            // this does NOT kill the task.
+            "DDDB_CRAIGSLIST_LOCKFILE": "./craigslist_lockfile",
+            // Should Selenium be run headless?
+            "DDDB_CRAIGSLIST_HEADLESS": true
+          }
+
     }
 }

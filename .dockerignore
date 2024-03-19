@@ -2,6 +2,9 @@
 # but I don't want to set that up right now
 # ---------------------------------------------------------------
 
+# Do not include the Windows-only Celery outputs.
+celerybeat-schedule.*
+
 # Demonstration build outputs.
 fake-builds/
 

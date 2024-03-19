@@ -1,5 +1,9 @@
-# Always use the latest commited version of the DeadDrop metaclasses.
+# Download internal libraries.
 deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.0.5
+dddb @ git+https://github.com/unr-deaddrop/dddb@e8d36b4
+
+# As part of exposed dddb functionality. Not directly used by Pygin itself.
+selenium==4.18.1
 
 # Functional
 celery[redis]==5.3.6

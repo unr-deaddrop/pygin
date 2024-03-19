@@ -48,8 +48,6 @@ deps:
 # models for the Django backend.
 install:
 	cp -a ./resources/install/. .
-	pip3 install -r ./resources/requirements/install-requirements.txt
-	python3 -m src.meta.generate_metadata
 
 # To be run *inside* the build container.
 payload:
@@ -67,12 +65,14 @@ payload_entry:
 	python3 -m src.meta.payload_entrypoint
 
 # To be run *inside* the build container.
+#
+# dddb requires Firefox to be installed, allowing Selenium to operate. This
+# is done at the container level to avoid having the whole thing get downloaded
+# every single time.
 message:
-	pip3 install -r ./resources/requirements/message-requirements.txt
 	python3 -m src.meta.exec_message
 
 # To be run *outside* the build container. Note this assumes that the container
 # will exit on its own (or else bad things happen!)
 message_entry:
-	pip3 install -r ./resources/requirements/message-requirements.txt
 	python3 -m src.meta.message_entrypoint

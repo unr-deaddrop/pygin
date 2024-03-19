@@ -15,9 +15,10 @@ rm -rf ./build
 echo "Copying files to build output"
 mkdir ./build
 
-# Copy the source directory, the resources directory, and the git repo
+# Copy the source directory, resources, and the git repo
 cp ./src ./build/src -r
 cp ./resources ./build/resources -r
+cp ./contribs ./build/contribs -r
 cp ./.git ./build/.git -r 
 
 # Copy all files shallowly, ignore errors
@@ -32,6 +33,9 @@ git clean -f -x -d
 # Remove the git folder itself.
 echo "Removing .git"
 rm -rf ./.git
+
+echo "Invoking metadata generator"
+python3 -m src.meta.generate_metadata
 
 # Zip the remaining contents of the directory. Make a copy in the parent folder, too.
 echo "Zipping to pygin-build.zip"
