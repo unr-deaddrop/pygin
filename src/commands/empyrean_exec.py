@@ -5,10 +5,12 @@ This is the subprocess version, which is intentionally less well-structured.
 """
 
 from typing import Any, Optional, Type
-import logging
 from pathlib import Path
+import json
+import logging
 import subprocess
 import sys
+import traceback
 
 from pydantic import BaseModel, Field
 
@@ -21,9 +23,10 @@ logger = logging.getLogger(__name__)
 FALLBACK_PATHS = [
     Path("./contribs/empyrean/main.exe"),
     Path("./contribs/empyrean/empyrean.exe"),
-    Path("empyrean.exe")
+    Path("empyrean.exe"),
 ]
 OUTPUT_FILE = "./empyrean-result.json"
+
 
 class EmpyreanExecArguments(BaseModel):
     """
@@ -32,9 +35,7 @@ class EmpyreanExecArguments(BaseModel):
 
     empyrean_path: Path = Field(
         default=Path("./contribs/empyrean/main.exe"),
-        json_schema_extra={
-            "description": "The path to the Empyrean executable."
-        }
+        json_schema_extra={"description": "The path to the Empyrean executable."},
     )
 
 
@@ -51,8 +52,17 @@ class EmpyreanExecResult(BaseModel):
             )
         },
     )
-    message: Optional[str] = Field(
-        json_schema_extra={"description": "Any additional status message."},
+    stdout: Optional[str] = Field(
+        default=None,
+        json_schema_extra={"description": "The stdout of the process."},
+    )
+    stderr: Optional[str] = Field(
+        default=None,
+        json_schema_extra={"description": "The stderr of the process."},
+    )
+    error: Optional[str] = Field(
+        default=None,
+        json_schema_extra={"description": "An error description."},
     )
     output: dict[str, Any] = Field(
         json_schema_extra={
@@ -80,8 +90,7 @@ class EmpyreanExecCommand(CommandBase):
     def execute_command(cls, args: dict[str, Any]) -> dict[str, Any]:
         cmd_args: EmpyreanExecArguments = EmpyreanExecArguments.model_validate(args)
 
-        # if sys.platform != "win32":
-        if False:
+        if sys.platform != "win32":
             return cls.return_invalid_os()
         else:
             # Add the selected path to the list of fallbacks.
@@ -90,45 +99,41 @@ class EmpyreanExecCommand(CommandBase):
                 if not path.exists():
                     logger.info(f"{path} does not exist")
                     continue
-                
+
                 p = subprocess.run([path.resolve()], capture_output=True)
-                msg = f"{p.stdout=} {p.stderr=}"
-                
+
                 if not OUTPUT_FILE.exists():
-                    return cls.return_missing_output(msg)
-                
-                
-                
-        
+                    return cls.return_missing_output(p.stdout, p.stderr)
+
+                return cls.return_parsed_result(p.stdout, p.stderr, path)
+
             return cls.return_missing_exe()
 
     @staticmethod
-    def return_missing_output(msg: str) -> dict[str, Any]:
+    def return_missing_output(stdout: bytes, stderr: bytes) -> dict[str, Any]:
         """
-        When the executable cannot be found, complain.
+        When the output file cannot be found, complain.
         """
         result = EmpyreanExecResult(
             success=False,
-            message="empyrean-result.json missing.",
-            output={
-                "output": msg
-            }
+            error="empyrean-result.json missing.",
+            stdout=stdout.decode(),
+            stderr=stderr.decode(),
+            output={},
         )
 
-        return result.model_dump()  
-                
+        return result.model_dump()
+
     @staticmethod
     def return_missing_exe() -> dict[str, Any]:
         """
         When the executable cannot be found, complain.
         """
         result = EmpyreanExecResult(
-            success=False,
-            message="Could not find the Empyrean executable.",
-            output={}
+            success=False, error="Could not find the Empyrean executable.", output={}
         )
 
-        return result.model_dump()                
+        return result.model_dump()
 
     @staticmethod
     def return_invalid_os() -> dict[str, Any]:
@@ -137,22 +142,38 @@ class EmpyreanExecCommand(CommandBase):
         """
         result = EmpyreanExecResult(
             success=False,
-            message="Pygin was running on a non-Windows environment.",
-            output={}
+            error="Pygin is running on a non-Windows environment.",
+            output={},
         )
 
         return result.model_dump()
 
-    def return_parsed_result(msg: str) -> dict[str, Any]:
+    @staticmethod
+    def return_parsed_result(
+        stdout: bytes, stderr: bytes, output_path: Path
+    ) -> dict[str, Any]:
         """
         Nominal case.
         """
-        result = EmpyreanExecResult(
-            success=False,
-            message="empyrean-result.json missing.",
-            output={
-                "output": msg
-            }
-        )
+        try:
+            with open(output_path, "rt") as fp:
+                data = json.load(fp)
 
-        return result.model_dump()  
+            result = EmpyreanExecResult(
+                success=True,
+                stdout=stdout.decode(),
+                stderr=stderr.decode(),
+                output=data,
+            )
+
+            return result.model_dump()
+        except Exception:
+            result = EmpyreanExecResult(
+                success=False,
+                stdout=stdout.decode(),
+                stderr=stderr.decode(),
+                error=traceback.format_exc(),
+                output={},
+            )
+
+            return result.model_dump()

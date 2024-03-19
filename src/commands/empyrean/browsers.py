@@ -9,9 +9,10 @@ import sqlite3
 from Cryptodome.Cipher import AES
 from pydantic import BaseModel
 
-assert sys.platform == "win32"
+if sys.platform == "win32":
+    from win32crypt import CryptUnprotectData  # type: ignore[import-not-found]
 
-from win32crypt import CryptUnprotectData
+assert sys.platform == "win32"
 
 
 class Login(BaseModel):

@@ -9,11 +9,12 @@ import uuid
 import psutil
 import requests
 
-assert sys.platform == "win32"
-
-import wmi
+if sys.platform == "win32":
+    import wmi  # type: ignore[import-not-found]
 
 # from PIL import ImageGrab
+
+assert sys.platform == "win32"
 
 
 class SystemInfo:
