@@ -23,6 +23,7 @@ import uuid
 import json
 import logging
 import sys
+import time
 
 from deaddrop_meta.interface_lib import MessagingObject
 from deaddrop_meta.protocol_lib import DeadDropMessage, CommandResponsePayload
@@ -155,6 +156,12 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
         new_msgs = message_dispatch.retrieve_new_messages(
             protocol_name, cfg_obj, redis_con
         )
+        
+        seen_ids = [msg.message_id for msg in all_msgs]
+        for msg in new_msgs:
+            if msg.message_id not in seen_ids:
+                all_msgs.append(msg)
+        
         all_msgs += new_msgs
         logger.info(f"Got the following IDs: {[msg.message_id for msg in new_msgs]}")
         if target_id:
@@ -166,7 +173,11 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
                     # If we're looking for a specific message, continue retrying until we
                     # see it, but *don't* drop any messages we do see in the meantime.
                     # Celery will time us out if this takes too long, anyways.
-                    logger.info("Did not see desired response ID, retrying")
+                    logger.info("Did not see desired response ID, retrying after 15s")
+                    
+                    # In the case of dddb, this reduces load. For everything else,
+                    # this makes things just a little bit slower.
+                    time.sleep(15)
                     continue
                 else:
                     logger.info(f"{target_id} seen, breaking and returning")
