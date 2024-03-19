@@ -1,3 +1,8 @@
+@REM Remove the celerybeat files, if present
+del celerybeat-schedule.bak
+del celerybeat-schedule.dat
+del celerybeat-schedule.dir
+
 @REM Note that 127.0.0.1 must be used for Redis connections, *not* localhost.
 @REM https://stackoverflow.com/questions/11010834/how-to-run-multiple-dos-commands-in-parallel
 

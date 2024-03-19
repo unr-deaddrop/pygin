@@ -19,12 +19,13 @@ object.
 
 from pathlib import Path
 from typing import Any
+import uuid
 import json
 import logging
 import sys
 
 from deaddrop_meta.interface_lib import MessagingObject
-from deaddrop_meta.protocol_lib import DeadDropMessage
+from deaddrop_meta.protocol_lib import DeadDropMessage, CommandResponsePayload
 from src.agent_code import message_dispatch
 from src.agent_code.config import PyginConfig
 
@@ -104,6 +105,11 @@ def translate_config(msg_cfg: MessagingObject) -> PyginConfig:
         msg_cfg.endpoint_model_data
     )
     cfg_obj.protocol_configuration[protocol_name] = proto_cfg
+
+    # Additionally, the agent ID is overwritten to be the server's null ID, so
+    # that the router doesn't accidentally drop its own messages.
+    cfg_obj.AGENT_ID = uuid.UUID(int=0)
+
     return cfg_obj
 
 
@@ -143,17 +149,27 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
     # Invoke message dispatch unit, and return whatever it returns
     protocol_name = select_protocol(msg_cfg, cfg_obj)
     target_id = msg_cfg.server_config.listen_for_id
+    logger.info(f"Will repeatedly try to get message until {target_id} is seen")
     all_msgs = []
     while True:
         new_msgs = message_dispatch.retrieve_new_messages(
             protocol_name, cfg_obj, redis_con
         )
         all_msgs += new_msgs
-        if target_id and target_id not in [msg.message_id for msg in new_msgs]:
-            # If we're looking for a specific message, continue retrying until we
-            # see it, but *don't* drop any messages we do see in the meantime.
-            # Celery will time us out if this takes too long, anyways.
-            logger.info(f"Did not see desired command response, retrying ({new_msgs=})")
+        logger.info(f"Got the following IDs: {[msg.message_id for msg in new_msgs]}")
+        if target_id:
+            responses: list[DeadDropMessage] = []
+            for msg in new_msgs:
+                if isinstance(msg.payload, CommandResponsePayload):
+                    responses.append(msg)
+                if target_id not in [response.payload.request_id for response in responses]:  # type: ignore[union-attr]
+                    # If we're looking for a specific message, continue retrying until we
+                    # see it, but *don't* drop any messages we do see in the meantime.
+                    # Celery will time us out if this takes too long, anyways.
+                    logger.info("Did not see desired response ID, retrying")
+                else:
+                    logger.info(f"{target_id} seen, breaking and returning")
+                    break
         else:
             break
 
