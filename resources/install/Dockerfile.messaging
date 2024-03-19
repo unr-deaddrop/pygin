@@ -12,6 +12,7 @@ ENV PYTHONUNBUFFERED 1
 COPY ./resources ./resources
 RUN chmod +x ./resources/runtime/install-firefox.sh
 RUN ./resources/runtime/install-firefox.sh
+RUN pip3 install -r ./resources/requirements/message-requirements.txt
 
 COPY . .
 
