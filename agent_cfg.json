@@ -1,6 +1,7 @@
 {
   "agent_config": {
     "AGENT_ID": "00000000-0000-0000-0000-000000000020",
+    "DROP_MISDIRECTED_MESSAGES": true,
     "CONTROL_UNIT_THROTTLE_TIME": 2.0,
     "AGENT_PRIVATE_KEY": null,
     "AGENT_PUBLIC_KEY": null,
@@ -8,11 +9,11 @@
     "SERVER_PUBLIC_KEY": null,
     "SERVER_PRIVATE_KEY": null,
     "INCOMING_PROTOCOLS": [
-      "dddb_craigslist"
+      "plaintext_tcp"
     ],
-    "HEARTBEAT_PROTOCOL": "dddb_craigslist",
-    "LOGGING_PROTOCOL": "dddb_craigslist",
-    "SENDING_PROTOCOL": "dddb_craigslist",
+    "HEARTBEAT_PROTOCOL": "plaintext_tcp",
+    "LOGGING_PROTOCOL": "plaintext_tcp",
+    "SENDING_PROTOCOL": "plaintext_tcp",
     "LOGGING_INTERVAL": 60,
     "HEARTBEAT_INTERVAL": 60,
     "REDIS_MESSAGES_SEEN_KEY": "_agent_meta-seen-msgs",
@@ -27,7 +28,7 @@
   "protocol_config": {
     "plaintext_tcp": {
       "PLAINTEXT_TCP_CHECKIN_FREQUENCY": 10,
-      "PLAINTEXT_TCP_LISTEN_TIMEOUT": 8,
+      "PLAINTEXT_TCP_LISTEN_TIMEOUT": 10,
       "PLAINTEXT_TCP_LISTEN_BIND_HOST": "0.0.0.0",
       "PLAINTEXT_TCP_LISTEN_RECV_PORT": 12345,
       "PLAINTEXT_TCP_LISTEN_SEND_PORT": 12346,
@@ -52,9 +53,9 @@
     "dddb_craigslist": {
       "DDDB_CRAIGSLIST_CHECKIN_FREQUENCY": 120,
       "DDDB_CRAIGSLIST_EMAIL": "unrdeaddrop@gmail.com",
-      "DDDB_CRAIGSLIST_PASSWORD": "7g2Eu+up*$]ww8L",
+      "DDDB_CRAIGSLIST_PASSWORD": "",
       "DDDB_CRAIGSLIST_LOCKFILE": "./craigslist_lockfile",
-      "DDDB_CRAIGSLIST_HEADLESS": false
+      "DDDB_CRAIGSLIST_HEADLESS": true
     }
   }
 }

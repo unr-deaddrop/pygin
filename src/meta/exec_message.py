@@ -151,17 +151,17 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
     protocol_name = select_protocol(msg_cfg, cfg_obj)
     target_id = msg_cfg.server_config.listen_for_id
     logger.info(f"Will repeatedly try to get message until {target_id} is seen")
-    all_msgs = []
+    all_msgs: list[DeadDropMessage] = []
     while True:
         new_msgs = message_dispatch.retrieve_new_messages(
             protocol_name, cfg_obj, redis_con
         )
-        
+
         seen_ids = [msg.message_id for msg in all_msgs]
         for msg in new_msgs:
             if msg.message_id not in seen_ids:
                 all_msgs.append(msg)
-        
+
         all_msgs += new_msgs
         logger.info(f"Got the following IDs: {[msg.message_id for msg in new_msgs]}")
         if target_id:
@@ -174,7 +174,7 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
                     # see it, but *don't* drop any messages we do see in the meantime.
                     # Celery will time us out if this takes too long, anyways.
                     logger.info("Did not see desired response ID, retrying after 15s")
-                    
+
                     # In the case of dddb, this reduces load. For everything else,
                     # this makes things just a little bit slower.
                     time.sleep(15)
@@ -184,7 +184,6 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
                     return all_msgs
         else:
             return all_msgs
-        
 
 
 if __name__ == "__main__":

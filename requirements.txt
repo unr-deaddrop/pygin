@@ -2,6 +2,12 @@
 deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.0.5
 dddb @ git+https://github.com/unr-deaddrop/dddb@e8d36b4
 
+# Empyrean code.
+psutil==5.9.8
+requests==2.31.0
+types-psutil==5.9.5.20240316
+types-requests==2.31.0.20240311
+
 # As part of exposed dddb functionality. Not directly used by Pygin itself.
 selenium==4.18.1
 
@@ -17,7 +23,9 @@ supervisor==4.2.5
 
 # Windows only. Recent versions of Celery are not directly supported on Windows.
 # https://stackoverflow.com/questions/45744992/celery-raises-valueerror-not-enough-values-to-unpack
-eventlet==0.35.2
+eventlet==0.35.2; sys_platform == 'win32'
+wmi==1.5.1; sys_platform == 'win32'
+pywin32==306; sys_platform == 'win32'
 
 # Linting
 black==24.1.1

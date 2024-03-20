@@ -11,6 +11,10 @@
     "agent_config": {
         // UUID representing the agent's ID as assigned by the server.
         "AGENT_ID": "00000000-0000-0000-0000-000000000000",
+        // Whether to drop messages that are not intended for this agent, as 
+        // determined by a destination ID not matching that of this agent.
+        // This currently does not account for agent forwarding.
+        "DROP_MISDIRECTED_MESSAGES": false,
         // The time in seconds that the control unit (main.py) should sleep for
         // between each loop.
 

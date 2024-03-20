@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Type, Any, ClassVar
 import logging
 import time
+import sys
 
 from pydantic import Field
 
@@ -83,6 +84,14 @@ class dddbCraigslistProtocol(ProtocolBase):
     @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:
         local_cfg: dddbCraigslistConfig = dddbCraigslistConfig.model_validate(args)
+
+        # Soft warnings
+        if not local_cfg.DDDB_CRAIGSLIST_HEADLESS and sys.platform != "win32":
+            logger.warning(
+                "Non-Windows environment detected. Selenium has not been"
+                " configured to run headless, which will cause it to fail in a"
+                " container!"
+            )
 
         # Demo code/throttling
         lockfile = local_cfg.DDDB_CRAIGSLIST_LOCKFILE.resolve()

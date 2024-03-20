@@ -4,7 +4,7 @@ This module contains all available tasking for Celery.
 
 from pathlib import Path
 from typing import Any
-import os
+import sys
 
 from celery import Celery, Task
 from celery.utils.log import get_task_logger
@@ -32,7 +32,7 @@ logger = get_task_logger(__name__)
 #   the encryption system or gain access to the machine the agent is running on
 #   (in which case there's basically nothing we can really do right now).
 REDIS_HOST = "redis"  # The name of the docker container
-if os.name == "nt":
+if sys.platform == "win32":
     REDIS_HOST = "127.0.0.1"  # redis-server.exe
 
 app = Celery(

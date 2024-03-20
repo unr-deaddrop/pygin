@@ -12,3 +12,5 @@ json5==0.9.14
 pyyaml==6.0.1
 pycryptodomex==3.20.0
 types-PyYAML==6.0.12.20240311
+types-requests==2.31.0.20240311
+types-psutil==5.9.5.20240316
