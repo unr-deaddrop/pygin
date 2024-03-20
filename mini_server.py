@@ -21,12 +21,12 @@ from deaddrop_meta.protocol_lib import (
     ProtocolConfig,
     get_protocols_as_dict,
     CommandRequestPayload,
-    CommandResponsePayload
+    CommandResponsePayload,
 )
 from deaddrop_meta.interface_lib import (
     MessagingObject,
     EndpointMessagingData,
-    ServerMessagingData
+    ServerMessagingData,
 )
 from src.agent_code.config import PyginConfig
 from src.protocols.plaintext_local import PlaintextLocalProtocol
@@ -84,10 +84,10 @@ if __name__ == "__main__":
 
     # Construct the command_request message
     msg = DeadDropMessage(
-        payload = CommandRequestPayload(
+        payload=CommandRequestPayload(
             message_type=DeadDropMessageType.CMD_REQUEST,
-            cmd_name = CMD_NAME,
-            cmd_args = CMD_ARGS
+            cmd_name=CMD_NAME,
+            cmd_args=CMD_ARGS,
         )
     )
     print(msg.model_dump_json())
@@ -96,42 +96,38 @@ if __name__ == "__main__":
     # of state management, so the protocol state dict is empty. The rest
     # of this is identical to the backend implementation.
     msg_obj = MessagingObject(
-        agent_config = cfg['agent_config'],
-        protocol_config=cfg['protocol_config'],
+        agent_config=cfg["agent_config"],
+        protocol_config=cfg["protocol_config"],
         protocol_state={},
         endpoint_model_data=EndpointMessagingData(
-            name=ENDPOINT_NAME,
-            hostname=ENDPOINT_HOSTNAME,
-            address=ENDPOINT_ADDRESS
+            name=ENDPOINT_NAME, hostname=ENDPOINT_HOSTNAME, address=ENDPOINT_ADDRESS
         ),
-        server_config = ServerMessagingData(
+        server_config=ServerMessagingData(
             action="send",
             listen_for_id=None,
             server_private_key=SERVER_PRIVATE_KEY,
-            preferred_protocol=None
-        )
+            preferred_protocol=None,
+        ),
     )
 
     # Invoke server-side entrypoint
     messaging.send_message(msg_obj, msg)
 
     recv_msg_obj = MessagingObject(
-        agent_config = cfg['agent_config'],
-        protocol_config=cfg['protocol_config'],
+        agent_config=cfg["agent_config"],
+        protocol_config=cfg["protocol_config"],
         protocol_state={},
         endpoint_model_data=EndpointMessagingData(
-            name=ENDPOINT_NAME,
-            hostname=ENDPOINT_HOSTNAME,
-            address=ENDPOINT_ADDRESS
+            name=ENDPOINT_NAME, hostname=ENDPOINT_HOSTNAME, address=ENDPOINT_ADDRESS
         ),
-        server_config = ServerMessagingData(
+        server_config=ServerMessagingData(
             action="receive",
             listen_for_id=msg.message_id,
             server_private_key=None,
-            preferred_protocol=None
-        )
+            preferred_protocol=None,
+        ),
     )
-    
+
     # Read back all messages being sent by the server, then select just the
     # response to our message (if multiple messages exist)
     while True:
@@ -147,11 +143,11 @@ if __name__ == "__main__":
         for recv_msg in recv_msgs:
             if not isinstance(recv_msg.payload, CommandResponsePayload):
                 continue
-            
+
             payload: CommandResponsePayload = recv_msg.payload
             if payload.request_id != msg.message_id:
                 continue
-            
+
             logger.info(f"Got response to original message: {recv_msg}")
 
             # Only if ping was used
@@ -162,5 +158,5 @@ if __name__ == "__main__":
                 logger.info(
                     f"The ping time was {end_time-start_time:.2f} seconds to receive, {return_time-start_time:.2f} seconds RTT"
                 )
-            
+
             exit()
