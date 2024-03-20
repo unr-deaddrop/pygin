@@ -84,6 +84,7 @@ if __name__ == "__main__":
 
     # Construct the command_request message
     msg = DeadDropMessage(
+        destination_id=cfg['agent_config']['AGENT_ID'],
         payload=CommandRequestPayload(
             message_type=DeadDropMessageType.CMD_REQUEST,
             cmd_name=CMD_NAME,
