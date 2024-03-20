@@ -5,10 +5,8 @@ yourself.
 """
 
 # region imports
-from dataclasses import dataclass
 from pathlib import Path
-from pprint import pprint
-from typing import Type, Any, Callable
+from typing import Any
 import datetime
 import json
 import logging
@@ -18,8 +16,6 @@ import sys
 from deaddrop_meta.protocol_lib import (
     DeadDropMessage,
     DeadDropMessageType,
-    ProtocolConfig,
-    get_protocols_as_dict,
     CommandRequestPayload,
     CommandResponsePayload,
 )
@@ -28,14 +24,9 @@ from deaddrop_meta.interface_lib import (
     EndpointMessagingData,
     ServerMessagingData,
 )
-from src.agent_code.config import PyginConfig
-from src.protocols.plaintext_local import PlaintextLocalProtocol
-from src.protocols.plaintext_tcp import PlaintextTCPProtocol
 
 # Make all protocols visible so that PyginConfig works correctly
-from src.protocols import *
-from src.protocols.plaintext_local import PlaintextLocalConfig
-from src.protocols.plaintext_tcp import PlaintextTCPConfig
+from src.protocols import *  # noqa: F401, F403
 
 # Make the server entrypoint visible
 from src.meta import exec_message as messaging
@@ -84,12 +75,12 @@ if __name__ == "__main__":
 
     # Construct the command_request message
     msg = DeadDropMessage(
-        destination_id=cfg['agent_config']['AGENT_ID'],
+        destination_id=cfg["agent_config"]["AGENT_ID"],
         payload=CommandRequestPayload(
             message_type=DeadDropMessageType.CMD_REQUEST,
             cmd_name=CMD_NAME,
             cmd_args=CMD_ARGS,
-        )
+        ),
     )
     print(msg.model_dump_json())
 

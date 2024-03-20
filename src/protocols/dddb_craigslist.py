@@ -4,6 +4,7 @@ Plaintext TCP-based implementation of the dddb messaging protocol.
 Used for debugging, doesn't have any dependencies.
 """
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Type, Any, ClassVar, Union
 import logging
@@ -32,7 +33,8 @@ REDIS_HOST = "redis"  # The name of the docker container
 if sys.platform == "win32":
     REDIS_HOST = "127.0.0.1"  # redis-server.exe
 
-# The key used to store a pickled dddbCraigslist instance.
+# The key used to store the last read time, as well as the cookies set in the
+# driver.
 CRAIGSLIST_INSTANCE_KEY: str = "_dddb_craigslist-instance"
 # The key used for the instance lock.
 CRAIGSLIST_INSTANCE_LOCK: str = "_dddb_craigslist-lock"
@@ -80,6 +82,62 @@ class dddbCraigslistConfig(ProtocolConfig):
 
         # Literally nothing needs to be changed
         return new_cfg
+
+
+@dataclass
+class CraigslistInstanceData:
+    """
+    Contains the information needed to reconstruct a full dddbCraigslist
+    instance without needing to re-invoke logins or pickle the entire
+    object (which is impossible).
+    """
+
+    cookies: list[dict[str, Any]]
+
+    email: str
+    password: str
+    last_time: float
+
+    @staticmethod
+    def from_pickle(data: bytes, local_cfg: dddbCraigslistConfig) -> dddbCraigslist:
+        """
+        Reconstruct and reinitialize a dddbCraigslist instance from raw bytes.
+        """
+        instance_data: "CraigslistInstanceData" = pickle.loads(data)
+
+        opts = FirefoxOptions()
+        if local_cfg.DDDB_CRAIGSLIST_HEADLESS:
+            opts.add_argument("--headless")
+
+        cl_obj = dddbCraigslist(
+            email=instance_data.email, password=instance_data.password, options=opts
+        )
+
+        # Manually override any other values - this has the function equivalence
+        # of a cl_obj.login() call, as well as advancing the state to the most
+        # recent cl_obj.get() call
+        cl_obj.last_time = instance_data.last_time
+
+        # Manually set cookies
+        cl_obj.driver.get("https://reno.craigslist.org")
+        for cookie in instance_data.cookies:
+            cl_obj.driver.add_cookie(cookie)
+
+        return cl_obj
+
+    @classmethod
+    def to_pickle(cls, cl_obj: dddbCraigslist) -> bytes:
+        """
+        Convert a dddbCraigslist instance to a pickleable object.
+        """
+        instance_obj = cls(
+            cookies=cl_obj.driver.get_cookies(),
+            email=cl_obj.email,
+            password=cl_obj.password,
+            last_time=cl_obj.last_time,
+        )
+
+        return pickle.dumps(instance_obj)
 
 
 class dddbCraigslistProtocol(ProtocolBase):
@@ -223,8 +281,20 @@ class dddbCraigslistProtocol(ProtocolBase):
         local_cfg: dddbCraigslistConfig,
     ) -> Union[dddbCraigslist, None]:
         """
-        Attempt to deserialize a stored Craigslist pickle from the database, or
+        Attempt to deserialize a stored Craigslist instance from the database, or
         create (but do not save) a new instance.
+
+        Note that it is impossible to pickle an entire instance directly. However,
+        it *is* possible to save the cookies and the time that Craigslist was last
+        queried according to the Craigslist instance. A full Craigslist instance
+        can therefore be manually constructed by navigating to Craigslist (required
+        for `addCookie()` to work), re-adding stored cookies (if any), and then
+        re-setting the time. This effectively places the entire instance at the
+        same position as an older instance, even though we can't pickle the entire
+        object.
+
+        The documentation below assumes that a full instance could be pickled. It
+        cannot, but the majority of the logic and reasoning still holds.y
 
         When no Redis instance is available, this always generates and
         returns a new instance (unconditionally). When a Redis instance
@@ -260,7 +330,9 @@ class dddbCraigslistProtocol(ProtocolBase):
 
             pickle_data = redis_con.get(CRAIGSLIST_INSTANCE_KEY)
             if pickle_data is not None:
-                cl_obj: dddbCraigslist = pickle.loads(pickle_data)
+                cl_obj: dddbCraigslist = CraigslistInstanceData.from_pickle(
+                    pickle_data, local_cfg
+                )
                 logger.info("Pickled object found, returning")
                 return cl_obj
 
@@ -304,4 +376,4 @@ class dddbCraigslistProtocol(ProtocolBase):
         # it is assumed that the session never expires. This is likely untrue
         # in practice over a long time, but I can't imagine a case where this
         # ever becomes necessary for our use.
-        redis_con.set(CRAIGSLIST_INSTANCE_KEY, pickle.dumps(cl_obj))
+        redis_con.set(CRAIGSLIST_INSTANCE_KEY, CraigslistInstanceData.to_pickle(cl_obj))
