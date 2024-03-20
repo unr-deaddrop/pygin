@@ -82,9 +82,7 @@ class EmpyreanResult(BaseModel):
 
 class EmpyreanCommand(CommandBase):
     """
-    Invoke Emyprean at the Pygin level (i.e. as Pygin code).
-
-    Windows-only.
+    Execute Empyrean as Pygin (Python-native) code. Windows-only.
     """
 
     name: str = "empyrean"

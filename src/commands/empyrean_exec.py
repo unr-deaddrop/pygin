@@ -73,9 +73,7 @@ class EmpyreanExecResult(BaseModel):
 
 class EmpyreanExecCommand(CommandBase):
     """
-    Invoke Emyprean at the Pygin level (i.e. as Pygin code).
-
-    Windows-only. This command will return empty outputs
+    Execute Empyrean as a standalone PyInstaller binary. Windows-only.
     """
 
     name: str = "empyrean_exec"
