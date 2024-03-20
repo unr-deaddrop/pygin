@@ -49,13 +49,12 @@ class PyginConfig(BaseModel):
             "_preprocess_create_id": True,
         },
     )
-    DROP_MISDIRECTED_MESSAGES : bool = Field(
+    DROP_MISDIRECTED_MESSAGES: bool = Field(
         default=False,
         json_schema_extra={
             "description": "Whether to drop messages with a destination ID not for this agent."
         },
     )
-    
 
     CONTROL_UNIT_THROTTLE_TIME: float = Field(
         default=2,

@@ -84,11 +84,11 @@ class dddbCraigslistProtocol(ProtocolBase):
     @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:
         local_cfg: dddbCraigslistConfig = dddbCraigslistConfig.model_validate(args)
-        
+
         # Soft warnings
         if not local_cfg.DDDB_CRAIGSLIST_HEADLESS and sys.platform != "win32":
             logger.warning(
-                "Non-Windows environment detected. Selenium has not been" 
+                "Non-Windows environment detected. Selenium has not been"
                 " configured to run headless, which will cause it to fail in a"
                 " container!"
             )

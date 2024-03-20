@@ -384,14 +384,14 @@ class PlaintextTCPProtocol(ProtocolBase):
                     f"{local_cfg.PLAINTEXT_TCP_INITIATE_RETRY_COUNT} attempts expired, returning {len(result)} msgs"
                 )
                 break
-            
+
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 try:
                     # Note that SO_REUSEPORT is a thing as well, but I haven't seen
                     # as many examples using it so I'm avoiding it
                     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     s.settimeout(local_cfg.PLAINTEXT_TCP_LISTEN_TIMEOUT)
-                    
+
                     s.connect((host, port))
                     logger.debug(f"Connected to {host}:{port}")
 

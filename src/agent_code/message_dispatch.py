@@ -114,7 +114,9 @@ def retrieve_new_messages(
                 )
                 continue
             else:
-                logger.warning(f"{msg.message_id} was intended for {msg.destination_id}, but is being read anyways")
+                logger.warning(
+                    f"{msg.message_id} was intended for {msg.destination_id}, but is being read anyways"
+                )
         result_2.append(msg)
 
     # Return the remaining set of messages.
