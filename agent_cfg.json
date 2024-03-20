@@ -9,11 +9,11 @@
     "SERVER_PUBLIC_KEY": null,
     "SERVER_PRIVATE_KEY": null,
     "INCOMING_PROTOCOLS": [
-      "dddb_craigslist"
+      "plaintext_tcp"
     ],
-    "HEARTBEAT_PROTOCOL": "dddb_craigslist",
-    "LOGGING_PROTOCOL": "dddb_craigslist",
-    "SENDING_PROTOCOL": "dddb_craigslist",
+    "HEARTBEAT_PROTOCOL": "plaintext_tcp",
+    "LOGGING_PROTOCOL": "plaintext_tcp",
+    "SENDING_PROTOCOL": "plaintext_tcp",
     "LOGGING_INTERVAL": 60,
     "HEARTBEAT_INTERVAL": 60,
     "REDIS_MESSAGES_SEEN_KEY": "_agent_meta-seen-msgs",
@@ -28,7 +28,7 @@
   "protocol_config": {
     "plaintext_tcp": {
       "PLAINTEXT_TCP_CHECKIN_FREQUENCY": 10,
-      "PLAINTEXT_TCP_LISTEN_TIMEOUT": 8,
+      "PLAINTEXT_TCP_LISTEN_TIMEOUT": 10,
       "PLAINTEXT_TCP_LISTEN_BIND_HOST": "0.0.0.0",
       "PLAINTEXT_TCP_LISTEN_RECV_PORT": 12345,
       "PLAINTEXT_TCP_LISTEN_SEND_PORT": 12346,

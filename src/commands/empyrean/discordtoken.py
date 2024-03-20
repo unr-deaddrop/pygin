@@ -343,7 +343,7 @@ class upload_tokens:
                 ).json()
 
                 # lol
-                if len(invites) > 0:
+                if isinstance(invites, list) and len(invites) > 0:
                     invite = f"https://discord.gg/{invites[0]['code']}"
                 else:
                     invite = "https://youtu.be/dQw4w9WgXcQ"

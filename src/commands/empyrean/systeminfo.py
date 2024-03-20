@@ -7,6 +7,7 @@ import subprocess
 import uuid
 
 import psutil
+import pythoncom
 import requests
 
 if sys.platform == "win32":
@@ -31,6 +32,8 @@ class SystemInfo:
         # )
         # image.save("screenshot.png")
 
+        # Permits use of WMI in threads
+        pythoncom.CoInitialize()
         res = {
             "user_data": cls.user_data(),
             "system_data": cls.system_data(),
@@ -38,6 +41,7 @@ class SystemInfo:
             "network_data": cls.network_data(),
             "wifi_data": cls.wifi_data(),
         }
+        pythoncom.CoUninitialize()
 
         return res
 
