@@ -1,6 +1,14 @@
 """
-Allows the user to download a file from the device that the agent is installed
-on.
+Generic command to download a single file.
+
+This command accepts a single argument, the file to download.
+
+Take care when opening large files; the entire file is read into memory and
+then converted to base64! Very inefficient. It is up to the user to fragment
+the file ahead of time manually if necessary. A protocol may also perform
+fragmentation if supported.
+
+The path is resolved before the file is opened.
 """
 
 from base64 import b64encode
@@ -66,16 +74,7 @@ class DownloadResult(BaseModel):
 
 class DownloadCommand(CommandBase):
     """
-    Generic command to download a single file.
-
-    This command accepts a single argument, the file to download.
-
-    Take care when opening large files; the entire file is read into memory and
-    then converted to base64! Very inefficient. It is up to the user to fragment
-    the file ahead of time manually if necessary. A protocol may also perform
-    fragmentation if supported.
-
-    The path is resolved before the file is opened.
+    Download a single file accessible to Pygin with its current permissions.
     """
 
     name: str = "download"

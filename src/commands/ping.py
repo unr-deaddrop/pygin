@@ -1,5 +1,21 @@
 """
-Implements the ping command.
+Simple test command used to evaluate connectivity.
+
+Ping accepts two optional arguments:
+- A delay before sending the response, in seconds (0 by default)
+- A message to return with the response (nothing by default)
+
+The structure of the payload is as follows:
+```json
+{
+    // The time at which the ping was issued.
+    "ping_timestamp": 000000000
+    // The time at which the ping was received.
+    "pong_timestamp": 000000000
+    // The optional message included with the original ping.
+    "message": str
+}
+```
 """
 
 from typing import Any, Optional, Type
@@ -62,23 +78,7 @@ class PingResult(BaseModel):
 
 class PingCommand(CommandBase):
     """
-    Simple test command used to evaluate connectivity.
-
-    Ping accepts two optional arguments:
-    - A delay before sending the response, in seconds (0 by default)
-    - A message to return with the response (nothing by default)
-
-    The structure of the payload is as follows:
-    ```json
-    {
-        // The time at which the ping was issued.
-        "ping_timestamp": 000000000
-        // The time at which the ping was received.
-        "pong_timestamp": 000000000
-        // The optional message included with the original ping.
-        "message": str
-    }
-    ```
+    Test connectivity and round trip time with the agent.
     """
 
     name: str = "ping"

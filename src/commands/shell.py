@@ -1,6 +1,32 @@
 """
-Command exposing generic shell commands. Allows the user to execute a single
-non-interactive command.
+Shell accepts three arguments:
+    - The command to execute
+    - Whether to use a shell as the execution environment (i.e. shell=True)
+    - The timeout for the command
+
+    The structure of the payload is as follows:
+    ```json
+    {
+        // Whether or not subprocess.run() completed without raising an
+        // exception. For example, attempting to execute a binary that does
+        // not exist when shell=False will raise FileNotFoundError.
+        "success": bool,
+        // The exception raised if success=False. Empty string if no exception
+        // was raised.
+        "exception": str,
+        // The stdout of the command. Empty string if an exception was raised.
+        "stdout": str,
+        // The stderr of the command. Empty string if an exception was raised.
+        "stderr": str,
+        // The return code. -1 if an exception was raised.
+        "returncode": int,
+        // Whether or not shell=True was used.
+        "shell": bool,
+        // The start and end time of the command.
+        "start_time": float
+        "finish_time": float
+    }
+    ```
 """
 
 from typing import Any, Optional, Type
@@ -83,36 +109,7 @@ class ShellResult(BaseModel):
 
 class ShellCommand(CommandBase):
     """
-    Generic command to execute arbitrary shell commands.
-
-    Shell accepts three arguments:
-    - The command to execute
-    - Whether to use a shell as the execution environment (i.e. shell=True)
-    - The timeout for the command
-
-    The structure of the payload is as follows:
-    ```json
-    {
-        // Whether or not subprocess.run() completed without raising an
-        // exception. For example, attempting to execute a binary that does
-        // not exist when shell=False will raise FileNotFoundError.
-        "success": bool,
-        // The exception raised if success=False. Empty string if no exception
-        // was raised.
-        "exception": str,
-        // The stdout of the command. Empty string if an exception was raised.
-        "stdout": str,
-        // The stderr of the command. Empty string if an exception was raised.
-        "stderr": str,
-        // The return code. -1 if an exception was raised.
-        "returncode": int,
-        // Whether or not shell=True was used.
-        "shell": bool,
-        // The start and end time of the command.
-        "start_time": float
-        "finish_time": float
-    }
-    ```
+    Execute a non-interactive shell command.
     """
 
     name: str = "shell"
