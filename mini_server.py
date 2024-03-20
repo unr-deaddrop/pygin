@@ -152,11 +152,11 @@ if __name__ == "__main__":
 
             # Only if ping was used
             if CMD_NAME == "ping":
-                start_time = float(payload.result["ping_timestamp"])
-                end_time = float(payload.result["pong_timestamp"])
+                start_time: datetime.datetime = payload.result["ping_timestamp"]
+                end_time: datetime.datetime = payload.result["pong_timestamp"]
                 return_time = datetime.datetime.now(datetime.UTC)
                 logger.info(
-                    f"The ping time was {end_time-start_time:.2f} seconds to receive, {return_time-start_time:.2f} seconds RTT"
+                    f"The ping time was {(end_time-start_time).total_seconds():.2f} seconds to receive, {(return_time-start_time).total_seconds():.2f} seconds RTT"
                 )
 
             exit()
