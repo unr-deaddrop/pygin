@@ -378,14 +378,20 @@ class PlaintextTCPProtocol(ProtocolBase):
 
         attempts = local_cfg.PLAINTEXT_TCP_INITIATE_RETRY_COUNT
 
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            # Note that SO_REUSEPORT is a thing as well, but I haven't seen
-            # as many examples using it so I'm avoiding it
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.settimeout(local_cfg.PLAINTEXT_TCP_LISTEN_TIMEOUT)
-
-            while True:
+        while True:
+            if attempts <= 0:
+                logger.warning(
+                    f"{local_cfg.PLAINTEXT_TCP_INITIATE_RETRY_COUNT} attempts expired, returning {len(result)} msgs"
+                )
+                break
+            
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 try:
+                    # Note that SO_REUSEPORT is a thing as well, but I haven't seen
+                    # as many examples using it so I'm avoiding it
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    s.settimeout(local_cfg.PLAINTEXT_TCP_LISTEN_TIMEOUT)
+                    
                     s.connect((host, port))
                     logger.debug(f"Connected to {host}:{port}")
 
@@ -399,18 +405,15 @@ class PlaintextTCPProtocol(ProtocolBase):
                 except (TimeoutError, OSError):  # noqa: B014
                     # TimeoutError is a subclass of OSError, but I leave it here
                     # for readability
-                    if attempts <= 0:
-                        logger.warning(
-                            f"{local_cfg.PLAINTEXT_TCP_INITIATE_RETRY_COUNT} attempts expired, returning {len(result)} msgs"
-                        )
-                        break
-
                     attempts -= 1
                     logger.info(f"Did not get any new messages, retrying ({attempts=})")
                     time.sleep(1)
                     continue
 
                 if not data:
+                    attempts -= 1
+                    logger.info(f"Did not get any new messages, retrying ({attempts=})")
+                    time.sleep(1)
                     continue
 
                 # Assume utf-8 encoding and JSON, attempt to convert to message

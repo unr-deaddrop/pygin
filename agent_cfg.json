@@ -1,6 +1,7 @@
 {
   "agent_config": {
     "AGENT_ID": "00000000-0000-0000-0000-000000000020",
+    "DROP_MISDIRECTED_MESSAGES": true,
     "CONTROL_UNIT_THROTTLE_TIME": 2.0,
     "AGENT_PRIVATE_KEY": null,
     "AGENT_PUBLIC_KEY": null,
@@ -52,9 +53,9 @@
     "dddb_craigslist": {
       "DDDB_CRAIGSLIST_CHECKIN_FREQUENCY": 120,
       "DDDB_CRAIGSLIST_EMAIL": "unrdeaddrop@gmail.com",
-      "DDDB_CRAIGSLIST_PASSWORD": "7g2Eu+up*$]ww8L",
+      "DDDB_CRAIGSLIST_PASSWORD": "",
       "DDDB_CRAIGSLIST_LOCKFILE": "./craigslist_lockfile",
-      "DDDB_CRAIGSLIST_HEADLESS": false
+      "DDDB_CRAIGSLIST_HEADLESS": true
     }
   }
 }

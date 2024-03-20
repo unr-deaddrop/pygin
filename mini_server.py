@@ -51,9 +51,13 @@ logger = logging.getLogger()
 #     "command": "cat Makefile",
 #     "use_shell": True,
 # }
-CMD_NAME: str = "download"
+# CMD_NAME: str = "download"
+# CMD_ARGS: dict[str, Any] = {
+#     "filepath": "Makefile",
+# }
+CMD_NAME: str = "empyrean_exec"
 CMD_ARGS: dict[str, Any] = {
-    "filepath": "Makefile",
+    
 }
 
 

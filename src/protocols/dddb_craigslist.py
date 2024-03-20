@@ -88,7 +88,7 @@ class dddbCraigslistProtocol(ProtocolBase):
         # Soft warnings
         if not local_cfg.DDDB_CRAIGSLIST_HEADLESS and sys.platform != "win32":
             logger.warning(
-                "Non-windows environment detected. Selenium has not been" 
+                "Non-Windows environment detected. Selenium has not been" 
                 " configured to run headless, which will cause it to fail in a"
                 " container!"
             )

@@ -108,10 +108,13 @@ def retrieve_new_messages(
     result_2 = []
     for msg in result:
         if msg.destination_id != cfg.AGENT_ID:
-            logger.warning(
-                f"Dropping message {msg.message_id} because it is intended for {msg.destination_id} (and I am {cfg.AGENT_ID})"
-            )
-            continue
+            if cfg.DROP_MISDIRECTED_MESSAGES:
+                logger.warning(
+                    f"Dropping message {msg.message_id} because it is intended for {msg.destination_id} (and I am {cfg.AGENT_ID})"
+                )
+                continue
+            else:
+                logger.warning(f"{msg.message_id} was intended for {msg.destination_id}, but is being read anyways")
         result_2.append(msg)
 
     # Return the remaining set of messages.
