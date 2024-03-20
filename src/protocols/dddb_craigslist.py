@@ -5,10 +5,11 @@ Used for debugging, doesn't have any dependencies.
 """
 
 from pathlib import Path
-from typing import Type, Any, ClassVar
+from typing import Type, Any, ClassVar, Union
 import logging
-import time
+import pickle
 import sys
+import time
 
 from pydantic import Field
 
@@ -22,8 +23,23 @@ from deaddrop_meta.protocol_lib import (
 from deaddrop_meta.interface_lib import EndpointMessagingData
 
 from selenium.webdriver import FirefoxOptions
+import redis
+import pottery
 
 logger = logging.getLogger(__name__)
+
+REDIS_HOST = "redis"  # The name of the docker container
+if sys.platform == "win32":
+    REDIS_HOST = "127.0.0.1"  # redis-server.exe
+
+# The key used to store a pickled dddbCraigslist instance.
+CRAIGSLIST_INSTANCE_KEY: str = "_dddb_craigslist-instance"
+# The key used for the instance lock.
+CRAIGSLIST_INSTANCE_LOCK: str = "_dddb_craigslist-lock"
+# The timeout on the lock before it is auto-released. In general, this should be
+# greater than or equal to the task auto-timeout. That said, the context manager
+# should automatically take the lock down where applicable.
+CRAIGSLIST_LOCK_TIMEOUT: int = 300
 
 
 class dddbCraigslistConfig(ProtocolConfig):
@@ -70,10 +86,19 @@ class dddbCraigslistProtocol(ProtocolBase):
     """
     Implements the Craigslist protocol for Pygin.
 
-    Note that Craigslist does its own state management, but this cannot be
-    preserved internally unless a Redis database is made available. This
-    *attempts* to store the last time in a Redis database if available,
-    but no guarantee is made.
+    When a Redis instance is available, this attempts to retrieve a pickled
+    dddbCraigslist object.
+
+    While pickling is obviously unsafe, it is reasonable to assume that somebody
+    with the power to write unsafed pickled objects to the Redis database (most
+    likely, having access to the machine themselves) could perform destructive
+    actions to begin with, with or without the help of the agent. The risk here
+    is that a message could be sent on behalf of the agent (already possible through
+    other means), or that the agent could be used to run arbitrary code (again,
+    already possible through simpler means).
+
+    Unless the Redis database were exposed to the world - which it shouldn't be -
+    I think the risk of this operation is outside of our scope.
     """
 
     name: str = "dddb_craigslist"
@@ -101,48 +126,76 @@ class dddbCraigslistProtocol(ProtocolBase):
             logger.info(f"Lockfile {lockfile} present, waiting before sending")
             time.sleep(2)
 
-        opts = FirefoxOptions()
-        if local_cfg.DDDB_CRAIGSLIST_HEADLESS:
-            opts.add_argument("--headless")
+        # Using the context manager in a best effort to guarantee release.
+        try:
+            redis_con = redis.Redis(host=REDIS_HOST, port=6379)
+            logger.info("Redis connection available, using lock and trying unpickle")
+        except redis.ConnectionError:
+            logger.info("No redis connection available, lock will not be used")
 
-        data = msg.model_dump_json().encode("utf-8")
+        # If Redis is available, use a lock and use that instance
+        if redis_con:
+            logger.debug("Attempting to acquire lock (post)")
+            with pottery.Redlock(
+                key=CRAIGSLIST_INSTANCE_LOCK, masters={redis_con}, auto_release_time=300
+            ):
+                logger.debug("Got lock (post)")
+                cl_obj = cls.get_stored_instance(local_cfg)
+                result = cls.perform_post(cl_obj, msg)
+                cls.save_instance(cl_obj)
+                return result
 
-        cl_obj = dddbCraigslist(
-            email=local_cfg.DDDB_CRAIGSLIST_EMAIL,
-            password=local_cfg.DDDB_CRAIGSLIST_PASSWORD,
-            options=opts,
-        )
-        cl_obj.login()
-        cl_obj.post(data)
-        cl_obj.close()
-
-        # Nothing to return
-        return {}
+        # Otherwise, just operate normally
+        cl_obj = cls.get_stored_instance(local_cfg)
+        return cls.perform_post(cl_obj, msg)
 
     @classmethod
     def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
         local_cfg: dddbCraigslistConfig = dddbCraigslistConfig.model_validate(args)
+
+        # Soft warnings
+        if not local_cfg.DDDB_CRAIGSLIST_HEADLESS and sys.platform != "win32":
+            logger.warning(
+                "Non-Windows environment detected. Selenium has not been"
+                " configured to run headless, which will cause it to fail in a"
+                " container!"
+            )
 
         # Demo code/throttling
         lockfile = local_cfg.DDDB_CRAIGSLIST_LOCKFILE.resolve()
         while True:
             if not lockfile.exists():
                 break
-            logger.info(f"Lockfile {lockfile} present, waiting before receiving")
+            logger.info(f"Lockfile {lockfile} present, waiting before sending")
             time.sleep(2)
 
-        opts = FirefoxOptions()
-        if local_cfg.DDDB_CRAIGSLIST_HEADLESS:
-            opts.add_argument("--headless")
+        # Using the context manager in a best effort to guarantee release.
+        try:
+            redis_con = redis.Redis(host=REDIS_HOST, port=6379)
+            logger.info("Redis connection available, using lock and trying unpickle")
+        except redis.ConnectionError:
+            logger.info("No redis connection available, lock will not be used")
 
-        cl_obj = dddbCraigslist(
-            email=local_cfg.DDDB_CRAIGSLIST_EMAIL,
-            password=local_cfg.DDDB_CRAIGSLIST_PASSWORD,
-            options=opts,
-        )
-        cl_obj.login()
+        # If Redis is available, use a lock and use that instance
+        if redis_con:
+            logger.debug("Attempting to acquire lock (get)")
+            with pottery.Redlock(
+                key=CRAIGSLIST_INSTANCE_LOCK, masters={redis_con}, auto_release_time=300
+            ):
+                logger.debug("Got lock (get)")
+                cl_obj = cls.get_stored_instance(local_cfg)
+                result = cls.perform_get(cl_obj)
+                cls.save_instance(cl_obj)
+                return result
+
+        # Otherwise, just operate normally
+        cl_obj = cls.get_stored_instance(local_cfg)
+        return cls.perform_get(cl_obj)
+
+    @staticmethod
+    def perform_get(cl_obj: dddbCraigslist) -> list[DeadDropMessage]:
+        # It's assumed a login has already been performed
         raw_msgs = cl_obj.get()
-        cl_obj.close()
 
         res = []
         for raw_msg in raw_msgs:
@@ -150,8 +203,105 @@ class dddbCraigslistProtocol(ProtocolBase):
                 msg = DeadDropMessage.model_validate_json(raw_msg)
                 res.append(msg)
             except Exception:
-                # Could be a fragment of an older message, fine to ignore.
+                # Could be a fragment of an older message or something completely
+                # random, fine to ignore.
                 logger.error(f"Failed to decode data to DeadDropMessage: {raw_msg}")
                 continue
 
         return res
+
+    @staticmethod
+    def perform_post(cl_obj: dddbCraigslist, msg: DeadDropMessage) -> dict[str, Any]:
+        # It's assumed a login has already been performed
+        data = msg.model_dump_json().encode("utf-8")
+        cl_obj.post(data)
+
+        return {}
+
+    @staticmethod
+    def get_stored_instance(
+        local_cfg: dddbCraigslistConfig,
+    ) -> Union[dddbCraigslist, None]:
+        """
+        Attempt to deserialize a stored Craigslist pickle from the database, or
+        create (but do not save) a new instance.
+
+        When no Redis instance is available, this always generates and
+        returns a new instance (unconditionally). When a Redis instance
+        is available:
+        - If no dddbCraigslist object is present at the expected key, then
+          one is created and returned.
+        - If one is present, it is *copied* out and deserialized.
+
+        One of the problems we identified is that the volume of login operations
+        proved to not only be a performance issue, but also a general issue
+        in that Craigslist would eventually force a one-time login link. One
+        way to solve this is to reuse the state across multiple workers.
+        Simultaneously, restricting use of the driver to only one client at a
+        time effectively serves as a form of throttling for this protocol
+        as a whole, further reducing the likelihood of the agent being caught
+        for spam (and preventing resource exhaustion).
+
+        This has "soft" concurrency safety using the Redlock algorithm (yes,
+        overkill) as implemented by Pottery. In short, if a Redis connection
+        can be made, then it is assumed that one of the following three states
+        is true:
+        - A Selenium driver has *never* been instantiated
+        - A Selenium driver has been instantiated and is in use
+        - A Selenium driver has been instantiated and is not in use
+
+        Case 1 transitions to case 2 after the Selenium driver is created.
+
+        This function only attempts to retrieve a stored instance. It should
+        be protected by a lock.
+        """
+        try:
+            redis_con = redis.Redis(host=REDIS_HOST, port=6379)
+
+            pickle_data = redis_con.get(CRAIGSLIST_INSTANCE_KEY)
+            if pickle_data is not None:
+                cl_obj: dddbCraigslist = pickle.loads(pickle_data)
+                logger.info("Pickled object found, returning")
+                return cl_obj
+
+            logger.info("No pickled object found, creating new object")
+        except redis.ConnectionError:
+            logger.info("Could not connect to Redis, creating new object")
+
+        # Initialize the object
+        opts = FirefoxOptions()
+        if local_cfg.DDDB_CRAIGSLIST_HEADLESS:
+            opts.add_argument("--headless")
+
+        new_obj = dddbCraigslist(
+            email=local_cfg.DDDB_CRAIGSLIST_EMAIL,
+            password=local_cfg.DDDB_CRAIGSLIST_PASSWORD,
+            options=opts,
+        )
+        # Always log in
+        new_obj.login()
+        return new_obj
+
+    @staticmethod
+    def save_instance(cl_obj: dddbCraigslist) -> None:
+        """
+        Pickle and save a dddbCraigslist instance to the Redis database.
+
+        When no Redis database is available, this is a no-op.
+
+        This should be protected by the same lock as get_stored_instance()
+        (that is, a dddbCraigslist operation is atomic).
+        """
+        try:
+            redis_con = redis.Redis(host=REDIS_HOST, port=6379)
+        except redis.ConnectionError:
+            logger.info("Could not connect to Redis, no instance saving performed")
+            return
+
+        logger.info(f"Pickling and saving {cl_obj} to {CRAIGSLIST_INSTANCE_KEY}")
+
+        # Note that the key is set indefinitely. It is not "expired", i.e.
+        # it is assumed that the session never expires. This is likely untrue
+        # in practice over a long time, but I can't imagine a case where this
+        # ever becomes necessary for our use.
+        redis_con.set(CRAIGSLIST_INSTANCE_KEY, pickle.dumps(cl_obj))

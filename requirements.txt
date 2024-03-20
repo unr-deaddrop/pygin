@@ -18,7 +18,8 @@ pycryptodomex==3.20.0 # import as Cryptodome, *not* Crypto
 pydantic==2.6.1
 python-dotenv==1.0.0
 pyyaml==6.0.1
-redis==5.0.1
+pottery==3.0.0
+redis==4.6.0
 supervisor==4.2.5
 
 # Windows only. Recent versions of Celery are not directly supported on Windows.
