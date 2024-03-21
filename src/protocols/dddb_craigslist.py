@@ -184,11 +184,14 @@ class dddbCraigslistProtocol(ProtocolBase):
             logger.info(f"Lockfile {lockfile} present, waiting before sending")
             time.sleep(2)
 
+        redis_con = None
         # Using the context manager in a best effort to guarantee release.
         try:
             redis_con = redis.Redis(host=REDIS_HOST, port=6379)
+            redis_con.ping()
             logger.info("Redis connection available, using lock and trying unpickle")
         except redis.ConnectionError:
+            redis_con = None
             logger.info("No redis connection available, lock will not be used")
 
         # If Redis is available, use a lock and use that instance
@@ -228,10 +231,13 @@ class dddbCraigslistProtocol(ProtocolBase):
             time.sleep(2)
 
         # Using the context manager in a best effort to guarantee release.
+        redis_con = None
         try:
             redis_con = redis.Redis(host=REDIS_HOST, port=6379)
+            redis_con.ping()
             logger.info("Redis connection available, using lock and trying unpickle")
         except redis.ConnectionError:
+            redis_con = None
             logger.info("No redis connection available, lock will not be used")
 
         # If Redis is available, use a lock and use that instance
@@ -340,6 +346,8 @@ class dddbCraigslistProtocol(ProtocolBase):
         except redis.ConnectionError:
             logger.info("Could not connect to Redis, creating new object")
 
+        logger.debug("Constructing new object from provided arguments")
+
         # Initialize the object
         opts = FirefoxOptions()
         if local_cfg.DDDB_CRAIGSLIST_HEADLESS:
@@ -350,7 +358,9 @@ class dddbCraigslistProtocol(ProtocolBase):
             password=local_cfg.DDDB_CRAIGSLIST_PASSWORD,
             options=opts,
         )
-        # Always log in
+        
+        # Always log in for new instances
+        logger.debug("Logging in")
         new_obj.login()
         return new_obj
 

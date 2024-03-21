@@ -2,7 +2,7 @@
 deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.0.5
 
 # dddb - requires Firefox to correctly function via Selenium
-dddb @ git+https://github.com/unr-deaddrop/dddb@e8d36b4
+dddb @ git+https://github.com/unr-deaddrop/dddb@47bd591
 
 # Functional (note that these may be pegged, since they're not linked to
 # the server at all)

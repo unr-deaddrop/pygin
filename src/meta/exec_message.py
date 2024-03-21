@@ -169,19 +169,27 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
             for msg in new_msgs:
                 if isinstance(msg.payload, CommandResponsePayload):
                     responses.append(msg)
-                if target_id not in [response.payload.request_id for response in responses]:  # type: ignore[union-attr]
-                    # If we're looking for a specific message, continue retrying until we
-                    # see it, but *don't* drop any messages we do see in the meantime.
-                    # Celery will time us out if this takes too long, anyways.
-                    logger.info("Did not see desired response ID, retrying after 15s")
-
-                    # In the case of dddb, this reduces load. For everything else,
-                    # this makes things just a little bit slower.
-                    time.sleep(15)
-                    continue
                 else:
-                    logger.info(f"{target_id} seen, breaking and returning")
-                    return all_msgs
+                    logger.debug(f"The following message was discarded because it is not a response: {msg}")
+
+            request_ids = [response.payload.request_id for response in responses]
+            logger.debug(f"Got the following request IDs (looking for {target_id}): {request_ids}")
+
+            results = [target_id == rid for rid in request_ids]
+            logger.debug(results)
+            if target_id not in [response.payload.request_id for response in responses]:  # type: ignore[union-attr]
+                # If we're looking for a specific message, continue retrying until we
+                # see it, but *don't* drop any messages we do see in the meantime.
+                # Celery will time us out if this takes too long, anyways.
+                logger.info(f"Did not see desired request ID in any responses ({target_id}), retrying after 15s")
+
+                # In the case of dddb, this reduces load. For everything else,
+                # this makes things just a little bit slower.
+                time.sleep(15)
+                continue
+            else:
+                logger.info(f"{target_id} seen, breaking and returning")
+                return all_msgs
         else:
             return all_msgs
 
