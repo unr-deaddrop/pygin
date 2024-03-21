@@ -1,6 +1,6 @@
 # Download internal libraries.
 deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.0.5
-dddb @ git+https://github.com/unr-deaddrop/dddb@e8d36b4
+dddb @ git+https://github.com/unr-deaddrop/dddb@47bd591
 
 # Empyrean code.
 psutil==5.9.8
@@ -18,7 +18,8 @@ pycryptodomex==3.20.0 # import as Cryptodome, *not* Crypto
 pydantic==2.6.1
 python-dotenv==1.0.0
 pyyaml==6.0.1
-redis==5.0.1
+pottery==3.0.0
+redis==4.6.0
 supervisor==4.2.5
 
 # Windows only. Recent versions of Celery are not directly supported on Windows.
