@@ -358,7 +358,7 @@ class dddbCraigslistProtocol(ProtocolBase):
             password=local_cfg.DDDB_CRAIGSLIST_PASSWORD,
             options=opts,
         )
-        
+
         # Always log in for new instances
         logger.debug("Logging in")
         new_obj.login()

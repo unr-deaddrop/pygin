@@ -170,10 +170,14 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
                 if isinstance(msg.payload, CommandResponsePayload):
                     responses.append(msg)
                 else:
-                    logger.debug(f"The following message was discarded because it is not a response: {msg}")
+                    logger.debug(
+                        f"The following message was discarded because it is not a response: {msg}"
+                    )
 
             request_ids = [response.payload.request_id for response in responses]
-            logger.debug(f"Got the following request IDs (looking for {target_id}): {request_ids}")
+            logger.debug(
+                f"Got the following request IDs (looking for {target_id}): {request_ids}"
+            )
 
             results = [target_id == rid for rid in request_ids]
             logger.debug(results)
@@ -181,7 +185,9 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
                 # If we're looking for a specific message, continue retrying until we
                 # see it, but *don't* drop any messages we do see in the meantime.
                 # Celery will time us out if this takes too long, anyways.
-                logger.info(f"Did not see desired request ID in any responses ({target_id}), retrying after 15s")
+                logger.info(
+                    f"Did not see desired request ID in any responses ({target_id}), retrying after 15s"
+                )
 
                 # In the case of dddb, this reduces load. For everything else,
                 # this makes things just a little bit slower.
