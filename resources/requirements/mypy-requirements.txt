@@ -1,5 +1,5 @@
 # Metalibs
-deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.0.5
+deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@eed68fa
 dddb @ git+https://github.com/unr-deaddrop/dddb@47bd591
 
 # Anything vaguely related to typing

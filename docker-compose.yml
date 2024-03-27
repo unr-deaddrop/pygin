@@ -14,6 +14,8 @@ services:
       - celery_beat
       - celery_worker
       - redis
+    environment:
+      IS_DOCKER: True
 
   celery_beat:
     build:
@@ -21,6 +23,8 @@ services:
     command: celery -A src.agent_code.tasks beat --loglevel=DEBUG
     depends_on:
       - redis
+    environment:
+      IS_DOCKER: True
 
   celery_worker:
     build:
@@ -37,5 +41,6 @@ services:
       # Celery has protections against using the pickle serializer in an
       # environment where it is run as root. This forces it to run anyways.
       C_FORCE_ROOT: 1
+      IS_DOCKER: True
     depends_on:
       - redis
