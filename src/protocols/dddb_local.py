@@ -76,6 +76,7 @@ class dddbLocalProtocol(ProtocolBase):
     description: str = __doc__
     version: str = "0.0.1"
     config_model: Type[ProtocolConfig] = dddbLocalConfig
+    supports_bytes: bool = False
 
     @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:

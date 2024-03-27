@@ -1,5 +1,5 @@
 # Always use the latest commited version of the DeadDrop metaclasses.
-deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@eed68fa
+deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.0.6
 
 # dddb - requires Firefox to correctly function via Selenium
 dddb @ git+https://github.com/unr-deaddrop/dddb@47bd591

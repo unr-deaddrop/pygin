@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 REDIS_HOST = "127.0.0.1"
 if sys.platform != "win32" and os.getenv("IS_DOCKER") == "True":
     REDIS_HOST = "redis"
-    logger.info(f"Docker flag set, pointing Redis at container name")
+    logger.info("Docker flag set, pointing Redis at container name")
 logger.info(f"Assuming Redis is available at {REDIS_HOST=}")
 
 # The key used to store the last read time, as well as the cookies set in the
@@ -166,6 +166,7 @@ class dddbCraigslistProtocol(ProtocolBase):
     description: str = __doc__
     version: str = "0.0.1"
     config_model: Type[ProtocolConfig] = dddbCraigslistConfig
+    supports_bytes: bool = False
 
     @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:

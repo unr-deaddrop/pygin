@@ -1,5 +1,5 @@
 # Download internal libraries.
-deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@eed68fa
+deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.0.6
 dddb @ git+https://github.com/unr-deaddrop/dddb@47bd591
 
 # Empyrean code.

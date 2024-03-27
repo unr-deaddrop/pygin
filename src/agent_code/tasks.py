@@ -36,7 +36,7 @@ logger = get_task_logger(__name__)
 # If we're on Windows, unconditionally set the Redis host to 127.0.0.1 for
 # redis-server.exe.
 #
-# In all other cases (which should just be Linux), check if the IS_DOCKER 
+# In all other cases (which should just be Linux), check if the IS_DOCKER
 # environment variable is set. If it is absent, use 127.0.0.1; if it is set,
 # use the "redis" container name.
 
@@ -44,7 +44,7 @@ logger = get_task_logger(__name__)
 REDIS_HOST = "127.0.0.1"
 if sys.platform != "win32" and os.getenv("IS_DOCKER") == "True":
     REDIS_HOST = "redis"
-    logger.info(f"Docker flag set, pointing Redis at container name")
+    logger.info("Docker flag set, pointing Redis at container name")
 logger.info(f"Assuming Redis is available at {REDIS_HOST=}")
 
 app = Celery(

@@ -212,9 +212,17 @@ class PlaintextTCPProtocol(ProtocolBase):
     description: str = __doc__
     version: str = "0.0.1"
     config_model: Type[ProtocolConfig] = PlaintextTCPConfig
+    supports_bytes: bool = True
 
     @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:
+        # The actual bytes to be written out
+        data = msg.model_dump_json().encode("utf-8")
+
+        return cls.send_msg_bytes(data, args)
+
+    @classmethod
+    def send_msg_bytes(cls, msg: bytes, args: dict[str, Any]) -> dict[str, Any]:
         local_cfg: PlaintextTCPConfig = PlaintextTCPConfig.model_validate(args)
 
         if local_cfg.PLAINTEXT_TCP_USE_LISTENER_TO_SEND:
@@ -224,6 +232,22 @@ class PlaintextTCPProtocol(ProtocolBase):
 
     @classmethod
     def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
+        result_bytes: list[bytes] = cls.get_new_messages_bytes(args)
+
+        # Assume utf-8 encoding and JSON, attempt to convert to message
+        result: list[DeadDropMessage] = []
+        for data in result_bytes:
+            try:
+                result.append(DeadDropMessage.model_validate_json(data))
+            except ValidationError as e:
+                logger.error(
+                    f"Failed to convert {repr(data)} to a DeadDropMessage, ignoring message: {e}"
+                )
+
+        return result
+
+    @classmethod
+    def get_new_messages_bytes(cls, args: dict[str, Any]) -> list[bytes]:
         local_cfg: PlaintextTCPConfig = PlaintextTCPConfig.model_validate(args)
 
         if local_cfg.PLAINTEXT_TCP_USE_LISTENER_TO_RECV:
@@ -232,7 +256,7 @@ class PlaintextTCPProtocol(ProtocolBase):
         return cls.recv_msg_by_initiating(args)
 
     @staticmethod
-    def send_msg_by_initiating(msg, args: dict[str, Any]) -> dict[str, Any]:
+    def send_msg_by_initiating(data: bytes, args: dict[str, Any]) -> dict[str, Any]:
         """
         Send a message by initiating a connection to a known outbound host.
 
@@ -249,9 +273,6 @@ class PlaintextTCPProtocol(ProtocolBase):
         local_cfg: PlaintextTCPConfig = PlaintextTCPConfig.model_validate(args)
         host = local_cfg.PLAINTEXT_TCP_INITIATE_SEND_HOST
         port = local_cfg.PLAINTEXT_TCP_INITIATE_SEND_PORT
-
-        # The actual bytes to be written out
-        data = msg.model_dump_json().encode("utf-8")
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             while True:
@@ -278,7 +299,7 @@ class PlaintextTCPProtocol(ProtocolBase):
         return {"bytes_sent": len(data), "host": host, "port": port}
 
     @staticmethod
-    def send_msg_by_listening(msg, args: dict[str, Any]) -> dict[str, Any]:
+    def send_msg_by_listening(data: bytes, args: dict[str, Any]) -> dict[str, Any]:
         """
         Send a message by waiting for an incoming connection.
 
@@ -290,7 +311,7 @@ class PlaintextTCPProtocol(ProtocolBase):
         This requires that the server (or whatever entity is receiving the
         messages) repeatedly reconnect to the agent on the configured port
         to get all messages. If the agent is not listening on that port,
-        it can be assumed that all messages were
+        it can be assumed that all messages were sent.
 
         This has the advantage of not requiring the agent to know the address
         of the server ahead of time, avoiding the issue of hardcoding
@@ -298,9 +319,6 @@ class PlaintextTCPProtocol(ProtocolBase):
         # Since we don't use any arguments besides those in the configuration
         # object, we convert the argument dictionary back to the model.
         local_cfg: PlaintextTCPConfig = PlaintextTCPConfig.model_validate(args)
-
-        # The actual bytes to be written out
-        data = msg.model_dump_json().encode("utf-8")
 
         host = local_cfg.PLAINTEXT_TCP_LISTEN_BIND_HOST
         port = local_cfg.PLAINTEXT_TCP_LISTEN_SEND_PORT
@@ -356,10 +374,8 @@ class PlaintextTCPProtocol(ProtocolBase):
                 return {"bytes_sent": len(data), "host": host, "port": port}
 
     @classmethod
-    def recv_msg_by_initiating(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
+    def recv_msg_by_initiating(cls, args: dict[str, Any]) -> list[bytes]:
         """
-        Unused routine to receive messages by initiating.
-
         This connects to the target host and port repeatedly until it is no
         longer reachable, at which point it is assumed that all messages
         have been received.
@@ -374,7 +390,7 @@ class PlaintextTCPProtocol(ProtocolBase):
         host = local_cfg.PLAINTEXT_TCP_INITIATE_RECV_HOST
         port = local_cfg.PLAINTEXT_TCP_INITIATE_RECV_PORT
 
-        result: list[DeadDropMessage] = []
+        result: list[bytes] = []
 
         attempts = local_cfg.PLAINTEXT_TCP_INITIATE_RETRY_COUNT
 
@@ -416,19 +432,12 @@ class PlaintextTCPProtocol(ProtocolBase):
                     time.sleep(1)
                     continue
 
-                # Assume utf-8 encoding and JSON, attempt to convert to message
-                try:
-                    result.append(DeadDropMessage.model_validate_json(data))
-                except ValidationError as e:
-                    logger.error(
-                        f"Failed to convert {repr(data)} to a DeadDropMessage, ignoring message: {e}"
-                    )
+                result.append(data)
 
-        # Arbitrary response
         return result
 
     @classmethod
-    def recv_msg_by_listening(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
+    def recv_msg_by_listening(cls, args: dict[str, Any]) -> list[bytes]:
         # Since we don't use any arguments besides those in the configuration
         # object, we convert the argument dictionary back to the model.
         local_cfg: PlaintextTCPConfig = PlaintextTCPConfig.model_validate(args)
@@ -446,7 +455,7 @@ class PlaintextTCPProtocol(ProtocolBase):
         # be sent by repeatedly opening ocnnections.
         #
         # see https://stackoverflow.com/questions/2444178/how-to-make-socket-listen1-work-for-some-time-and-then-continue-rest-of-code
-        result: list[DeadDropMessage] = []
+        result: list[bytes] = []
 
         host = local_cfg.PLAINTEXT_TCP_LISTEN_BIND_HOST
         port = local_cfg.PLAINTEXT_TCP_LISTEN_RECV_PORT
@@ -513,13 +522,7 @@ class PlaintextTCPProtocol(ProtocolBase):
                     data += new_data
                 logger.debug(f"Got {len(data)} bytes from connection")
 
-                # Assume utf-8 encoding and JSON, attempt to convert to message
-                try:
-                    result.append(DeadDropMessage.model_validate_json(data))
-                except ValidationError as e:
-                    logger.error(
-                        f"Failed to convert {repr(data)} to a DeadDropMessage, ignoring message: {e}"
-                    )
+                result.append(data)
 
                 # Only evaluate the timeout period after the client disconnects
                 # to prevent accidentally disconnecting earlier
