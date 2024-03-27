@@ -17,9 +17,9 @@ import logging
 
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
-from Cryptodome.Hash import SHA256
+from Cryptodome.Hash import SHA512
 from Cryptodome.PublicKey import ECC
-from Cryptodome.Signature import DSS
+from Cryptodome.Signature import eddsa
 import redis
 
 from deaddrop_meta.protocol_lib import ProtocolConfig, ProtocolBase
@@ -90,7 +90,7 @@ def retrieve_new_messages(
 
     # mypy: this is a property, not a function
     if protocol_class.supports_bytes:  # type: ignore[truthy-function]
-        logger.debug(f"{protocol_class.name} supports bytes, attempting decryption")
+        logger.debug(f"{protocol_class.name} supports bytes, will use decryption")
         new_msgs_bytes = protocol_class.get_new_messages_bytes(protocol_args)
         for msg_bytes in new_msgs_bytes:
             try:
@@ -215,12 +215,12 @@ def send_message(
 
 def sign_msg(msg: DeadDropMessage, cfg: config.PyginConfig) -> DeadDropMessage:
     """
-    Sign a message with ECDSA.
+    Sign a message with EDDSA.
 
     The process for signing is as follows:
     - Replace the `digest` field with None, overwriting the value if any.
     - Convert the stripped message to a JSON string with no formatting.
-    - Evaluate the ECDSA signature over that stripped message.
+    - Evaluate the EDDSA signature over that stripped message.
     - Add the signature to the original message, replcaing the `digest` field.
 
     If this function is called and the agent's private key is not set, this
@@ -235,11 +235,11 @@ def sign_msg(msg: DeadDropMessage, cfg: config.PyginConfig) -> DeadDropMessage:
     msg.digest = None
     data = msg.model_dump_json().encode("utf-8")
 
-    # Calculate signature, SHA256/ECDSA
+    # Calculate signature, SHA512/EDDSA
     key = ECC.import_key(cfg.AGENT_PRIVATE_KEY)
-    signer = DSS.new(key, "fips-186-3")
+    signer = eddsa.new(key, "rfc8032")
 
-    h = SHA256.new(data)
+    h = SHA512.new(data)
     signature = signer.sign(h)
 
     # Apply signature to original message object and return
@@ -249,7 +249,7 @@ def sign_msg(msg: DeadDropMessage, cfg: config.PyginConfig) -> DeadDropMessage:
 
 def verify_msg(msg: DeadDropMessage, cfg: config.PyginConfig) -> bool:
     """
-    Verify a message with ECDSA.
+    Verify a message with EDDSA.
 
     The process for verification is identical to that as signing, except that
     the stripped digest is used as the signature to verify against.
@@ -270,8 +270,8 @@ def verify_msg(msg: DeadDropMessage, cfg: config.PyginConfig) -> bool:
 
     # Reconstruct hash and verify against server's public key
     key = ECC.import_key(cfg.SERVER_PUBLIC_KEY)
-    h = SHA256.new(raw_data)
-    verifier = DSS.new(key, "fips-186-3")
+    h = SHA512.new(raw_data)
+    verifier = eddsa.new(key, "rfc8032")
     try:
         assert msg.digest is not None
         verifier.verify(h, msg.digest)
