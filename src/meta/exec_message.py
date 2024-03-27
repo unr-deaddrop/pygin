@@ -174,7 +174,9 @@ def receive_msgs(msg_cfg: MessagingObject) -> list[DeadDropMessage]:
                         f"The following message was discarded because it is not a response: {msg}"
                     )
 
-            request_ids = [response.payload.request_id for response in responses]
+            # the isinstance() above asserts that payload has the attribute request_id
+            request_ids = [response.payload.request_id for response in responses]  # type: ignore[union-attr]
+
             logger.debug(
                 f"Got the following request IDs (looking for {target_id}): {request_ids}"
             )
