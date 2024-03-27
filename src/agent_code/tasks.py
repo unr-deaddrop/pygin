@@ -42,7 +42,7 @@ logger = get_task_logger(__name__)
 
 # By default, assume Redis is available on localhost
 REDIS_HOST = "127.0.0.1"
-if sys.platform != "win32" and os.getenv("IS_DOCKER") == True:
+if sys.platform != "win32" and os.getenv("IS_DOCKER") == "True":
     REDIS_HOST = "redis"
     logger.info(f"Docker flag set, pointing Redis at container name")
 logger.info(f"Assuming Redis is available at {REDIS_HOST=}")
