@@ -15,17 +15,22 @@ from the rest of Pygin's libraries.
 from typing import Any, Type, Optional
 import logging
 
+from Cryptodome.Cipher import AES
+from Cryptodome.Util.Padding import pad, unpad
+from Cryptodome.Hash import SHA256
+from Cryptodome.PublicKey import ECC
+from Cryptodome.Signature import DSS
 import redis
 
-from deaddrop_meta.protocol_lib import ProtocolConfig
+from deaddrop_meta.protocol_lib import ProtocolConfig, ProtocolBase
+from deaddrop_meta import protocol_lib
+from deaddrop_meta.protocol_lib import DeadDropMessage
 
 # Make all protocols visible. This is an intentional star-import so that
 # our helper functions work.
 from src.protocols import *  # noqa: F401,F403
-
 from src.agent_code import config
-from deaddrop_meta import protocol_lib
-from deaddrop_meta.protocol_lib import DeadDropMessage
+
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +83,48 @@ def retrieve_new_messages(
     # TODO: I'm holding off on this for now. This should probably call another function
     # that adds more arguments as needed, then combines the protocol_args dictionary
     # with our new dictionary containing runtime arguments.
-    new_msgs = protocol_class.get_new_messages(protocol_args)
+    #
+    # When bytes are supported, assume that encryption was used if an encrpytion
+    # key is set.
+    new_msgs: list[DeadDropMessage] = []
+
+    # mypy: this is a property, not a function
+    if protocol_class.supports_bytes:  # type: ignore[truthy-function]
+        logger.debug(f"{protocol_class.name} supports bytes, attempting decryption")
+        new_msgs_bytes = protocol_class.get_new_messages_bytes(protocol_args)
+        for msg_bytes in new_msgs_bytes:
+            try:
+                # Note that even if no encryption key is set, we still defer to
+                # `decrypt_msg` to perform the process of decoding bytes to
+                # DeadDropMessage.
+                new_msgs.append(decrypt_msg(msg_bytes, cfg))
+            except Exception as e:
+                logger.error(
+                    f"Failed to decrypt {msg_bytes!r} to a DeadDropMessage, ignoring message: {e}"
+                )
+    else:
+        new_msgs = protocol_class.get_new_messages(protocol_args)
+
+    # Verify that the messages are from the server if the server's public key
+    # is set.
+    #
+    # Note this directly complicates any sort of forwarding mechanism, but we're
+    # going to assume that all messages we receive are from the server for now.
+    verified_msgs: list[DeadDropMessage] = []
+    if cfg.SERVER_PUBLIC_KEY is not None:
+        logger.debug("Server public key set, performing verification checks")
+        for msg in new_msgs:
+            if verify_msg(msg, cfg):
+                logger.debug(f"{msg.message_id=} is authentic")
+                verified_msgs.append(msg)
+            else:
+                logger.error(
+                    f"Verification failed for {msg.message_id=}, dropping ({msg})"
+                )
+    else:
+        # All messages are "verified"
+        logger.debug("No server public key set, assuming all messages are authentic")
+        verified_msgs = new_msgs
 
     # For each message, check if was already seen and act accordingly based on
     # `drop_seen`. In all cases, add message IDs to the set.
@@ -135,12 +181,14 @@ def send_message(
     overwritten. Individual protocols may elect to re-sign the message
     if desired.
     """
-    # Sign the message
-    # TODO: Implement message signing
+    # Sign the message if the required keys are set.
+    if cfg.AGENT_PRIVATE_KEY is not None:
+        logger.debug("Signing message")
+        msg = sign_msg(msg, cfg)
 
     # Get a handle to the relevant protocol class, if it exists. Parse the arguments
     # accordingly from the PyginConfig class.
-    protocol_class = protocol_lib.lookup_protocol(protocol_name)
+    protocol_class: Type[ProtocolBase] = protocol_lib.lookup_protocol(protocol_name)
 
     # mypy complains about properties as usual
     protocol_config_model: Type[ProtocolConfig] = protocol_class.config_model  # type: ignore[assignment]
@@ -153,4 +201,134 @@ def send_message(
     # connection as a keyword argument; it's up to the protocol whether or not
     # to use this for any state management. Directly return the result; any error
     # handling or message re-sending must occur at the protocol level.
+    #
+    # If arbitrary bytes are supported, encrypt the message and use the byte-based
+    # function instead. Note that if an encryption key is not set, this amounts
+    # to simply encoding the DeadDropMessage as bytes ahead of time (instead of
+    # deferring it to the protocol).
+    if protocol_class.supports_bytes:  # type: ignore[truthy-function]
+        data = encrypt_msg(msg, cfg)
+        return protocol_class.send_msg_bytes(data, protocol_args)
+
     return protocol_class.send_msg(msg, protocol_args)
+
+
+def sign_msg(msg: DeadDropMessage, cfg: config.PyginConfig) -> DeadDropMessage:
+    """
+    Sign a message with ECDSA.
+
+    The process for signing is as follows:
+    - Replace the `digest` field with None, overwriting the value if any.
+    - Convert the stripped message to a JSON string with no formatting.
+    - Evaluate the ECDSA signature over that stripped message.
+    - Add the signature to the original message, replcaing the `digest` field.
+
+    If this function is called and the agent's private key is not set, this
+    returns immediately and does nothing to the message.
+    """
+    if not cfg.AGENT_PRIVATE_KEY:
+        logger.debug("Agent private key not set, returning message as-is")
+        return msg
+
+    # Strip the message of its digest and get its JSON representation (in theory
+    # this should be deterministic)
+    msg.digest = None
+    data = msg.model_dump_json().encode("utf-8")
+
+    # Calculate signature, SHA256/ECDSA
+    key = ECC.import_key(cfg.AGENT_PRIVATE_KEY)
+    signer = DSS.new(key, "fips-186-3")
+
+    h = SHA256.new(data)
+    signature = signer.sign(h)
+
+    # Apply signature to original message object and return
+    msg.digest = signature
+    return msg
+
+
+def verify_msg(msg: DeadDropMessage, cfg: config.PyginConfig) -> bool:
+    """
+    Verify a message with ECDSA.
+
+    The process for verification is identical to that as signing, except that
+    the stripped digest is used as the signature to verify against.
+
+    On a failing verification, this returns False.
+
+    If this function is called and the server's public key is not set, this
+    always returns True.
+    """
+    if not cfg.SERVER_PUBLIC_KEY:
+        logger.debug("Server public key not set, assuming message is valid")
+        return True
+
+    # Create deep copy of message, strip it of its digest and get JSON representation
+    msg_copy = msg.model_copy(deep=True)
+    msg_copy.digest = None
+    raw_data = msg_copy.model_dump_json().encode("utf-8")
+
+    # Reconstruct hash and verify against server's public key
+    key = ECC.import_key(cfg.SERVER_PUBLIC_KEY)
+    h = SHA256.new(raw_data)
+    verifier = DSS.new(key, "fips-186-3")
+    try:
+        assert msg.digest is not None
+        verifier.verify(h, msg.digest)
+        return True
+    except ValueError:
+        return False
+
+
+def encrypt_msg(msg: DeadDropMessage, cfg: config.PyginConfig) -> bytes:
+    """
+    Use AES-128-CBC to encrypt a message.
+
+    This simply dumps the entire message as JSON, then runs it through CBC.
+    PKCS7 padding is used, then the IV is prepended to the resulting message.
+
+    If this method is called and no encryption key is set, this simply dumps
+    the message out as a plaintext UTF-8 encoded message with with no padding.
+    """
+    data = msg.model_dump_json().encode("utf-8")
+
+    if not cfg.ENCRYPTION_KEY:
+        logger.debug("Encryption key not set, no encryption performed")
+        return data
+
+    logger.debug("Padding and encrypting message")
+    cipher = AES.new(cfg.ENCRYPTION_KEY, AES.MODE_CBC)
+    data = cipher.encrypt(pad(data, AES.block_size))
+
+    result = bytes(cipher.iv) + data
+    logger.debug(f"{len(data)=}, {len(result)=}")
+
+    return result
+
+
+def decrypt_msg(data: bytes, cfg: config.PyginConfig) -> DeadDropMessage:
+    """
+    Decrypt a single message with AES-128-CBC. PKCS7 padding is assumed, and the
+    first sixteen bytes are the IV.
+
+    If, after decryption, the message cannot be converted to a DeadDropMessage,
+    this simply re-raises ValidationError.
+
+    If this method is called and no encryption key is set, this simply assumes
+    that the message is already in plaintext.
+    """
+    # If an encryption key has not been set, attempt to validate directly.
+    if cfg.ENCRYPTION_KEY is None:
+        logger.debug("No encryption key set, assuming plaintext")
+        return DeadDropMessage.model_validate_json(data)
+
+    # Assume that the first sixteen bytes are the IV. The rest is the padded
+    # message.
+    logger.debug("Removing padding and decrypting message")
+    iv = data[:16]
+    ct = data[16:]
+
+    cipher = AES.new(cfg.ENCRYPTION_KEY, AES.MODE_CBC, iv=iv)
+    pt = unpad(cipher.decrypt(ct), AES.block_size)
+
+    return DeadDropMessage.model_validate_json(pt)

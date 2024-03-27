@@ -232,6 +232,10 @@ class PlaintextTCPProtocol(ProtocolBase):
 
     @classmethod
     def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
+        # Note this assumes that the message was sent unencrypted, and therefore
+        # can be interpreted as plaintext. Failure to decode a message most likely
+        # means that the message is incomplete or that the message was encrypted.
+
         result_bytes: list[bytes] = cls.get_new_messages_bytes(args)
 
         # Assume utf-8 encoding and JSON, attempt to convert to message
