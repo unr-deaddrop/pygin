@@ -5,6 +5,7 @@ This module contains all available tasking for Celery.
 from pathlib import Path
 from typing import Any
 import sys
+import os
 
 from celery import Celery, Task
 from celery.utils.log import get_task_logger
@@ -31,15 +32,23 @@ logger = get_task_logger(__name__)
 #   if somebody wants to sabotage the framework, they would either need to break
 #   the encryption system or gain access to the machine the agent is running on
 #   (in which case there's basically nothing we can really do right now).
-REDIS_HOST = "redis"  # The name of the docker container
-if sys.platform == "win32":
-    REDIS_HOST = "127.0.0.1"  # redis-server.exe
+
+# If we're on Windows, unconditionally set the Redis host to 127.0.0.1 for
+# redis-server.exe.
+#
+# In all other cases (which should just be Linux), check if the IS_DOCKER
+# environment variable is set. If it is absent, use 127.0.0.1; if it is set,
+# use the "redis" container name.
+
+# By default, assume Redis is available on localhost
+REDIS_HOST = "127.0.0.1"
+if sys.platform != "win32" and os.getenv("IS_DOCKER") == "True":
+    REDIS_HOST = "redis"
+    logger.info("Docker flag set, pointing Redis at container name")
+logger.info(f"Assuming Redis is available at {REDIS_HOST=}")
 
 app = Celery(
-    # FIXME: This ought to be declared as an envvar.
     "tasks",
-    # backend="redis://localhost:6379/0",
-    # broker="redis://localhost:6379/0",
     backend=f"redis://{REDIS_HOST}:6379/0",
     broker=f"redis://{REDIS_HOST}:6379/0",
 )

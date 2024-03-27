@@ -3,4 +3,4 @@
 # edit the server's environment, so no pegging is used here.
 pydantic
 json5
-deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.0.5
+deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.0.6

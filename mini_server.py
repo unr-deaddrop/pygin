@@ -7,6 +7,7 @@ yourself.
 # region imports
 from pathlib import Path
 from typing import Any
+import base64
 import datetime
 import json
 import logging
@@ -47,7 +48,7 @@ ENDPOINT_HOSTNAME = "my_hostname"
 ENDPOINT_ADDRESS = "127.0.0.1"
 
 # Either a base64-encoded PEM Ed25519 key, or None.
-SERVER_PRIVATE_KEY = None
+SERVER_PRIVATE_KEY = "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1DNENBUUF3QlFZREsyVndCQ0lFSU1qdnhsSEUzcTFKVEZYQ0RnMG1lVGxpSXIyRGgxdDB4Q2xkLzZXMmp5ZC8KLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLQ=="
 
 # The command to issue (this is protocol independent)
 
@@ -97,7 +98,7 @@ if __name__ == "__main__":
         server_config=ServerMessagingData(
             action="send",
             listen_for_id=None,
-            server_private_key=SERVER_PRIVATE_KEY,
+            server_private_key=base64.b64decode(SERVER_PRIVATE_KEY),
             preferred_protocol=None,
         ),
     )

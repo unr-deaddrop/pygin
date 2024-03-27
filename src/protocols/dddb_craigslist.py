@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Type, Any, ClassVar, Union
 import logging
+import os
 import pickle
 import sys
 import time
@@ -29,9 +30,11 @@ import pottery
 
 logger = logging.getLogger(__name__)
 
-REDIS_HOST = "redis"  # The name of the docker container
-if sys.platform == "win32":
-    REDIS_HOST = "127.0.0.1"  # redis-server.exe
+REDIS_HOST = "127.0.0.1"
+if sys.platform != "win32" and os.getenv("IS_DOCKER") == "True":
+    REDIS_HOST = "redis"
+    logger.info("Docker flag set, pointing Redis at container name")
+logger.info(f"Assuming Redis is available at {REDIS_HOST=}")
 
 # The key used to store the last read time, as well as the cookies set in the
 # driver.
@@ -163,6 +166,7 @@ class dddbCraigslistProtocol(ProtocolBase):
     description: str = __doc__
     version: str = "0.0.1"
     config_model: Type[ProtocolConfig] = dddbCraigslistConfig
+    supports_bytes: bool = False
 
     @classmethod
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:

@@ -102,9 +102,9 @@ def process_config_file(json_path: Path) -> PyginConfig:
     # is raised, the initial build parameters are good.
     cfg_obj = PyginConfig.from_json5_file(json_path)
 
-    # Pygin uses AES-128-CBC and ECDSA for encryption. In turn, a 128-bit key
-    # and a new ECC keypair is generated. Consistent with the server, the Ed25519
-    # curve is used for key generation and verification.
+    # Pygin uses AES-128-CBC for encryption and EDDSA for verification. In turn,
+    # a 128-bit key and a new ECC keypair is generated. Consistent with the server,
+    # the Ed25519 curve is used for key generation and verification.
     encryption_key = os.urandom(16)
 
     # The same parameters as in Pycryptodome's documentation are used to export the

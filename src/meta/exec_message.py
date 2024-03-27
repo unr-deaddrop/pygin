@@ -82,6 +82,14 @@ def translate_config(msg_cfg: MessagingObject) -> PyginConfig:
     # Construct PyginConfig
     cfg_obj = PyginConfig.from_msg_obj(msg_cfg)
 
+    # Set the public key to be that of the agent's, and set the private key to
+    # be that of the server's (if set).
+    cfg_obj.SERVER_PUBLIC_KEY = cfg_obj.AGENT_PUBLIC_KEY
+    cfg_obj.AGENT_PRIVATE_KEY = msg_cfg.server_config.server_private_key
+
+    logger.debug(f"Interpreted public key: {cfg_obj.SERVER_PUBLIC_KEY!r}")
+    logger.debug(f"Interpreted private key: {cfg_obj.AGENT_PRIVATE_KEY!r}")
+
     # Select desired protocol. In our case, we completely ignore the preferred
     # protocol set in msg_cfg, because Pygin is only configured to listen/send
     # over a fixed set of protocols.
