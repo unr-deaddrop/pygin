@@ -462,18 +462,35 @@ class PlaintextTCPProtocol(ProtocolBase):
             s.settimeout(local_cfg.PLAINTEXT_TCP_LISTEN_TIMEOUT)
             logger.debug(f"Binding to {host}:{port} to receive new messages")
 
-            try:
-                s.bind((host, port))
-                s.listen()
-            except OSError as e:
-                # We only ever expect this to raise "address already in use"
-                if e.errno != errno.EADDRINUSE:
-                    raise e
-                else:
-                    logger.debug(
-                        f"{host}:{port} is not yet ready for listening, returning nothing"
-                    )
-                    return []
+            # Wait until we get the listener. In an ideal world, this reduces
+            # the likelihood that all of the following happen:
+            # - Docker is exposing the target port, so the connection from the
+            #   sender goes through and it *thinks* the agent actually got the message
+            # - but the port was just in use, and therefore a listener
+            #   can't be set up
+            # - and in the time between the old worker releasing the listener
+            while True:
+                try:
+                    s.bind((host, port))
+                    s.listen()
+                    break
+                except OSError as e:
+                    # We only ever expect this to raise "address already in use"
+                    if e.errno != errno.EADDRINUSE:
+                        raise e
+                    else:
+                        # Keep trying to get the listener. From observation,
+                        # the result is that this actually keeps "backing up"
+                        # indefinitely (until the soft time limit is reached),
+                        # but the net result is that *some* listener is always
+                        # up, and therefore we don't get dropped messages
+                        #
+                        # Note that this is not a solution to the "competing
+                        # listeners" problem; if you try to run two mini_server.py
+                        # instances at once, one will eat both responses and the
+                        # other will never get its response. This is a non-issue
+                        # in practice, since there should only ever be one server.
+                        time.sleep(0.5)
 
             while True:
                 # Accept connections
