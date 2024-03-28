@@ -1,0 +1,16 @@
+# This dockerfile is intended to be used in messaging.
+
+FROM unrdeaddrop/pygin:0.4.2
+
+WORKDIR /app
+
+# Assert that all inputs are manually copied over if shadowed by the cache
+#
+# Since some of these may or may not exist, we use the approach described by
+# https://stackoverflow.com/questions/31528384/conditional-copy-add-in-dockerfile
+# to conditionally copy without causing Docker to explode in our face, since 
+# COPY requires that the desired file is present
+COPY agent_cfg.json .
+
+# Execute the main script.
+CMD make message

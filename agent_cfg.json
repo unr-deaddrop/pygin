@@ -51,7 +51,7 @@
       "PLAINTEXT_LOCAL_OUTBOX_DIR": "plaintext_local/outbox"
     },
     "dddb_craigslist": {
-      "DDDB_CRAIGSLIST_CHECKIN_FREQUENCY": 30,
+      "DDDB_CRAIGSLIST_CHECKIN_FREQUENCY": 120,
       "DDDB_CRAIGSLIST_EMAIL": "unrdeaddroptest@gmail.com",
       "DDDB_CRAIGSLIST_PASSWORD": "7g2Eu+up*$]ww8L",
       "DDDB_CRAIGSLIST_LOCKFILE": "./craigslist_lockfile",
