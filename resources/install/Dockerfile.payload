@@ -10,4 +10,4 @@ COPY build_config.json .
 # Execute the main script. Right now, all this does is overwrite agent_cfg.json
 # with the final configuration that the agent will actually run on, but
 # in theory you could get this to run PyInstaller.
-CMD /bin/sh
+CMD make payload
