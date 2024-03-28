@@ -72,5 +72,6 @@ if __name__ == "__main__":
     # Build the base image, which should be the most expansive image, to cache
     # the associated layers that can then be reused across the other Compose
     # stacks
-    p = subprocess.run(shlex.split("docker compose build"), capture_output=True)
+    logger.info("Building base image (this may take a while!)")
+    p = subprocess.run(shlex.split("docker compose build"), capture_output=True, check=True)
     logger.info(f"{p.stdout=} {p.stderr=}")
