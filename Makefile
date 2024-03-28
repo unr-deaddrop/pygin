@@ -48,6 +48,7 @@ deps:
 # speed up expensive processes that should always be cached. 
 install:
 	cp -a ./resources/install/. .
+	pip3 install -r ./resources/requirements/install-requirements.txt
 	docker compose build
 
 # To be run *inside* the build container.
