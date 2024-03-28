@@ -9,11 +9,11 @@
     "SERVER_PRIVATE_KEY": null,
     "SERVER_PUBLIC_KEY": "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUNvd0JRWURLMlZ3QXlFQThQZE05WC9vMklLS0tDS3E5dUVnYTgzM3ZZMGxBWHZqZ3FaWUFzeVZxYTQ9Ci0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQ==",
     "INCOMING_PROTOCOLS": [
-      "dddb_craigslist"
+      "plaintext_tcp"
     ],
     "HEARTBEAT_PROTOCOL": "plaintext_tcp",
     "LOGGING_PROTOCOL": "plaintext_tcp",
-    "SENDING_PROTOCOL": "dddb_craigslist",
+    "SENDING_PROTOCOL": "plaintext_tcp",
     "LOGGING_INTERVAL": 60,
     "HEARTBEAT_INTERVAL": 60,
     "REDIS_MESSAGES_SEEN_KEY": "_agent_meta-seen-msgs",
