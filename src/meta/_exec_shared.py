@@ -27,7 +27,7 @@ def overwrite_compose_file(compose_path: Path, service_name: str, container_name
 
     # Overwrite the service and container names accordingly
     data["services"][service_name]["container_name"] = container_name
-    data["services"][container_name] = data["services"].pop(service_name)
+    # data["services"][container_name] = data["services"].pop(service_name)
 
     # Rewrite the file
     with open(compose_path, "wt+") as fp:
