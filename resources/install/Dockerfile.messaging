@@ -1,6 +1,6 @@
 # This dockerfile is intended to be used in messaging.
 
-FROM unrdeaddrop/pygin:0.4.2
+FROM unrdeaddrop/pygin:0.4.3
 
 WORKDIR /app
 

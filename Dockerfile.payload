@@ -5,9 +5,9 @@ FROM unrdeaddrop/pygin:0.4.3
 WORKDIR /app
 
 # Assert that build_config.json is copied over, if cached from the previous step
-COPY build_config.json .
+COPY build_config.jso[n] .
 
 # Execute the main script. Right now, all this does is overwrite agent_cfg.json
 # with the final configuration that the agent will actually run on, but
 # in theory you could get this to run PyInstaller.
-CMD make payload
+CMD /bin/sh
