@@ -25,9 +25,11 @@ if __name__ == "__main__":
     with open(target, "rt") as fp:
         data = fp.read()
         
-    image_name = "docker pull unrdeaddrop/pygin:"+PyginInfo.get_version()
+    image_name = "docker pull unrdeaddrop/pygin:"+PyginInfo.version
     logger.info(f"Writing {image_name=} to Makefile")
-    new = re.sub(r"docker pull unrdeaddrop/pygin:(.*)$", "docker pull unrdeaddrop/pygin:"+PyginInfo.get_version(), data)
+    new = re.sub(r"^\tdocker pull unrdeaddrop/pygin:(.*)$", f"\t{image_name}", data, flags=re.MULTILINE)
+    
+    print(new)
     
     with open(target, "wt") as fp:
         fp.write(new)
