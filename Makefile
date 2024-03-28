@@ -61,7 +61,11 @@ payload:
 
 # To be run *outside* the build container. Note this assumes that the container
 # will exit on its own (or else bad things happen!)
+#
+# Note that an install is performed because this occurs in a Celery worker, which
+# may or may not have the required dependencies installed.
 payload_entry:
+	pip install -r ./resources/requirements/payload-requirements.txt -U
 	python3 -m src.meta.payload_entrypoint
 
 # To be run *inside* the build container.
@@ -75,4 +79,5 @@ message:
 # To be run *outside* the build container. Note this assumes that the container
 # will exit on its own (or else bad things happen!)
 message_entry:
+pip install -r ./resources/requirements/message-requirements.txt -U
 	python3 -m src.meta.message_entrypoint
