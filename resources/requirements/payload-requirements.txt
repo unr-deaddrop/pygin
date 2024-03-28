@@ -3,7 +3,7 @@ deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.0.6
 
 # dddb - required because the module containing the config is imported,
 # which in turn requires dddb
-dddb @ git+https://github.com/unr-deaddrop/dddb@bbc7348
+dddb @ git+https://github.com/unr-deaddrop/dddb@0266d7c
 
 # Functional (note that these may be pegged, since they're not linked to
 # the server at all)
