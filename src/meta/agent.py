@@ -38,4 +38,4 @@ class PyginInfo(AgentBase):
         return f"{cls.name}-{cls.version}"
     
 if __name__ == "__main__":
-    print(PyginInfo.get_version())
+    print(PyginInfo.version)
