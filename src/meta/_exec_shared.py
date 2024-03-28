@@ -60,7 +60,7 @@ def run_compose_file(
     # Run Docker Compose to completion, capturing its output (this avoids having
     # to manually hunt down the logs or redirecting the output in other ways)
     logger.info("Starting Docker Compose")
-    command = shlex.split(f"docker compose -f {compose_name} up")
+    command = shlex.split(f"docker compose -f {compose_name} up --build")
     p = subprocess.run(command, capture_output=True)
     logger.info("Docker Compose exited, stdout/stderr follows")
 
