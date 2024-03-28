@@ -48,7 +48,7 @@ deps:
 # models for the Django backend.
 install:
 	cp -a ./resources/install/. .
-	python3 -m src.meta.apply
+	python3 -m src.meta.generate_compose
 
 # To be run *inside* the build container.
 payload:
