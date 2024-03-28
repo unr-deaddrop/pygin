@@ -69,9 +69,11 @@ if __name__ == "__main__":
         with open(compose_path, "wt+") as fp:
             yaml.dump(data, fp)
     
+    # The below is deprecated in favor of doing this inside the Makefile
+    
     # Build the base image, which should be the most expansive image, to cache
     # the associated layers that can then be reused across the other Compose
     # stacks
-    logger.info("Building base image (this may take a while!)")
-    p = subprocess.run(shlex.split("docker compose build"), capture_output=True, check=True)
-    logger.info(f"{p.stdout=} {p.stderr=}")
+    # logger.info("Building base image (this may take a while!)")
+    # p = subprocess.run(shlex.split("docker compose build"), capture_output=True, check=True)
+    # logger.info(f"{p.stdout=} {p.stderr=}")
