@@ -8,13 +8,31 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE 1
 # Send stdout to terminal without buffering.
 ENV PYTHONUNBUFFERED 1
+# Yes I'm fine with allowing unsafe pickling
+ENV C_FORCE_ROOT 1
 
+# Install Firefox (dddb)
 COPY ./resources ./resources
 RUN chmod +x ./resources/runtime/install-firefox.sh
 RUN ./resources/runtime/install-firefox.sh
-RUN pip3 install -r ./resources/requirements/message-requirements.txt
 
+# Install Python packages
+RUN pip3 install --upgrade pip
+COPY requirements.txt ./
+RUN pip3 install -r requirements.txt -U
+
+# Everything else
 COPY . .
+
+# Assert that all inputs are manually copied over if shadowed by the cache
+#
+# Since some of these may or may not exist, we use the approach described by
+# https://stackoverflow.com/questions/31528384/conditional-copy-add-in-dockerfile
+# to conditionally copy without causing Docker to explode in our face, since 
+# COPY requires that the desired file is present
+COPY message_config.[json] ./
+COPY protocol_state.[json] ./
+COPY message.[json] ./
 
 # Execute the main script.
 CMD make message

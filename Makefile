@@ -39,19 +39,20 @@ deps:
 
 # To be run on the host or container currently running the DeadDrop server.
 #
-# This script is the standard entrypoint for the package manager to generate
-# the three agent metadata files: agent.json, commands.json, and protocols.json.
-# 
 # This script should be run immediately after the server decompresses the package,
 # after which it can be assumed that all relevant metadata files are available
 # (and future metadata files, if any) and can be used to generate the relevant
 # models for the Django backend.
+#
+# Additionally, this starts the build process for the base Docker image to help
+# speed up expensive processes that should always be cached. 
 install:
 	cp -a ./resources/install/. .
+	pip3 install -r ./resources/requirements/install-requirements.txt
+	docker compose build
 
 # To be run *inside* the build container.
 payload:
-	pip3 install -r ./resources/requirements/payload-requirements.txt
 	python3 -m src.meta.generate_config
 	apt update
 	apt install zip
@@ -60,8 +61,11 @@ payload:
 
 # To be run *outside* the build container. Note this assumes that the container
 # will exit on its own (or else bad things happen!)
+#
+# Note that an install is performed because this occurs in a Celery worker, which
+# may or may not have the required dependencies installed.
 payload_entry:
-	pip3 install -r ./resources/requirements/payload-requirements.txt
+	pip install -r ./resources/requirements/payload-requirements.txt -U
 	python3 -m src.meta.payload_entrypoint
 
 # To be run *inside* the build container.
@@ -75,4 +79,5 @@ message:
 # To be run *outside* the build container. Note this assumes that the container
 # will exit on its own (or else bad things happen!)
 message_entry:
+	pip install -r ./resources/requirements/message-requirements.txt -U
 	python3 -m src.meta.message_entrypoint

@@ -27,7 +27,7 @@ def overwrite_compose_file(compose_path: Path, service_name: str, container_name
 
     # Overwrite the service and container names accordingly
     data["services"][service_name]["container_name"] = container_name
-    data["services"][container_name] = data["services"].pop(service_name)
+    # data["services"][container_name] = data["services"].pop(service_name)
 
     # Rewrite the file
     with open(compose_path, "wt+") as fp:
@@ -60,7 +60,7 @@ def run_compose_file(
     # Run Docker Compose to completion, capturing its output (this avoids having
     # to manually hunt down the logs or redirecting the output in other ways)
     logger.info("Starting Docker Compose")
-    command = shlex.split(f"docker compose -f {compose_name} up")
+    command = shlex.split(f"docker compose -f {compose_name} up --build")
     p = subprocess.run(command, capture_output=True)
     logger.info("Docker Compose exited, stdout/stderr follows")
 

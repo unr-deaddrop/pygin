@@ -128,7 +128,7 @@ def retrieve_new_messages(
 
     # For each message, check if was already seen and act accordingly based on
     # `drop_seen`. In all cases, add message IDs to the set.
-    for msg in new_msgs:
+    for msg in verified_msgs:
         # String comparisons to UUIDs don't work as expected, so you have
         # to explicitly convert a uuid.UUID to a string for it to work with
         # the strings contained in the Redis database
@@ -262,6 +262,9 @@ def verify_msg(msg: DeadDropMessage, cfg: config.PyginConfig) -> bool:
     if not cfg.SERVER_PUBLIC_KEY:
         logger.debug("Server public key not set, assuming message is valid")
         return True
+
+    if msg.digest is None:
+        raise RuntimeError("Message was not signed!")
 
     # Create deep copy of message, strip it of its digest and get JSON representation
     msg_copy = msg.model_copy(deep=True)
