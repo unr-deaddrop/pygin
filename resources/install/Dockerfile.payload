@@ -1,6 +1,6 @@
 # This dockerfile is intended to be used in payload generation.
 
-FROM python:3.11.4
+FROM python:3.11.4-bookworm
 
 WORKDIR /app
 
@@ -8,7 +8,20 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE 1
 # Send stdout to terminal without buffering.
 ENV PYTHONUNBUFFERED 1
+# Yes I'm fine with allowing unsafe pickling
+ENV C_FORCE_ROOT 1
 
+# Install Firefox (dddb)
+COPY ./resources ./resources
+RUN chmod +x ./resources/runtime/install-firefox.sh
+RUN ./resources/runtime/install-firefox.sh
+
+# Install Python packages
+RUN pip3 install --upgrade pip
+COPY requirements.txt ./
+RUN pip3 install -r requirements.txt -U
+
+# Everything else
 COPY . .
 
 # Execute the main script. Right now, all this does is overwrite agent_cfg.json

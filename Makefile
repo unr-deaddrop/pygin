@@ -48,6 +48,7 @@ deps:
 # models for the Django backend.
 install:
 	cp -a ./resources/install/. .
+	python3 -m src.meta.apply
 
 # To be run *inside* the build container.
 payload:

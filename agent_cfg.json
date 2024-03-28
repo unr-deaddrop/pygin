@@ -1,61 +1,61 @@
 {
   "agent_config": {
-    "AGENT_ID": "00000000-0000-0000-0000-000000000021",
-    "DROP_MISDIRECTED_MESSAGES": true,
-    "CONTROL_UNIT_THROTTLE_TIME": 2.0,
-    "AGENT_PRIVATE_KEY": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1DNENBUUF3QlFZREsyVndCQ0lFSUdoMU44Z2pnMk1pVmROR284dGE4T1RidXk5YnNoWHBmYXBSRUwvaXNuVjMKLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLQ==",
-    "AGENT_PUBLIC_KEY": "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUNvd0JRWURLMlZ3QXlFQTZKeEdKejJQa3IvOVJZMkxwdDZScW1CRGNXcllZQ0N2UjFDbnRqZFYvRGM9Ci0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQ==",
-    "ENCRYPTION_KEY": "F//DrxUHhJlTRxIvBNkDnA==",
-    "SERVER_PUBLIC_KEY": "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUNvd0JRWURLMlZ3QXlFQThQZE05WC9vMklLS0tDS3E5dUVnYTgzM3ZZMGxBWHZqZ3FaWUFzeVZxYTQ9Ci0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQ==",
-    "SERVER_PRIVATE_KEY": null,
-    "INCOMING_PROTOCOLS": [
-      "plaintext_tcp"
-    ],
-    "HEARTBEAT_PROTOCOL": "plaintext_tcp",
-    "LOGGING_PROTOCOL": "plaintext_tcp",
-    "SENDING_PROTOCOL": "plaintext_tcp",
-    "LOGGING_INTERVAL": 60,
-    "HEARTBEAT_INTERVAL": 60,
-    "REDIS_MESSAGES_SEEN_KEY": "_agent_meta-seen-msgs",
-    "REDIS_NEW_MESSAGES_KEY": "_agent_meta-new-msg-task-ids",
-    "REDIS_MAIN_PROCESS_MESSAGES_SEEN_KEY": "_agent_meta-main-msgs-seen",
-    "RESULT_RETRIEVAL_REATTEMPT_LIMIT": 5,
-    "INCOMING_ENCODED_MESSAGE_DIR": "msgs/incoming_raw",
-    "INCOMING_DECODED_MESSAGE_DIR": "msgs/incoming_decoded",
-    "OUTGOING_DECODED_MESSAGE_DIR": "msgs/outgoing_decoded",
-    "OUTGOING_ENCODED_MESSAGE_DIR": "msgs/outgoing_raw"
+      "AGENT_ID": "00000000-0000-0000-0000-000000000023",
+      "ENCRYPTION_KEY": "M6sbU6een9kZO7d6d+CbUA==",
+      "AGENT_PUBLIC_KEY": "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUNvd0JRWURLMlZ3QXlFQWViM2V1Z1VKbFVjTE5vVUFrMHVkYm95VnVKelJWVU0xbnVxYlVBWGpYU3c9Ci0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQ==",
+      "LOGGING_INTERVAL": 60,
+      "LOGGING_PROTOCOL": "plaintext_tcp",
+      "SENDING_PROTOCOL": "plaintext_tcp",
+      "AGENT_PRIVATE_KEY": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1DNENBUUF3QlFZREsyVndCQ0lFSUZIOHRDN2hMYXFHdTVUcVpPWUtKeStHcTJrNGJUbkxObksxVnkvQkp2VTQKLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLQ==",
+      "SERVER_PUBLIC_KEY": "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUNvd0JRWURLMlZ3QXlFQThQZE05WC9vMklLS0tDS3E5dUVnYTgzM3ZZMGxBWHZqZ3FaWUFzeVZxYTQ9Ci0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQ==",
+      "HEARTBEAT_INTERVAL": 60,
+      "HEARTBEAT_PROTOCOL": "plaintext_tcp",
+      "INCOMING_PROTOCOLS": [
+          "plaintext_tcp"
+      ],
+      "SERVER_PRIVATE_KEY": null,
+      "REDIS_NEW_MESSAGES_KEY": "_agent_meta-new-msg-task-ids",
+      "REDIS_MESSAGES_SEEN_KEY": "_agent_meta-seen-msgs",
+      "DROP_MISDIRECTED_MESSAGES": true,
+      "CONTROL_UNIT_THROTTLE_TIME": 2.0,
+      "INCOMING_DECODED_MESSAGE_DIR": "msgs/incoming_decoded",
+      "INCOMING_ENCODED_MESSAGE_DIR": "msgs/incoming_raw",
+      "OUTGOING_DECODED_MESSAGE_DIR": "msgs/outgoing_decoded",
+      "OUTGOING_ENCODED_MESSAGE_DIR": "msgs/outgoing_raw",
+      "RESULT_RETRIEVAL_REATTEMPT_LIMIT": 5,
+      "REDIS_MAIN_PROCESS_MESSAGES_SEEN_KEY": "_agent_meta-main-msgs-seen"
   },
   "protocol_config": {
-    "plaintext_tcp": {
-      "PLAINTEXT_TCP_CHECKIN_FREQUENCY": 10,
-      "PLAINTEXT_TCP_LISTEN_TIMEOUT": 10,
-      "PLAINTEXT_TCP_LISTEN_BIND_HOST": "0.0.0.0",
-      "PLAINTEXT_TCP_LISTEN_RECV_PORT": 12345,
-      "PLAINTEXT_TCP_LISTEN_SEND_PORT": 12346,
-      "PLAINTEXT_TCP_INITIATE_RECV_HOST": "localhost",
-      "PLAINTEXT_TCP_INITIATE_RECV_PORT": 12346,
-      "PLAINTEXT_TCP_INITIATE_RETRY_COUNT": 20,
-      "PLAINTEXT_TCP_USE_LISTENER_TO_SEND": true,
-      "PLAINTEXT_TCP_USE_LISTENER_TO_RECV": true,
-      "PLAINTEXT_TCP_INITIATE_SEND_HOST": "localhost",
-      "PLAINTEXT_TCP_INITIATE_SEND_PORT": 12346
-    },
-    "dddb_local": {
-      "DDDB_LOCAL_CHECKIN_FREQUENCY": 10,
-      "DDDB_LOCAL_INBOX_DIR": "dddb_local/inbox",
-      "DDDB_LOCAL_OUTBOX_DIR": "dddb_local/outbox"
-    },
-    "plaintext_local": {
-      "PLAINTEXT_LOCAL_CHECKIN_FREQUENCY": 5,
-      "PLAINTEXT_LOCAL_INBOX_DIR": "plaintext_local/inbox",
-      "PLAINTEXT_LOCAL_OUTBOX_DIR": "plaintext_local/outbox"
-    },
-    "dddb_craigslist": {
-      "DDDB_CRAIGSLIST_CHECKIN_FREQUENCY": 30,
-      "DDDB_CRAIGSLIST_EMAIL": "unrdeaddrop@gmail.com",
-      "DDDB_CRAIGSLIST_PASSWORD": "",
-      "DDDB_CRAIGSLIST_LOCKFILE": "./craigslist_lockfile",
-      "DDDB_CRAIGSLIST_HEADLESS": true
-    }
+      "dddb_local": {
+          "DDDB_LOCAL_INBOX_DIR": "dddb_local/inbox",
+          "DDDB_LOCAL_OUTBOX_DIR": "dddb_local/outbox",
+          "DDDB_LOCAL_CHECKIN_FREQUENCY": 10
+      },
+      "plaintext_tcp": {
+          "PLAINTEXT_TCP_LISTEN_TIMEOUT": 10,
+          "PLAINTEXT_TCP_LISTEN_BIND_HOST": "0.0.0.0",
+          "PLAINTEXT_TCP_LISTEN_RECV_PORT": 12345,
+          "PLAINTEXT_TCP_LISTEN_SEND_PORT": 12346,
+          "PLAINTEXT_TCP_CHECKIN_FREQUENCY": 10,
+          "PLAINTEXT_TCP_INITIATE_RECV_HOST": "localhost",
+          "PLAINTEXT_TCP_INITIATE_RECV_PORT": 12346,
+          "PLAINTEXT_TCP_INITIATE_SEND_HOST": "localhost",
+          "PLAINTEXT_TCP_INITIATE_SEND_PORT": 12346,
+          "PLAINTEXT_TCP_INITIATE_RETRY_COUNT": 20,
+          "PLAINTEXT_TCP_USE_LISTENER_TO_RECV": true,
+          "PLAINTEXT_TCP_USE_LISTENER_TO_SEND": true
+      },
+      "dddb_craigslist": {
+          "DDDB_CRAIGSLIST_EMAIL": "unrdeaddrop@gmail.com",
+          "DDDB_CRAIGSLIST_HEADLESS": true,
+          "DDDB_CRAIGSLIST_LOCKFILE": "craigslist_lockfile",
+          "DDDB_CRAIGSLIST_PASSWORD": "",
+          "DDDB_CRAIGSLIST_CHECKIN_FREQUENCY": 30
+      },
+      "plaintext_local": {
+          "PLAINTEXT_LOCAL_INBOX_DIR": "plaintext_local/inbox",
+          "PLAINTEXT_LOCAL_OUTBOX_DIR": "plaintext_local/outbox",
+          "PLAINTEXT_LOCAL_CHECKIN_FREQUENCY": 5
+      }
   }
 }
