@@ -1,6 +1,6 @@
 # Metalibs
 deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.0.6
-dddb @ git+https://github.com/unr-deaddrop/dddb@47bd591
+dddb @ git+https://github.com/unr-deaddrop/dddb@f30c1f8
 
 # Anything vaguely related to typing
 mypy==1.8.0
