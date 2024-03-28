@@ -43,13 +43,10 @@ deps:
 # after which it can be assumed that all relevant metadata files are available
 # (and future metadata files, if any) and can be used to generate the relevant
 # models for the Django backend.
-#
-# Additionally, this starts the build process for the base Docker image to help
-# speed up expensive processes that should always be cached. 
 install:
 	cp -a ./resources/install/. .
 	pip3 install -r ./resources/requirements/install-requirements.txt
-	docker compose build
+	docker pull unrdeaddrop/pygin:DOES_NOT_EXIST
 
 # To be run *inside* the build container.
 payload:

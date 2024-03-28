@@ -1,28 +1,8 @@
 # This dockerfile is intended to be used in messaging.
 
-FROM python:3.11.4-bookworm
+FROM unrdeaddrop/pygin:0.4.2
 
 WORKDIR /app
-
-# Don't use .pyc files.
-ENV PYTHONDONTWRITEBYTECODE 1
-# Send stdout to terminal without buffering.
-ENV PYTHONUNBUFFERED 1
-# Yes I'm fine with allowing unsafe pickling
-ENV C_FORCE_ROOT 1
-
-# Install Firefox (dddb)
-COPY ./resources ./resources
-RUN chmod +x ./resources/runtime/install-firefox.sh
-RUN ./resources/runtime/install-firefox.sh
-
-# Install Python packages
-RUN pip3 install --upgrade pip
-COPY requirements.txt ./
-RUN pip3 install -r requirements.txt -U
-
-# Everything else
-COPY . .
 
 # Assert that all inputs are manually copied over if shadowed by the cache
 #

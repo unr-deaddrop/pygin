@@ -32,3 +32,10 @@ class PyginInfo(AgentBase):
         SupportedProtocols.PLAINTEXT_LOCAL,
     ]
     config_model: Type[BaseModel] = PyginConfig
+
+    @classmethod
+    def get_version(cls) -> str:
+        return f"{cls.name}-{cls.version}"
+    
+if __name__ == "__main__":
+    print(PyginInfo.get_version())
