@@ -41,8 +41,8 @@ SERVICE_NAMES = [
 # The list of Compose files to edit.
 COMPOSE_FILES = [
     "docker-compose.yml",
-    "docker-compose-payload.yml",
-    "docker-compose-messaging.yml",
+    "resources/install/docker-compose-payload.yml",
+    "resources/install/docker-compose-messaging.yml",
 ]
 
 if __name__ == "__main__":

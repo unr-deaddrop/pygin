@@ -39,8 +39,6 @@ python3 -m src.meta.generate_metadata
 
 echo "Invoking compose editor"
 python3 -m src.meta.generate_compose
-cd ./resources/install
-python3 -m src.meta.generate_compose
 
 # Zip the remaining contents of the directory. Make a copy in the parent folder, too.
 echo "Zipping to pygin-build.zip"

@@ -52,7 +52,6 @@ install:
 
 # To be run *inside* the build container.
 payload:
-	pip3 install -r ./resources/requirements/payload-requirements.txt
 	python3 -m src.meta.generate_config
 	apt update
 	apt install zip
@@ -62,7 +61,6 @@ payload:
 # To be run *outside* the build container. Note this assumes that the container
 # will exit on its own (or else bad things happen!)
 payload_entry:
-	pip3 install -r ./resources/requirements/payload-requirements.txt
 	python3 -m src.meta.payload_entrypoint
 
 # To be run *inside* the build container.
