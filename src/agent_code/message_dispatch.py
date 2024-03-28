@@ -128,7 +128,7 @@ def retrieve_new_messages(
 
     # For each message, check if was already seen and act accordingly based on
     # `drop_seen`. In all cases, add message IDs to the set.
-    for msg in new_msgs:
+    for msg in verified_msgs:
         # String comparisons to UUIDs don't work as expected, so you have
         # to explicitly convert a uuid.UUID to a string for it to work with
         # the strings contained in the Redis database
