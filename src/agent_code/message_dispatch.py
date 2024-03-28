@@ -263,6 +263,9 @@ def verify_msg(msg: DeadDropMessage, cfg: config.PyginConfig) -> bool:
         logger.debug("Server public key not set, assuming message is valid")
         return True
 
+    if msg.digest is None:
+        raise RuntimeError("Message was not signed!")
+
     # Create deep copy of message, strip it of its digest and get JSON representation
     msg_copy = msg.model_copy(deep=True)
     msg_copy.digest = None
