@@ -2,6 +2,8 @@
 
 FROM python:3.11.4-bookworm
 
+WORKDIR /app
+
 # Don't use .pyc files.
 ENV PYTHONDONTWRITEBYTECODE 1
 # Send stdout to terminal without buffering.
