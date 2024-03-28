@@ -23,9 +23,14 @@ RUN pip3 install -r requirements.txt -U
 COPY . .
 
 # Assert that all inputs are manually copied over if shadowed by the cache
-COPY message_config.json ./
-COPY protocol_state.json ./
-COPY message.json ./
+#
+# Since some of these may or may not exist, we use the approach described by
+# https://stackoverflow.com/questions/31528384/conditional-copy-add-in-dockerfile
+# to conditionally copy without causing Docker to explode in our face, since 
+# COPY requires that the desired file is present
+COPY message_config.[json] ./
+COPY protocol_state.[json] ./
+COPY message.[json] ./
 
 # Execute the main script.
 CMD make message
