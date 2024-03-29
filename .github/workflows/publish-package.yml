@@ -38,4 +38,4 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: pygin-build-${{ steps.meta.outputs.version }}.zip
-          token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
