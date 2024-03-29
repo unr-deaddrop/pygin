@@ -50,7 +50,7 @@ find ./ -exec sed -i "s/pygin:DOES_NOT_EXIST/pygin:$( python3 -m src.meta.agent 
 # Zip the remaining contents of the directory. Make a copy in the parent folder, too.
 echo "Zipping to pygin-build.zip"
 zip -r pygin-build.zip .
-cp ./pygin-build.zip ../pygin-build.zip
+cp ./pygin-build.zip ../pygin-build-$( python3 -m src.meta.agent ).zip
 
 echo "Done. A Docker image of unrdeaddrop/pygin:$( python3 -m src.meta.agent ) has been assumed."
 echo "Please ensure that this image has been published before attempting to install the package."

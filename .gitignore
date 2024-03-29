@@ -12,7 +12,7 @@ payload-logs.txt
 payload.zip
 
 # Build/bundle outputs.
-pygin-build.zip
+pygin-build*
 build/
 
 # Don't commit the agent metadata files. These change frequently and should
