@@ -37,8 +37,12 @@ rm -rf ./.git
 echo "Invoking metadata generator"
 python3 -m src.meta.generate_metadata
 
-echo "Invoking Makefile editor"
-python3 -m src.meta.replace_install
+# https://askubuntu.com/questions/84007/find-and-replace-text-within-multiple-files
+echo "Overwriting image tags with current version"
+find ./ -exec sed -i "s/pygin:DOES_NOT_EXIST/pygin:$( python3 -m src.meta.agent )/g" {} \; 2>/dev/null
+
+# echo "Invoking Makefile editor"
+# python3 -m src.meta.replace_install
 
 # echo "Invoking compose editor"
 # python3 -m src.meta.generate_compose
