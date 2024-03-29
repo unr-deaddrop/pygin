@@ -1,6 +1,9 @@
 # Dependencies required for an install to function (i.e. the dependencies
 # for src.meta.generate_metadata). It is preferred that these do not
 # edit the server's environment, so no pegging is used here.
+#
+# These are also "shared" dependencies used inside the Celery workers,
+# installed before any operation (such as messaging or payload generation).
 pydantic
 json5
 pyyaml

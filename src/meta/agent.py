@@ -22,7 +22,7 @@ class PyginInfo(AgentBase):
 
     name: str = "pygin"
     description: str = __doc__
-    version: str = "0.4.2"
+    version: str = "0.4.3"
     author: str = "lgactna"
     source: str = "https://github.com/unr-deaddrop/pygin/"
     supported_operating_systems: list[SupportedOSTypes] = [SupportedOSTypes.LINUX]
@@ -32,3 +32,10 @@ class PyginInfo(AgentBase):
         SupportedProtocols.PLAINTEXT_LOCAL,
     ]
     config_model: Type[BaseModel] = PyginConfig
+
+    @classmethod
+    def get_version(cls) -> str:
+        return f"{cls.name}-{cls.version}"
+    
+if __name__ == "__main__":
+    print(PyginInfo.version)

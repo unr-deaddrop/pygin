@@ -1,4 +1,6 @@
-# stolen from han's dockerfile setup for the backend
+# This Dockerfile is used to create the "base" image for all agent operations,
+# which generally uses the same source code but with slightly different
+# entrypoints and input files.
 
 FROM python:3.11.4-bookworm
 

@@ -7,11 +7,9 @@ services:
     image: redis:7.0.11-alpine
 
   pygin:
-    image: pygin:latest
-    build:
+    build: 
+      dockerfile: Dockerfile.runtime
       context: .
-      cache_from:
-        - pygin:latest
     command: python3 -m src.agent_code.main
     depends_on:
       - celery_beat
@@ -21,11 +19,9 @@ services:
       IS_DOCKER: "True"
 
   celery_beat:
-    image: pygin:latest
-    build:
+    build: 
+      dockerfile: Dockerfile.runtime
       context: .
-      cache_from:
-        - pygin:latest
     command: celery -A src.agent_code.tasks beat --loglevel=DEBUG
     depends_on:
       - redis
@@ -33,11 +29,9 @@ services:
       IS_DOCKER: "True"
 
   celery_worker:
-    image: pygin:latest
-    build:
+    build: 
+      dockerfile: Dockerfile.runtime
       context: .
-      cache_from:
-        - pygin:latest
     command: celery -A src.agent_code.tasks worker --loglevel=DEBUG
     ports:
       # These are the default ports used in TCP communication as defined in 

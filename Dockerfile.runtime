@@ -10,9 +10,7 @@ WORKDIR /app
 # https://stackoverflow.com/questions/31528384/conditional-copy-add-in-dockerfile
 # to conditionally copy without causing Docker to explode in our face, since 
 # COPY requires that the desired file is present
-COPY message_config.jso[n] .
-COPY protocol_state.jso[n] .
-COPY message.jso[n] .
+COPY agent_cfg.json .
 
 # Execute the main script.
 CMD make message
