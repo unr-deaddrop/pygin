@@ -11,3 +11,6 @@ On Windows machines, run `all.bat` to start the agent. On Linux machines, use
 
 Note that Empyrean is Windows-only, and Redis is natively compiled for Linux,
 so no elements in `contribs` are used on Linux installations of Pygin.
+
+The versioning on Docker images and packages are based on src/meta/agent.py. 
+GitHub Actions publishes a new Docker image and DeadDrop bundle release whenever a tag is pushed to the repo.
