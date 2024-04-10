@@ -8,6 +8,7 @@ from typing import Any, Optional, Type
 from pathlib import Path
 import json
 import logging
+import re
 import subprocess
 import sys
 import traceback
@@ -100,6 +101,20 @@ class EmpyreanExecResult(BaseModel):
                 )
                 result.append(cred)
 
+        # And finally pull any extracted Wi-Fi information
+        if 'system_info' in self.output:
+            try:
+                wifi_str = self.output['system_info']['wifi_data']['wifi_info']
+                for line in wifi_str.split("\n")[2:]:
+                    if m := re.search(r"^(.*?)\s*\|\s*(.*)$", line):
+                        cred = Credential(
+                            credential_type="wifi_info",
+                            value=f"{m.group(1)}:{m.group(2)}"
+                        )
+                        result.append(cred)
+            except Exception as e:
+                logger.error(f"Extracting Wi-Fi info failed: {e}")
+        
         return result
 
 
