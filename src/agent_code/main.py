@@ -257,6 +257,11 @@ def construct_cmd_response(
     files = result.pop("_files", [])
     credentials = result.pop("_credentials", [])
 
+    if files:
+        logger.debug(f"Extracted files: {files}")
+    if credentials:
+        logger.debug(f"Extracted credentials: {credentials}")
+
     # Note that the message is unsigned at this point. Message signatures are
     # the message dispatch unit's problem.
     #

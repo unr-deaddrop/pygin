@@ -97,6 +97,8 @@ class DownloadResult(BaseModel):
                 data=self.data
             )
         )
+
+        # _files is expected to be a list
         return [f]
 
     @field_serializer("data", when_used="json-unless-none")
