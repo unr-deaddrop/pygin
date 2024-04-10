@@ -251,11 +251,11 @@ def construct_cmd_response(
     result: dict[str, Any] = task_result.get()
     assert isinstance(result, dict)
 
-    # If the keys _files or _credentials are present, rip them out of the result
-    # and assign them at the payload level instead. Otherwise, just let the
-    # Pydantic model assign them to the default value.
-    files = result.pop("_files", None)
-    credentials = result.pop("_credentials", None)
+    # If the keys _files or _credentials are present, rip them out of 
+    # the result and assign them at the payload level instead. Otherwise, 
+    # just return empty lists.
+    files = result.pop("_files", [])
+    credentials = result.pop("_credentials", [])
 
     # Note that the message is unsigned at this point. Message signatures are
     # the message dispatch unit's problem.
@@ -269,12 +269,13 @@ def construct_cmd_response(
         source_id=cfg.AGENT_ID,
         payload=CommandResponsePayload(
             message_type=DeadDropMessageType.CMD_RESPONSE,
-            # TODO: put da fields here
             cmd_name=payload.cmd_name,
             start_time=start_time,
             end_time=task_result.date_done.replace(tzinfo=datetime.timezone.utc),  # type: ignore[arg-type, union-attr]
             request_id=cmd_request.message_id,
             result=task_result.get(),
+            files=files,
+            credentials=credentials
         ),
     )
 
