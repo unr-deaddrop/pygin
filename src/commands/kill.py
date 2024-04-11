@@ -7,7 +7,8 @@ Command allowing the user to execute arbitrary Python.
 
 from typing import Any, Optional, Type
 import datetime
-import traceback
+import shlex
+import subprocess
 
 
 from pydantic import BaseModel, Field, AwareDatetime
@@ -48,4 +49,13 @@ class KillCommand(CommandBase):
     def execute_command(cls, args: dict[str, Any]) -> dict[str, Any]:
         cmd_args = KillArguments.model_validate(args)
 
-        
+        target_time = datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=cmd_args.delay)
+
+        # In the background, invoke the process (which allows this to return
+        # and allows the control unit to send back acknowledgement)
+        subprocess.Popen(shlex.split(f"python -m src.agent_code.stop_agent {cmd_args.delay}"))
+
+        res = KillResult(
+            scheduled_kill_time=target_time
+        )
+        return res.model_dump()

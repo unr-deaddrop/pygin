@@ -1,3 +1,0 @@
-"""
-Uninstall the agent.
-"""
