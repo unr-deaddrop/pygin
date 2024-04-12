@@ -19,9 +19,10 @@ import os
 import logging
 import traceback
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, field_serializer, computed_field
 
 from deaddrop_meta.command_lib import CommandBase, RendererBase
+from deaddrop_meta.protocol_lib import File, FileData
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,22 @@ class DownloadArguments(BaseModel):
     # validation.
     filepath: Path = Field(
         json_schema_extra={"description": "The path to the file to download."}
+    )
+
+    # This configuration options exists to prevent doubling the size of the 
+    # outputs of this command. The control unit expects any file-like DeadDrop
+    # objects in the special key _files, but we also maintain our own output.
+    #
+    # It *may* be desirable to keep the data for the sake of independence, but
+    # this will naturally double the size of the resulting message needlessly.
+    # You may want this if you want to see the file at the result level and not
+    # the payload level; in most cases, this is not necessary.
+    duplicate_file_in_payload: bool = Field(
+        default=False,
+        json_schema_extra={
+            "description": "Whether to populate the `data` field in the output,"
+            " which duplicates the payload-level file field."
+        }
     )
 
 
@@ -62,6 +79,27 @@ class DownloadResult(BaseModel):
             "description": "Additional file information obtained from os.stat()."
         }
     )
+
+    @computed_field
+    @property
+    def _files(self) -> list[File]:
+        """
+        Generate the standardized file output list.
+        """
+        if not self.data:
+            return []
+    
+        # There is some computed field nesting here; the digest for FileData
+        # should be computed when this top-level model is dumped out
+        f = File(
+            remote_path=str(self.resolved_path), 
+            file_data=FileData(
+                data=self.data
+            )
+        )
+
+        # _files is expected to be a list
+        return [f]
 
     @field_serializer("data", when_used="json-unless-none")
     @classmethod
@@ -103,7 +141,14 @@ class DownloadCommand(CommandBase):
                 error=None,
                 stat=cls.getstat(cmd_args.filepath),
             )
-            return res.model_dump()
+
+            output = res.model_dump()
+
+            if not cmd_args.duplicate_file_in_payload:
+                # Null out the data field before it reaches the control unit.
+                output["data"] = None
+
+            return output
         except Exception:
             res = DownloadResult(
                 data=None,

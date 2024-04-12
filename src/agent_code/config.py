@@ -316,6 +316,21 @@ class PyginConfig(BaseModel):
             raise ValueError("Decoded key is of invalid length.")
 
         return val
+    
+    @field_validator("INCOMING_PROTOCOLS", mode="before")
+    @classmethod
+    def validate_incoming_protocols(cls, v: Any) -> list[str]:
+        """
+        If the incoming protocol set is not a list, assume that it is a
+        comma-separated string.
+        """
+        if isinstance(v, list):
+            return v
+    
+        if not isinstance(v, str):
+            raise ValueError(f"Expected string or list.")
+
+        return [x.strip() for x in v.split(",")]
 
     @field_serializer(
         "AGENT_PRIVATE_KEY",
