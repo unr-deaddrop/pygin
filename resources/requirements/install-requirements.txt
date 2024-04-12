@@ -7,4 +7,4 @@
 pydantic
 json5
 pyyaml
-deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.3.0
+deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.3.1

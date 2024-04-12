@@ -83,7 +83,7 @@ class EmpyreanResult(BaseModel):
 
     # mypy doesn't support decorated properties, though this is the official
     # method described in pydantic's documentation
-    @computed_field # type: ignore[misc]
+    @computed_field  # type: ignore[misc]
     @property
     def _credentials(self) -> list[Credential]:
         """
