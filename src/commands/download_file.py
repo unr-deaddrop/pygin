@@ -40,7 +40,7 @@ class DownloadArguments(BaseModel):
         json_schema_extra={"description": "The path to the file to download."}
     )
 
-    # This configuration options exists to prevent doubling the size of the 
+    # This configuration options exists to prevent doubling the size of the
     # outputs of this command. The control unit expects any file-like DeadDrop
     # objects in the special key _files, but we also maintain our own output.
     #
@@ -53,7 +53,7 @@ class DownloadArguments(BaseModel):
         json_schema_extra={
             "description": "Whether to populate the `data` field in the output,"
             " which duplicates the payload-level file field."
-        }
+        },
     )
 
 
@@ -88,14 +88,11 @@ class DownloadResult(BaseModel):
         """
         if not self.data:
             return []
-    
+
         # There is some computed field nesting here; the digest for FileData
         # should be computed when this top-level model is dumped out
         f = File(
-            remote_path=str(self.resolved_path), 
-            file_data=FileData(
-                data=self.data
-            )
+            remote_path=str(self.resolved_path), file_data=FileData(data=self.data)
         )
 
         # _files is expected to be a list

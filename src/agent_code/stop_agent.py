@@ -3,6 +3,7 @@ Stop the agent.
 
 In general, this should be invoked as a subprocess call.
 """
+
 import argparse
 import logging
 import os
@@ -13,8 +14,6 @@ import sys
 import time
 
 import psutil
-
-from tasks import app
 
 logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
@@ -28,11 +27,12 @@ TARGET_CMDLINES = [
     "-m src.agent_code.main",
     "celery -A src.agent_code.tasks worker",
     "celery -A src.agent_code.tasks beat",
-    "redis-server"
+    "redis-server",
 ]
 
+
 def read_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog='stop_agent')
+    parser = argparse.ArgumentParser(prog="stop_agent")
 
     parser.add_argument(
         "delay",
@@ -41,14 +41,16 @@ def read_args() -> argparse.Namespace:
         nargs=1,
         help="The delay before killing all processes.",
         metavar="delay",
-        required=True
+        required=True,
     )
 
     return parser.parse_args()
 
+
 def kill_docker() -> None:
     # Maybe this works, don't know
     subprocess.run(shlex.split("docker compose stop"))
+
 
 if __name__ == "__main__":
     args = read_args()

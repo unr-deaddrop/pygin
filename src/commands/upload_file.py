@@ -13,7 +13,6 @@ import traceback
 from pydantic import BaseModel, Field, field_validator
 
 from deaddrop_meta.command_lib import CommandBase, RendererBase
-from deaddrop_meta.protocol_lib import File, FileData
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +27,12 @@ class UploadArguments(BaseModel):
     # Also, Pydantic is smart enough to turn strings into Path objects on
     # validation.
     filepath: Path = Field(
-        json_schema_extra={"description": "The path to write this file to. Resolved at runtime."}
+        json_schema_extra={
+            "description": "The path to write this file to. Resolved at runtime."
+        }
     )
 
-    data: bytes = Field(
-        json_schema_extra={"description": "The actual file to write."}
-    )
+    data: bytes = Field(json_schema_extra={"description": "The actual file to write."})
 
     @field_validator(
         "data",
@@ -76,7 +75,6 @@ class UploadResult(BaseModel):
     )
 
 
-
 class UploadCommand(CommandBase):
     """
     Download a single file accessible to Pygin with its current permissions.
@@ -108,13 +106,14 @@ class UploadCommand(CommandBase):
                 stat=None,
             )
             return res.model_dump()
-        
+
         res = UploadResult(
             resolved_path=cmd_args.filepath,
             success=True,
             error=None,
             stat=cls.getstat(cmd_args.filepath),
         )
+        return res.model_dump()
 
     # From https://stackoverflow.com/questions/55638905/how-to-convert-os-stat-result-to-a-json-that-is-an-object
     @staticmethod
@@ -124,4 +123,3 @@ class UploadCommand(CommandBase):
             return {k: getattr(s_obj, k) for k in dir(s_obj) if k.startswith("st_")}
         except Exception:
             return None
-

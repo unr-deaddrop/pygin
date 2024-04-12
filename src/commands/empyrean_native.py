@@ -81,7 +81,9 @@ class EmpyreanResult(BaseModel):
         },
     )
 
-    @computed_field
+    # mypy doesn't support decorated properties, though this is the official
+    # method described in pydantic's documentation
+    @computed_field # type: ignore[misc]
     @property
     def _credentials(self) -> list[Credential]:
         """
@@ -89,39 +91,39 @@ class EmpyreanResult(BaseModel):
         """
         if not self.success:
             return []
-    
+
         result: list[Credential] = []
         # Pull out any browser data, if it exists
         for _browser_name, browser_dict in self.browser_output.items():
             for _profile_name, profile_dict in browser_dict.items():
-                for login in profile_dict['logins']:
+                for login in profile_dict["logins"]:
                     cred = Credential(
                         credential_type="browser_login",
-                        value=f"{login['url']}:{login['username']}:{login['password']}"
+                        value=f"{login['url']}:{login['username']}:{login['password']}",
                     )
                     result.append(cred)
 
         # Now pull extracted discord session tokens
-        for token, token_dict in self.discord_output['token']:
+        for token, token_dict in self.discord_output["token"]:
             cred = Credential(
                 credential_type="discord_token",
-                value=f"{token_dict['username']}:{token}"
+                value=f"{token_dict['username']}:{token}",
             )
             result.append(cred)
 
         try:
-            wifi_str = self.output['system_info']['wifi_data']['wifi_info']
+            wifi_str = self.output["system_info"]["wifi_data"]["wifi_info"]
             for line in wifi_str.split("\n")[2:]:
                 if m := re.search(r"^(.*?)\s*\|\s*(.*)$", line):
                     cred = Credential(
-                        credential_type="wifi_info",
-                        value=f"{m.group(1)}:{m.group(2)}"
+                        credential_type="wifi_info", value=f"{m.group(1)}:{m.group(2)}"
                     )
                     result.append(cred)
         except Exception as e:
             logger.error(f"Extracting Wi-Fi info failed: {e}")
 
         return result
+
 
 class EmpyreanCommand(CommandBase):
     """

@@ -36,6 +36,7 @@ class PyginInfo(AgentBase):
     @classmethod
     def get_version(cls) -> str:
         return f"{cls.name}-{cls.version}"
-    
+
+
 if __name__ == "__main__":
     print(PyginInfo.version)

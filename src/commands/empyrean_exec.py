@@ -79,42 +79,42 @@ class EmpyreanExecResult(BaseModel):
         """
         if not self.output:
             return []
-    
+
         result: list[Credential] = []
         # Pull out any browser data, if it exists
-        if 'browsers' in self.output:
-            for _browser_name, browser_dict in self.output['browsers'].items():
+        if "browsers" in self.output:
+            for _browser_name, browser_dict in self.output["browsers"].items():
                 for _profile_name, profile_dict in browser_dict.items():
-                    for login in profile_dict['logins']:
+                    for login in profile_dict["logins"]:
                         cred = Credential(
                             credential_type="browser_login",
-                            value=f"{login['url']}:{login['username']}:{login['password']}"
+                            value=f"{login['url']}:{login['username']}:{login['password']}",
                         )
                         result.append(cred)
 
         # Now pull extracted discord session tokens
-        if 'token' in self.output:
-            for token, token_dict in self.output['token']:
+        if "token" in self.output:
+            for token, token_dict in self.output["token"]:
                 cred = Credential(
                     credential_type="discord_token",
-                    value=f"{token_dict['username']}:{token}"
+                    value=f"{token_dict['username']}:{token}",
                 )
                 result.append(cred)
 
         # And finally pull any extracted Wi-Fi information
-        if 'system_info' in self.output:
+        if "system_info" in self.output:
             try:
-                wifi_str = self.output['system_info']['wifi_data']['wifi_info']
+                wifi_str = self.output["system_info"]["wifi_data"]["wifi_info"]
                 for line in wifi_str.split("\n")[2:]:
                     if m := re.search(r"^(.*?)\s*\|\s*(.*)$", line):
                         cred = Credential(
                             credential_type="wifi_info",
-                            value=f"{m.group(1)}:{m.group(2)}"
+                            value=f"{m.group(1)}:{m.group(2)}",
                         )
                         result.append(cred)
             except Exception as e:
                 logger.error(f"Extracting Wi-Fi info failed: {e}")
-        
+
         return result
 
 

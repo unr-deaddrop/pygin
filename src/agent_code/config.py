@@ -316,7 +316,7 @@ class PyginConfig(BaseModel):
             raise ValueError("Decoded key is of invalid length.")
 
         return val
-    
+
     @field_validator("INCOMING_PROTOCOLS", mode="before")
     @classmethod
     def validate_incoming_protocols(cls, v: Any) -> list[str]:
@@ -326,9 +326,9 @@ class PyginConfig(BaseModel):
         """
         if isinstance(v, list):
             return v
-    
+
         if not isinstance(v, str):
-            raise ValueError(f"Expected string or list.")
+            raise ValueError(f"Expected string or list, got {v}")
 
         return [x.strip() for x in v.split(",")]
 
@@ -392,22 +392,6 @@ class PyginConfig(BaseModel):
             trailing_commas=False,
             indent=2,
         )
-
-    @field_validator("INCOMING_PROTOCOLS", mode="before")
-    @classmethod
-    def validate_incoming_protocols(cls, v: Any) -> list[str]:
-        """
-        Split apart the incoming protocols as needed. This is a comma-separated
-        string in the configuration file, and therefore may need to be split
-        apart manually before Pydantic gets to it.
-        """
-        if type(v) is str:
-            return v.split(",")
-
-        if type(v) is list:
-            return v
-
-        raise ValueError("Unexpected type for INCOMING_PROTOCOLS")
 
     def resolve_all_dirs(self) -> None:
         """

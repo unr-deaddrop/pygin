@@ -251,8 +251,8 @@ def construct_cmd_response(
     result: dict[str, Any] = task_result.get()
     assert isinstance(result, dict)
 
-    # If the keys _files or _credentials are present, rip them out of 
-    # the result and assign them at the payload level instead. Otherwise, 
+    # If the keys _files or _credentials are present, rip them out of
+    # the result and assign them at the payload level instead. Otherwise,
     # just return empty lists.
     files = result.pop("_files", [])
     credentials = result.pop("_credentials", [])
@@ -280,7 +280,7 @@ def construct_cmd_response(
             request_id=cmd_request.message_id,
             result=task_result.get(),
             files=files,
-            credentials=credentials
+            credentials=credentials,
         ),
     )
 
