@@ -39,8 +39,10 @@ def recurse_dir(path: str) -> dict[str, Any]:
     for root, dirs, files in os.walk(resolved_path):
         tree = {"name": root, "type": "folder", "children": []}
 
-        # mypy doesn't recognize this as a list
-        tree["children"].extend([recurse_dir(os.path.join(root, d)) for d in dirs])  # type: ignore[attr-defined]
+        # mypy doesn't recognize tree["children"] as a list
+        assert isinstance(tree["children"], list)
+
+        tree["children"].extend([recurse_dir(os.path.join(root, d)) for d in dirs])
         tree["children"].extend(
             [{"name": os.path.join(root, f), "type": "file"} for f in files]
         )

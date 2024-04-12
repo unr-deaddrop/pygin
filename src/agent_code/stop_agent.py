@@ -67,7 +67,8 @@ if __name__ == "__main__":
     for proc in psutil.process_iter():
         # Check whether the process name matches
         for cmdline in TARGET_CMDLINES:
-            if re.search(cmdline, proc.cmdline()):
-                logger.warning(f"Killing {proc.cmdline()}")
+            cmdline_str = " ".join(proc.cmdline())
+            if re.search(cmdline, cmdline_str):
+                logger.warning(f"Killing {cmdline_str} ({proc.cmdline()=})")
                 proc.kill()
                 break

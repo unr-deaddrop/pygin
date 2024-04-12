@@ -71,7 +71,8 @@ class EmpyreanExecResult(BaseModel):
         },
     )
 
-    @computed_field
+    # mypy dislikes decorated properties
+    @computed_field  # type: ignore[misc]
     @property
     def _credentials(self) -> list[Credential]:
         """

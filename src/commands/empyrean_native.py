@@ -112,7 +112,7 @@ class EmpyreanResult(BaseModel):
             result.append(cred)
 
         try:
-            wifi_str = self.output["system_info"]["wifi_data"]["wifi_info"]
+            wifi_str = self.sysinfo_output["system_info"]["wifi_data"]["wifi_info"]
             for line in wifi_str.split("\n")[2:]:
                 if m := re.search(r"^(.*?)\s*\|\s*(.*)$", line):
                     cred = Credential(
