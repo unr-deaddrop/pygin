@@ -38,10 +38,9 @@ def read_args() -> argparse.Namespace:
         "delay",
         type=int,
         default=60,
-        nargs=1,
+        nargs="?",
         help="The delay before killing all processes.",
         metavar="delay",
-        required=True,
     )
 
     return parser.parse_args()
@@ -65,10 +64,17 @@ if __name__ == "__main__":
 
     # Otherwise, levy psutil to just kill everything the hard way
     for proc in psutil.process_iter():
-        # Check whether the process name matches
-        for cmdline in TARGET_CMDLINES:
-            cmdline_str = " ".join(proc.cmdline())
-            if re.search(cmdline, cmdline_str):
-                logger.warning(f"Killing {cmdline_str} ({proc.cmdline()=})")
-                proc.kill()
-                break
+        try:
+            # Check whether the process name matches
+            for cmdline in TARGET_CMDLINES:
+                cmdline_str = " ".join(proc.cmdline())
+                if re.search(cmdline, cmdline_str):
+                    logger.warning(f"Killing {cmdline_str} ({proc.cmdline()=})")
+                    proc.kill()
+                    break
+        except psutil.AccessDenied:
+            # Ignore permission errors
+            logger.debug(f"Failed to access data for {proc.pid=}")
+        except Exception as e:
+            # Covers everything else, like TOCTOU
+            logger.debug(f"Error trying to access {proc.pid=}: {e}")
