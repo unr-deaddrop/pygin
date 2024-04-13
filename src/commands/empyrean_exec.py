@@ -95,7 +95,7 @@ class EmpyreanExecResult(BaseModel):
 
         # Now pull extracted discord session tokens
         if "token" in self.output:
-            for token, token_dict in self.output["token"]:
+            for token, token_dict in self.output["token"].items():
                 cred = Credential(
                     credential_type="discord_token",
                     value=f"{token_dict['username']}:{token}",

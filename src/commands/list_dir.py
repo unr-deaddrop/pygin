@@ -48,6 +48,9 @@ def recurse_dir(path: str) -> dict[str, Any]:
         )
         return tree
 
+    # Should be unreachable
+    assert False
+
 
 class ListDirCommand(CommandBase):
     """
