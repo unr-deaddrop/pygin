@@ -46,7 +46,7 @@ def recurse_dir(path: str) -> dict[str, Any]:
         tree["children"].extend(
             [{"name": os.path.join(root, f), "type": "file"} for f in files]
         )
-    return tree
+        return tree
 
 
 class ListDirCommand(CommandBase):
