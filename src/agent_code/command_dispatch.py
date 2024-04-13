@@ -13,6 +13,7 @@ from the rest of Pygin's libraries.
 """
 
 from typing import Any, Type
+import traceback
 
 from pydantic import BaseModel
 
@@ -49,4 +50,9 @@ def execute_command(cmd_name: str, args: dict[str, Any]) -> dict[str, Any]:
     validated_args = arg_model.model_validate(args)
 
     # Actually execute the command and return its immediate result.
-    return cmd_class.execute_command(validated_args.model_dump())
+    try:
+        return cmd_class.execute_command(validated_args.model_dump())
+    except Exception:
+        # On failure, return a message describing the uncaught error;
+        # normally, commands have their own error handling
+        return {"error": traceback.format_exc()}

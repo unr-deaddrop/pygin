@@ -1,11 +1,12 @@
 """
 Modify the Docker Compose files so that they use `cache_from`, providing a set
-of standard layers that can be reused. Then, invoke the build command 
+of standard layers that can be reused. Then, invoke the build command
 (synchronously) for the "base" Docker Compose file to generate the layers.
 """
 
 from pathlib import Path
 from typing import Any
+
 # import subprocess
 # import shlex
 import logging

@@ -317,6 +317,21 @@ class PyginConfig(BaseModel):
 
         return val
 
+    @field_validator("INCOMING_PROTOCOLS", mode="before")
+    @classmethod
+    def validate_incoming_protocols(cls, v: Any) -> list[str]:
+        """
+        If the incoming protocol set is not a list, assume that it is a
+        comma-separated string.
+        """
+        if isinstance(v, list):
+            return v
+
+        if not isinstance(v, str):
+            raise ValueError(f"Expected string or list, got {v}")
+
+        return [x.strip() for x in v.split(",")]
+
     @field_serializer(
         "AGENT_PRIVATE_KEY",
         "AGENT_PUBLIC_KEY",
@@ -377,22 +392,6 @@ class PyginConfig(BaseModel):
             trailing_commas=False,
             indent=2,
         )
-
-    @field_validator("INCOMING_PROTOCOLS", mode="before")
-    @classmethod
-    def validate_incoming_protocols(cls, v: Any) -> list[str]:
-        """
-        Split apart the incoming protocols as needed. This is a comma-separated
-        string in the configuration file, and therefore may need to be split
-        apart manually before Pydantic gets to it.
-        """
-        if type(v) is str:
-            return v.split(",")
-
-        if type(v) is list:
-            return v
-
-        raise ValueError("Unexpected type for INCOMING_PROTOCOLS")
 
     def resolve_all_dirs(self) -> None:
         """

