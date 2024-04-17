@@ -57,7 +57,7 @@ class PyginConfig(BaseModel):
         },
     )
     DROP_MISDIRECTED_MESSAGES: bool = Field(
-        default=False,
+        default=True,
         json_schema_extra={
             "description": "Whether to drop messages with a destination ID not for this agent."
         },
@@ -70,30 +70,40 @@ class PyginConfig(BaseModel):
         },
     )
 
-    # These are generated at build time and are not user configured, and therefore
-    # should not be included in any forms constructed from this schema. In turn,
-    # the payload generation script is responsible for actually creating these with
-    # the configuration file.
+    # These used to not be included in the JSON schema. However, this means they
+    # get excluded from the JSON that the frontend generates. That means that
+    # instead of these fields being set to null/None, they're just absent altogether.
     #
-    # That said, the json_schema_extra fields are filled out anyways since I didn't
-    # want to lose them if we had to turn around.
-    AGENT_PRIVATE_KEY: SkipJsonSchema[Optional[bytes]] = Field(
-        json_schema_extra={"description": "The agent's private key as base64."}
-    )
-    AGENT_PUBLIC_KEY: SkipJsonSchema[Optional[bytes]] = Field(
-        json_schema_extra={"description": "The agent's public key as base64."}
-    )
-    ENCRYPTION_KEY: SkipJsonSchema[Optional[bytes]] = Field(
+    # So instead, we're just going to make these readonly, but we'll include them
+    # with the schema.
+    AGENT_PRIVATE_KEY: Optional[bytes] = Field(
+        default=None,
         json_schema_extra={
-            "description": "The agent's symmetric encryption key as base64."
-        }
+            "description": "The agent's private key as base64.",
+            "readonly": True,
+        },
+    )
+    AGENT_PUBLIC_KEY: Optional[bytes] = Field(
+        default=None,
+        json_schema_extra={
+            "description": "The agent's public key as base64.",
+            "readonly": True,
+        },
+    )
+    ENCRYPTION_KEY: Optional[bytes] = Field(
+        default=None,
+        json_schema_extra={
+            "description": "The agent's symmetric encryption key as base64.",
+            "readonly": True,
+        },
     )
 
-    # This *is not* visible to the schema and should only be set at runtime.
-    SERVER_PRIVATE_KEY: SkipJsonSchema[Optional[bytes]] = Field(
+    SERVER_PRIVATE_KEY: Optional[bytes] = Field(
+        default=None,
         json_schema_extra={
-            "description": "The server's private key as base64. Set at runtime."
-        }
+            "description": "The server's private key as base64. Set at runtime.",
+            "readonly": True,
+        },
     )
     # This *is* visible to the schema. The server is hinted that it should substitute
     # the default value of this with the its own public key, as defined in the app's
@@ -311,9 +321,14 @@ class PyginConfig(BaseModel):
         """
         If the value passed into the configuration object is not bytes,
         assume base64.
+
+        If this is an empty string, interpret it as None.
         """
         if v is None or isinstance(v, bytes):
             return v
+
+        if v == "":
+            return None
 
         try:
             val = b64decode(v)
@@ -334,6 +349,9 @@ class PyginConfig(BaseModel):
         """
         if v is None or isinstance(v, bytes):
             return v
+
+        if v == "":
+            return None
 
         try:
             val = b64decode(v)
