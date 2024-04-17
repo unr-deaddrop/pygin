@@ -27,17 +27,20 @@ class PlaintextLocalConfig(ProtocolConfig):
     """
 
     PLAINTEXT_LOCAL_CHECKIN_FREQUENCY: int = Field(
+        default=5,
         json_schema_extra={
             "description": "The frequency with which to check for new messages."
-        }
+        },
     )
     PLAINTEXT_LOCAL_INBOX_DIR: Path = Field(
+        default=Path("plaintext_local/inbox"),
         json_schema_extra={
             "description": "The location to expect incoming messages in."
-        }
+        },
     )
     PLAINTEXT_LOCAL_OUTBOX_DIR: Path = Field(
-        json_schema_extra={"description": "The location to send outgoing messages to."}
+        default=Path("plaintext_local/outbox"),
+        json_schema_extra={"description": "The location to send outgoing messages to."},
     )
 
     # Should be plaintext_local

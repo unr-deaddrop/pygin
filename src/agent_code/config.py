@@ -33,6 +33,13 @@ class PyginConfig(BaseModel):
     sensitive configurations set at runtime.
 
     See agent.cfg for more details.
+
+    Note that some defaults are declared at the JSON schema level rather than
+    the field level. This is intentional; the defaults are intended to be used
+    to prepopulate form fields, rather than actually making these fields optional.
+
+    Defaults that *are* declared at the JSON schema level are generally not
+    expected
     """
 
     # Strictly speaking, these aren't constants and therefore shouldn't be in
@@ -106,73 +113,94 @@ class PyginConfig(BaseModel):
 
     INCOMING_PROTOCOLS: list[str] = Field(
         json_schema_extra={
-            "description": "A list of supported agent names for which periodic listener tasks should be scheduled."
+            "default": "plaintext_tcp",
+            "description": "A list of supported agent names for which periodic listener tasks should be scheduled.",
         }
     )
 
     HEARTBEAT_PROTOCOL: str = Field(
-        json_schema_extra={"description": "The protocol used to send heartbeats."}
+        json_schema_extra={
+            "default": "plaintext_tcp",
+            "description": "The protocol used to send heartbeats.",
+        }
     )
     LOGGING_PROTOCOL: str = Field(
-        json_schema_extra={"description": "The protocol used to send log bundles."}
+        json_schema_extra={
+            "default": "plaintext_tcp",
+            "description": "The protocol used to send heartbeats.",
+        }
     )
     SENDING_PROTOCOL: str = Field(
         json_schema_extra={
-            "description": "The protocol used to send all other messages."
+            "default": "plaintext_tcp",
+            "description": "The protocol used to send heartbeats.",
         }
     )
 
     LOGGING_INTERVAL: int = Field(
         json_schema_extra={
-            "description": "The frequency, in seconds, with which log bundles should be conditionally sent."
+            "default": 60,
+            "description": "The frequency, in seconds, with which log bundles should be conditionally sent.",
         }
     )
     HEARTBEAT_INTERVAL: int = Field(
         json_schema_extra={
-            "description": "The frequency, in seconds, with which heartbeats should be conditionally sent."
+            "default": 60,
+            "description": "The frequency, in seconds, with which heartbeats should be conditionally sent.",
         }
     )
 
     REDIS_MESSAGES_SEEN_KEY: str = Field(
+        default="_agent_meta-seen-msgs",
         json_schema_extra={
             "description": "The key used by the message dispatch unit to drop duplicate messages."
-        }
+        },
     )
     REDIS_NEW_MESSAGES_KEY: str = Field(
+        default="_agent_meta-new-msg-task-ids",
         json_schema_extra={
             "description": "The key used by the control unit to discover completed message tasking."
-        }
+        },
     )
     REDIS_MAIN_PROCESS_MESSAGES_SEEN_KEY: str = Field(
+        default="_agent_meta-main-msgs-seen",
         json_schema_extra={
             "description": "The key used by the control unit to drop duplicated messages."
-        }
+        },
     )
     RESULT_RETRIEVAL_REATTEMPT_LIMIT: int = Field(
+        default=5,
         json_schema_extra={
             "description": "The number of times a Celery task may be observed to be pending before dropped."
-        }
+        },
     )
 
     INCOMING_ENCODED_MESSAGE_DIR: Path = Field(
+        default=Path("msgs/incoming_raw"),
         json_schema_extra={
             "description": "The directory used to store incoming messages before decoding."
-        }
+        },
     )
     INCOMING_DECODED_MESSAGE_DIR: Path = Field(
+        default=Path("msgs/incoming_decoded"),
         json_schema_extra={
-            "description": "The directory used to store incoming messages after decoding."
-        }
+            "default": "msgs/incoming_decoded",
+            "description": "The directory used to store incoming messages after decoding.",
+        },
     )
     OUTGOING_DECODED_MESSAGE_DIR: Path = Field(
+        default=Path("msgs/outgoing_decoded"),
         json_schema_extra={
-            "description": "The directory used to store outgoing messages before encoding."
-        }
+            "default": "msgs/outgoing_decoded",
+            "description": "The directory used to store outgoing messages before encoding.",
+        },
     )
     OUTGOING_ENCODED_MESSAGE_DIR: Path = Field(
+        default=Path("msgs/outgoing_raw"),
         json_schema_extra={
-            "description": "The directory used to store outgoing messages after encoding."
-        }
+            "default": "msgs/outgoing_raw",
+            "description": "The directory used to store outgoing messages after encoding.",
+        },
     )
 
     # Configuration objects for each protocol. This is excluded from the JSON

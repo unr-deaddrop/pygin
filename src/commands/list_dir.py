@@ -49,7 +49,7 @@ def recurse_dir(path: str) -> dict[str, Any]:
         return tree
 
     # Should be unreachable
-    assert False
+    raise AssertionError("Impossible recursion state reached")
 
 
 class ListDirCommand(CommandBase):

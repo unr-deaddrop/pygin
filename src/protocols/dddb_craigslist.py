@@ -53,7 +53,7 @@ class dddbCraigslistConfig(ProtocolConfig):
     """
 
     DDDB_CRAIGSLIST_CHECKIN_FREQUENCY: int = Field(
-        default=30,
+        default=120,
         json_schema_extra={
             "description": "The frequency with which to check for messages via Craigslist."
         },
@@ -65,11 +65,13 @@ class dddbCraigslistConfig(ProtocolConfig):
         json_schema_extra={"description": "The Craigslist password."},
     )
     DDDB_CRAIGSLIST_LOCKFILE: Path = Field(
+        default=Path("./craigslist_lockfile"),
         json_schema_extra={
             "description": "If present, stall on sends and receives until inaccessible."
         },
     )
     DDDB_CRAIGSLIST_HEADLESS: bool = Field(
+        default=True,
         json_schema_extra={"description": "Whether to use --headless for Firefox."},
     )
 

@@ -27,17 +27,20 @@ class dddbLocalConfig(ProtocolConfig):
     """
 
     DDDB_LOCAL_CHECKIN_FREQUENCY: int = Field(
+        default=10,
         json_schema_extra={
             "description": "The frequency with which to check for new messages."
-        }
+        },
     )
     DDDB_LOCAL_INBOX_DIR: Path = Field(
+        default=Path("dddb_local/inbox"),
         json_schema_extra={
             "description": "The location to expect incoming messages in."
-        }
+        },
     )
     DDDB_LOCAL_OUTBOX_DIR: Path = Field(
-        json_schema_extra={"description": "The location to send outgoing messages to."}
+        default=Path("dddb_local/outbox"),
+        json_schema_extra={"description": "The location to send outgoing messages to."},
     )
 
     # Should be dddb_local
