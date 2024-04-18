@@ -59,9 +59,11 @@ class dddbCraigslistConfig(ProtocolConfig):
         },
     )
     DDDB_CRAIGSLIST_EMAIL: str = Field(
+        default="",
         json_schema_extra={"description": "The Craigslist email."},
     )
     DDDB_CRAIGSLIST_PASSWORD: str = Field(
+        default="",
         json_schema_extra={"description": "The Craigslist password."},
     )
     DDDB_CRAIGSLIST_LOCKFILE: Path = Field(
@@ -174,6 +176,9 @@ class dddbCraigslistProtocol(ProtocolBase):
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:
         local_cfg: dddbCraigslistConfig = dddbCraigslistConfig.model_validate(args)
 
+        if (not local_cfg.DDDB_CRAIGSLIST_PASSWORD) or (not local_cfg.DDDB_CRAIGSLIST_EMAIL):
+            raise RuntimeError("No password or email provided in configuration")
+
         # Soft warnings
         if not local_cfg.DDDB_CRAIGSLIST_HEADLESS and sys.platform != "win32":
             logger.warning(
@@ -219,6 +224,9 @@ class dddbCraigslistProtocol(ProtocolBase):
     @classmethod
     def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
         local_cfg: dddbCraigslistConfig = dddbCraigslistConfig.model_validate(args)
+
+        if (not local_cfg.DDDB_CRAIGSLIST_PASSWORD) or (not local_cfg.DDDB_CRAIGSLIST_EMAIL):
+            raise RuntimeError("No password or email provided in configuration")
 
         # Soft warnings
         if not local_cfg.DDDB_CRAIGSLIST_HEADLESS and sys.platform != "win32":
