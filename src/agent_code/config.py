@@ -31,16 +31,11 @@ class PyginConfig(BaseModel):
     """
     Agent-wide configuration definitions. Includes both non-sensitive and
     sensitive configurations set at runtime.
-
-    See agent.cfg for more details.
-
-    Note that some defaults are declared at the JSON schema level rather than
-    the field level. This is intentional; the defaults are intended to be used
-    to prepopulate form fields, rather than actually making these fields optional.
-
-    Defaults that *are* declared at the JSON schema level are generally not
-    expected
     """
+
+    # Note that some defaults are declared at the JSON schema level rather than
+    # the field level. This is intentional; the defaults are intended to be used
+    # to prepopulate form fields, rather than actually making these fields optional.
 
     # Strictly speaking, these aren't constants and therefore shouldn't be in
     # all caps, but that's the intent.
@@ -76,40 +71,40 @@ class PyginConfig(BaseModel):
     #
     # So instead, we're just going to make these readonly, but we'll include them
     # with the schema.
-    AGENT_PRIVATE_KEY: Optional[bytes] = Field(
+    AGENT_PRIVATE_KEY: SkipJsonSchema[Optional[bytes]] = Field(
         default=None,
         json_schema_extra={
             "description": "The agent's private key as base64.",
-            "readonly": True,
+            "readOnly": True,  # This doesn't actually affect the form, it's semantic only
         },
     )
-    AGENT_PUBLIC_KEY: Optional[bytes] = Field(
+    AGENT_PUBLIC_KEY: SkipJsonSchema[Optional[bytes]] = Field(
         default=None,
         json_schema_extra={
             "description": "The agent's public key as base64.",
-            "readonly": True,
+            "readOnly": True,  # This doesn't actually affect the form, it's semantic only
         },
     )
-    ENCRYPTION_KEY: Optional[bytes] = Field(
+    ENCRYPTION_KEY: SkipJsonSchema[Optional[bytes]] = Field(
         default=None,
         json_schema_extra={
             "description": "The agent's symmetric encryption key as base64.",
-            "readonly": True,
+            "readOnly": True,  # This doesn't actually affect the form, it's semantic only
         },
     )
 
-    SERVER_PRIVATE_KEY: Optional[bytes] = Field(
+    SERVER_PRIVATE_KEY: SkipJsonSchema[Optional[bytes]] = Field(
         default=None,
         json_schema_extra={
             "description": "The server's private key as base64. Set at runtime.",
-            "readonly": True,
+            "readOnly": True,  # This doesn't actually affect the form, it's semantic only
         },
     )
     # This *is* visible to the schema. The server is hinted that it should substitute
     # the default value of this with the its own public key, as defined in the app's
     # settings.py (as base64). This should be done in all cases (since the server's
     # public key should never change).
-    SERVER_PUBLIC_KEY: Optional[bytes] = Field(
+    SERVER_PUBLIC_KEY: SkipJsonSchema[Optional[bytes]] = Field(
         json_schema_extra={
             "description": "The server's public key as base64.",
             # Let default = settings.SERVER_PUBLIC_KEY
@@ -322,7 +317,8 @@ class PyginConfig(BaseModel):
         If the value passed into the configuration object is not bytes,
         assume base64.
 
-        If this is an empty string, interpret it as None.
+        If this is an empty string, interpret it as None. This is relevant
+        when taking outputs directly from the frontend's form.
         """
         if v is None or isinstance(v, bytes):
             return v
