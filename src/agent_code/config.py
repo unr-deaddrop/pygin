@@ -6,6 +6,7 @@ startup and remains constant throughout the lifetime of the agent.
 """
 
 from base64 import b64decode, b64encode
+from enum import Enum
 from pathlib import Path
 from typing import Any, Optional, Union
 import configparser
@@ -26,6 +27,13 @@ from deaddrop_meta.interface_lib import MessagingObject
 
 logger = logging.getLogger(__name__)
 
+class PyginSupportedProtocols(str, Enum):
+    """
+    Enum used to restrict the user (on the JSON schema) to the supported
+    protocols.
+    """
+    dddb_craigslist = "dddb_craigslist"
+    plaintext_tcp = "plaintext_tcp"
 
 class PyginConfig(BaseModel):
     """
@@ -116,28 +124,28 @@ class PyginConfig(BaseModel):
     # which includes things like the agent's name, hostname, and other server-levle
     # fields.
 
-    INCOMING_PROTOCOLS: list[str] = Field(
+    INCOMING_PROTOCOLS: PyginSupportedProtocols = Field(
         json_schema_extra={
-            "default": "plaintext_tcp",
+            "default": PyginSupportedProtocols.plaintext_tcp,
             "description": "A list of supported agent names for which periodic listener tasks should be scheduled.",
         }
     )
 
-    HEARTBEAT_PROTOCOL: str = Field(
+    HEARTBEAT_PROTOCOL: PyginSupportedProtocols = Field(
         json_schema_extra={
-            "default": "plaintext_tcp",
+            "default": PyginSupportedProtocols.plaintext_tcp,
             "description": "The protocol used to send heartbeats.",
         }
     )
-    LOGGING_PROTOCOL: str = Field(
+    LOGGING_PROTOCOL: PyginSupportedProtocols = Field(
         json_schema_extra={
-            "default": "plaintext_tcp",
+            "default": PyginSupportedProtocols.plaintext_tcp,
             "description": "The protocol used to send heartbeats.",
         }
     )
-    SENDING_PROTOCOL: str = Field(
+    SENDING_PROTOCOL: PyginSupportedProtocols = Field(
         json_schema_extra={
-            "default": "plaintext_tcp",
+            "default": PyginSupportedProtocols.plaintext_tcp,
             "description": "The protocol used to send heartbeats.",
         }
     )
