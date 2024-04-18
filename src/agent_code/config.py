@@ -115,7 +115,8 @@ class PyginConfig(BaseModel):
     # the default value of this with the its own public key, as defined in the app's
     # settings.py (as base64). This should be done in all cases (since the server's
     # public key should never change).
-    SERVER_PUBLIC_KEY: SkipJsonSchema[Optional[bytes]] = Field(
+    SERVER_PUBLIC_KEY: Optional[bytes] = Field(
+        default=None,
         json_schema_extra={
             "description": "The server's public key as base64.",
             # Let default = settings.SERVER_PUBLIC_KEY
@@ -370,20 +371,20 @@ class PyginConfig(BaseModel):
 
         return val
 
-    @field_validator("INCOMING_PROTOCOLS", mode="before")
-    @classmethod
-    def validate_incoming_protocols(cls, v: Any) -> list[str]:
-        """
-        If the incoming protocol set is not a list, assume that it is a
-        comma-separated string.
-        """
-        if isinstance(v, list):
-            return v
+    # @field_validator("INCOMING_PROTOCOLS", mode="before")
+    # @classmethod
+    # def validate_incoming_protocols(cls, v: Any) -> list[str]:
+    #     """
+    #     If the incoming protocol set is not a list, assume that it is a
+    #     comma-separated string.
+    #     """
+    #     if isinstance(v, list):
+    #         return v
 
-        if not isinstance(v, str):
-            raise ValueError(f"Expected string or list, got {v}")
+    #     if not isinstance(v, str):
+    #         raise ValueError(f"Expected string or list, got {v}")
 
-        return [x.strip() for x in v.split(",")]
+    #     return [x.strip() for x in v.split(",")]
 
     @field_serializer(
         "AGENT_PRIVATE_KEY",
