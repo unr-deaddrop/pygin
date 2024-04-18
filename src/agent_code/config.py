@@ -121,14 +121,14 @@ class PyginConfig(BaseModel):
             "description": "The server's public key as base64.",
             # Let default = settings.SERVER_PUBLIC_KEY
             "_preprocess_settings_val": "SERVER_PUBLIC_KEY",
-        }
+        },
     )
     # Note that if a message is being received and must be verified, it is up to
     # the server to send its private key independently as part of the "overhead",
     # which includes things like the agent's name, hostname, and other server-levle
     # fields.
 
-    INCOMING_PROTOCOLS: PyginSupportedProtocols = Field(
+    INCOMING_PROTOCOL: PyginSupportedProtocols = Field(
         json_schema_extra={
             "default": PyginSupportedProtocols.plaintext_tcp,
             "description": "A list of supported agent names for which periodic listener tasks should be scheduled.",

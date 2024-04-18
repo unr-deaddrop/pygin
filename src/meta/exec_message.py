@@ -67,7 +67,7 @@ MESSAGE_OUTPUT_NAME = "messages.json"
 
 def select_protocol(msg_cfg: MessagingObject, cfg_obj: PyginConfig) -> str:
     if msg_cfg.server_config.action == "send":
-        return cfg_obj.INCOMING_PROTOCOLS[0]
+        return cfg_obj.INCOMING_PROTOCOL
     elif msg_cfg.server_config.action == "receive":
         return cfg_obj.SENDING_PROTOCOL
 

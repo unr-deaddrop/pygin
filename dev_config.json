@@ -71,7 +71,7 @@
         // The protocols used to receive messages, comma-separated. This determines
         // which protocols should be polled to check for new messages. Note that the
         // protocols used to send messages is determined at runtime.
-        "INCOMING_PROTOCOLS": "plaintext_tcp",
+        "INCOMING_PROTOCOL": "plaintext_tcp",
 
         // The selected protocols for various actions. For Pygin, this amounts to selecting
         // the sole protocol in use// I am refraining from sending over multiple protocols,

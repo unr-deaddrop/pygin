@@ -176,7 +176,9 @@ class dddbCraigslistProtocol(ProtocolBase):
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:
         local_cfg: dddbCraigslistConfig = dddbCraigslistConfig.model_validate(args)
 
-        if (not local_cfg.DDDB_CRAIGSLIST_PASSWORD) or (not local_cfg.DDDB_CRAIGSLIST_EMAIL):
+        if (not local_cfg.DDDB_CRAIGSLIST_PASSWORD) or (
+            not local_cfg.DDDB_CRAIGSLIST_EMAIL
+        ):
             raise RuntimeError("No password or email provided in configuration")
 
         # Soft warnings
@@ -225,7 +227,9 @@ class dddbCraigslistProtocol(ProtocolBase):
     def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
         local_cfg: dddbCraigslistConfig = dddbCraigslistConfig.model_validate(args)
 
-        if (not local_cfg.DDDB_CRAIGSLIST_PASSWORD) or (not local_cfg.DDDB_CRAIGSLIST_EMAIL):
+        if (not local_cfg.DDDB_CRAIGSLIST_PASSWORD) or (
+            not local_cfg.DDDB_CRAIGSLIST_EMAIL
+        ):
             raise RuntimeError("No password or email provided in configuration")
 
         # Soft warnings
