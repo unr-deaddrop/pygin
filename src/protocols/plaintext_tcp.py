@@ -71,7 +71,7 @@ class PlaintextTCPConfig(ProtocolConfig):
         },
     )
     PLAINTEXT_TCP_INITIATE_RETRY_COUNT: int = Field(
-        default=120,
+        default=20,
         json_schema_extra={
             "description": "When receiving messages by initiating a connection, the number of times to attempt to connect."
         },
