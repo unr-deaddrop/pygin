@@ -27,13 +27,16 @@ from deaddrop_meta.interface_lib import MessagingObject
 
 logger = logging.getLogger(__name__)
 
+
 class PyginSupportedProtocols(str, Enum):
     """
     Enum used to restrict the user (on the JSON schema) to the supported
     protocols.
     """
+
     dddb_craigslist = "dddb_craigslist"
     plaintext_tcp = "plaintext_tcp"
+
 
 class PyginConfig(BaseModel):
     """
