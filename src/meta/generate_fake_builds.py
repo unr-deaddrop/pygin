@@ -11,6 +11,8 @@ import shutil
 import subprocess
 import zipfile
 
+from src.meta.agent import PyginInfo
+
 # Names taken from Docker's generator at
 # https://github.com/moby/moby/blob/master/pkg/namesgenerator/names-generator.go.
 #
@@ -284,12 +286,13 @@ if __name__ == "__main__":
     subprocess.run(["./bundle.sh"])
 
     # Unzip pygin-build.zip to a temporary directory.
-    if not Path("pygin-build.zip").exists():
+    pygin_build_name = f"pygin-build-{PyginInfo.version}.zip"
+    if not Path(pygin_build_name).exists():
         raise RuntimeError("Pygin build missing!")
     temp_dir = TemporaryDirectory()
     temp_dir_path = Path(temp_dir.name).resolve()
 
-    with zipfile.ZipFile("pygin-build.zip", "r") as zip_ref:
+    with zipfile.ZipFile(pygin_build_name, "r") as zip_ref:
         zip_ref.extractall(temp_dir_path)
 
     # Create our output directory
