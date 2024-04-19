@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 from typing import ClassVar, Type
 from random import randint, choice
 import re
+import shlex
 import shutil
 import subprocess
 import zipfile
@@ -326,6 +327,11 @@ if __name__ == "__main__":
         # Write agent.py back.
         with open(temp_dir_path / Path("src/meta/agent.py"), "wt+") as fp:
             fp.write(data)
+
+        # Rewrite the metadata in that directory.
+        subprocess.run(
+            shlex.split("python3 -m src.meta.generate_metadata"), cwd=temp_dir_path
+        )
 
         # Rezip that folder, copy out.
         shutil.make_archive(
