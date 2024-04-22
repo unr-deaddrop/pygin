@@ -91,9 +91,9 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 
     # Schedule checkins for each configured protocol.
     for protocol_name, protocol_cfg in _g_config.protocol_configuration.items():
-        # if protocol_name not in _g_config.INCOMING_PROTOCOLS:
-        #     logger.info(f"Skipping {protocol_name} from checkins")
-        #     continue
+        if protocol_name != _g_config.INCOMING_PROTOCOL:
+            logger.info(f"Skipping {protocol_name} from checkins")
+            continue
 
         proto_interval = protocol_cfg.get_checkin_interval()
         logger.info(

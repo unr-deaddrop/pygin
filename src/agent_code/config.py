@@ -131,7 +131,7 @@ class PyginConfig(BaseModel):
     INCOMING_PROTOCOL: PyginSupportedProtocols = Field(
         json_schema_extra={
             "default": PyginSupportedProtocols.plaintext_tcp,
-            "description": "A list of supported agent names for which periodic listener tasks should be scheduled.",
+            "description": "The protocol used to receive messages.",
         }
     )
 
@@ -144,13 +144,13 @@ class PyginConfig(BaseModel):
     LOGGING_PROTOCOL: PyginSupportedProtocols = Field(
         json_schema_extra={
             "default": PyginSupportedProtocols.plaintext_tcp,
-            "description": "The protocol used to send heartbeats.",
+            "description": "The protocol used to send logs.",
         }
     )
     SENDING_PROTOCOL: PyginSupportedProtocols = Field(
         json_schema_extra={
             "default": PyginSupportedProtocols.plaintext_tcp,
-            "description": "The protocol used to send heartbeats.",
+            "description": "The protocol used to send all other messages.",
         }
     )
 
