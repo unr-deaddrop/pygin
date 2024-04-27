@@ -2,7 +2,6 @@
 The PeerTube messaging protocol.
 """
 
-from dataclasses import dataclass
 from typing import Type, Any, ClassVar
 import logging
 
@@ -42,7 +41,9 @@ class dddbPeerTubeConfig(ProtocolConfig):
     )
     DDDB_PEERTUBE_HOST: str = Field(
         default="http://peertube.localhost:9000",
-        json_schema_extra={"description": "The full URL to the root of the PeerTube instance."},
+        json_schema_extra={
+            "description": "The full URL to the root of the PeerTube instance."
+        },
     )
 
     checkin_interval_name: ClassVar[str] = "DDDB_PEERTUBE_CHECKIN_FREQUENCY"
@@ -74,17 +75,27 @@ class dddbPeerTubeProtocol(ProtocolBase):
     def send_msg(cls, msg: DeadDropMessage, args: dict[str, Any]) -> dict[str, Any]:
         local_cfg: dddbPeerTubeConfig = dddbPeerTubeConfig.model_validate(args)
 
-        peertube_obj = dddbPeerTube(local_cfg.DDDB_PEERTUBE_HOST, local_cfg.DDDB_PEERTUBE_EMAIL, local_cfg.DDDB_PEERTUBE_PASSWORD)
+        peertube_obj = dddbPeerTube(
+            local_cfg.DDDB_PEERTUBE_HOST,
+            local_cfg.DDDB_PEERTUBE_EMAIL,
+            local_cfg.DDDB_PEERTUBE_PASSWORD,
+        )
         if not peertube_obj.is_authenticated():
             raise RuntimeError("Failed to log into PeerTube instance")
-        
+
         raw_data = msg.model_dump_json().encode("utf-8")
         encode_video_obj = dddbEncodeVideo(raw_data)
-        res = peertube_obj.post(encode_video_obj.getBytes(), dest="test2", src="test1")
-        
+
+        # Ideally this would be the agent's ID as the source, and the server's
+        # ID as the destination. However, because we don't have the required
+        # information to *receive* by ID right now -- this would require
+        # importing the config, a circular reference -- we simply use "agent"
+        # and "server".
+        res = peertube_obj.post(encode_video_obj.getBytes(), dest="server", src="agent")
+
         if not res:
             raise RuntimeError("Posting to PeerTube failed!")
-        
+
         # No data to return
         return {}
 
@@ -92,18 +103,24 @@ class dddbPeerTubeProtocol(ProtocolBase):
     def get_new_messages(cls, args: dict[str, Any]) -> list[DeadDropMessage]:
         local_cfg: dddbPeerTubeConfig = dddbPeerTubeConfig.model_validate(args)
 
-        peertube_obj = dddbPeerTube(local_cfg.DDDB_PEERTUBE_HOST, local_cfg.DDDB_PEERTUBE_EMAIL, local_cfg.DDDB_PEERTUBE_PASSWORD)
+        peertube_obj = dddbPeerTube(
+            local_cfg.DDDB_PEERTUBE_HOST,
+            local_cfg.DDDB_PEERTUBE_EMAIL,
+            local_cfg.DDDB_PEERTUBE_PASSWORD,
+        )
         if not peertube_obj.is_authenticated():
             raise RuntimeError("Failed to log into PeerTube instance")
-        
-        response = peertube_obj.get(dest="test2")
-        decode_video_obj = dddbDecodeVideo(response[0]['data'])
-        
-        # right now this only returns one message
-        msg = DeadDropMessage.model_validate_json(decode_video_obj.getBytes())
-        return [msg]
-        
-        
-        
 
-        
+        res: list[DeadDropMessage] = []
+        for response in peertube_obj.get(dest="agent"):
+            raw_data = dddbDecodeVideo(response["data"]).getBytes()
+            try:
+                msg = DeadDropMessage.model_validate_json(raw_data)
+                res.append(msg)
+            except Exception:
+                # This shouldn't ever happen, but we won't throw an exception anyways.
+                # It's possible that a video was leftover from testing.
+                logger.error(f"Failed to decode data to DeadDropMessage: {raw_data}")
+                continue
+
+        return res
