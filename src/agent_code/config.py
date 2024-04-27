@@ -35,6 +35,7 @@ class PyginSupportedProtocols(str, Enum):
     """
 
     dddb_craigslist = "dddb_craigslist"
+    dddb_peertube = "dddb_peertube"
     plaintext_tcp = "plaintext_tcp"
 
 
