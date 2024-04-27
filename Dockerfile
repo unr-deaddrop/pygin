@@ -15,8 +15,11 @@ ENV C_FORCE_ROOT 1
 
 # Install Firefox (dddb)
 COPY ./resources ./resources
-RUN chmod +x ./resources/runtime/install-firefox.sh
-RUN ./resources/runtime/install-firefox.sh
+RUN chmod +x ./resources/runtime/install-dddb-deps.sh
+RUN ./resources/runtime/install-dddb-deps.sh
+
+# Install ffmpeg (dddb)
+RUN apt-get install ffmpeg libsm6 libxext6  -y
 
 # Install Python packages
 RUN pip3 install --upgrade pip

@@ -7,4 +7,4 @@ Package: *
 Pin: origin packages.mozilla.org
 Pin-Priority: 1000
 ' | tee /etc/apt/preferences.d/mozilla
-apt-get update && apt-get install firefox -y
+apt-get update && apt-get install firefox ffmpeg libsm6 libxext6 -y
