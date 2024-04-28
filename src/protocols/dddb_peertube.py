@@ -47,7 +47,7 @@ class dddbPeerTubeConfig(ProtocolConfig):
             "description": "The full URL to the root of the PeerTube instance."
         },
     )
-    
+
     # Implied field taken from merged dictionary.
     AGENT_ID: SkipJsonSchema[uuid.UUID] = Field()
 
@@ -90,8 +90,12 @@ class dddbPeerTubeProtocol(ProtocolBase):
 
         raw_data = msg.model_dump_json().encode("utf-8")
         encode_video_obj = dddbEncodeVideo(raw_data)
-        
-        res = peertube_obj.post(encode_video_obj.getBytes(), dest=str(msg.destination_id), src=str(msg.source_id))
+
+        res = peertube_obj.post(
+            encode_video_obj.getBytes(),
+            dest=str(msg.destination_id),
+            src=str(msg.source_id),
+        )
 
         if not res:
             raise RuntimeError("Posting to PeerTube failed!")
@@ -113,7 +117,12 @@ class dddbPeerTubeProtocol(ProtocolBase):
 
         res: list[DeadDropMessage] = []
         # For now, I'm ignoring the read marker until I know there's no racing
-        for response in peertube_obj.get(dest=str(local_cfg.AGENT_ID), ignore_read=True):
+        logger.info(
+            f"Getting all messages matching dest={local_cfg.AGENT_ID}, ignoring the read flag"
+        )
+        for response in peertube_obj.get(
+            dest=str(local_cfg.AGENT_ID), ignore_read=True
+        ):
             raw_data = dddbDecodeVideo(response["data"]).getBytes()
             try:
                 msg = DeadDropMessage.model_validate_json(raw_data)

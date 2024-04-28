@@ -71,12 +71,14 @@ def retrieve_new_messages(
 
     # mypy complains about properties as usual
     protocol_config_model: Type[ProtocolConfig] = protocol_class.config_model  # type: ignore[assignment]
-    
-    # Merge the global config with the protocol config. Pydantic will ignore 
+
+    # Merge the global config with the protocol config. Pydantic will ignore
     # additional dictionary elements; the syntax below prefers the existing
     # keys for the protocol over those that are global.
-    merged_config = cfg.model_dump() | cfg.protocol_configuration[protocol_name]
-    
+    merged_config = (
+        cfg.model_dump() | cfg.protocol_configuration[protocol_name].model_dump()
+    )
+
     validated_config = protocol_config_model.model_validate(merged_config)
     protocol_args = validated_config.model_dump()
 
@@ -196,12 +198,14 @@ def send_message(
 
     # mypy complains about properties as usual
     protocol_config_model: Type[ProtocolConfig] = protocol_class.config_model  # type: ignore[assignment]
-    
-    # Merge the global config with the protocol config. Pydantic will ignore 
+
+    # Merge the global config with the protocol config. Pydantic will ignore
     # additional dictionary elements; the syntax below prefers the existing
     # keys for the protocol over those that are global.
-    merged_config = cfg.model_dump() | cfg.protocol_configuration[protocol_name]
-    
+    merged_config = (
+        cfg.model_dump() | cfg.protocol_configuration[protocol_name].model_dump()
+    )
+
     validated_config = protocol_config_model.model_validate(merged_config)
     protocol_args = validated_config.model_dump()
 
