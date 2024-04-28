@@ -75,12 +75,10 @@ def retrieve_new_messages(
     # Merge the global config with the protocol config. Pydantic will ignore
     # additional dictionary elements; the syntax below prefers the existing
     # keys for the protocol over those that are global.
-    merged_config = (
+    protocol_args = (
         cfg.model_dump() | cfg.protocol_configuration[protocol_name].model_dump()
     )
-
-    validated_config = protocol_config_model.model_validate(merged_config)
-    protocol_args = validated_config.model_dump()
+    # FIXME: This used to be validated by the protocol. It doesn't do that anymore.
 
     # Invoke the protocol's message retrieval function. At this point, any protocol-specific
     # arguments are added in by the message dispatch unit, such as the inclusion of
@@ -202,12 +200,10 @@ def send_message(
     # Merge the global config with the protocol config. Pydantic will ignore
     # additional dictionary elements; the syntax below prefers the existing
     # keys for the protocol over those that are global.
-    merged_config = (
+    protocol_args = (
         cfg.model_dump() | cfg.protocol_configuration[protocol_name].model_dump()
     )
-
-    validated_config = protocol_config_model.model_validate(merged_config)
-    protocol_args = validated_config.model_dump()
+    # FIXME: This used to be validated by the protocol. It doesn't do that anymore.
 
     # Invoke the protocol's message sending function. Again, pass in the Redis
     # connection as a keyword argument; it's up to the protocol whether or not
