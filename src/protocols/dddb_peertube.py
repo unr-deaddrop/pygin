@@ -4,8 +4,10 @@ The PeerTube messaging protocol.
 
 from typing import Type, Any, ClassVar
 import logging
+import uuid
 
 from pydantic import Field
+from pydantic.json_schema import SkipJsonSchema
 
 from dddb.video.peertube import dddbPeerTube
 from dddb.video import dddbDecodeVideo, dddbEncodeVideo
@@ -45,6 +47,9 @@ class dddbPeerTubeConfig(ProtocolConfig):
             "description": "The full URL to the root of the PeerTube instance."
         },
     )
+    
+    # Implied field taken from merged dictionary.
+    AGENT_ID: SkipJsonSchema[uuid.UUID] = Field()
 
     checkin_interval_name: ClassVar[str] = "DDDB_PEERTUBE_CHECKIN_FREQUENCY"
     section_name: ClassVar[str] = "dddb_peertube"
@@ -85,13 +90,8 @@ class dddbPeerTubeProtocol(ProtocolBase):
 
         raw_data = msg.model_dump_json().encode("utf-8")
         encode_video_obj = dddbEncodeVideo(raw_data)
-
-        # Ideally this would be the agent's ID as the source, and the server's
-        # ID as the destination. However, because we don't have the required
-        # information to *receive* by ID right now -- this would require
-        # importing the config, a circular reference -- we simply use "agent"
-        # and "server".
-        res = peertube_obj.post(encode_video_obj.getBytes(), dest="server", src="agent")
+        
+        res = peertube_obj.post(encode_video_obj.getBytes(), dest=str(msg.destination_id), src=str(msg.source_id))
 
         if not res:
             raise RuntimeError("Posting to PeerTube failed!")
@@ -112,7 +112,8 @@ class dddbPeerTubeProtocol(ProtocolBase):
             raise RuntimeError("Failed to log into PeerTube instance")
 
         res: list[DeadDropMessage] = []
-        for response in peertube_obj.get(dest="agent"):
+        # For now, I'm ignoring the read marker until I know there's no racing
+        for response in peertube_obj.get(dest=str(local_cfg.AGENT_ID), ignore_read=True):
             raw_data = dddbDecodeVideo(response["data"]).getBytes()
             try:
                 msg = DeadDropMessage.model_validate_json(raw_data)

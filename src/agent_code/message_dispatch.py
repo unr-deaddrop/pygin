@@ -71,9 +71,13 @@ def retrieve_new_messages(
 
     # mypy complains about properties as usual
     protocol_config_model: Type[ProtocolConfig] = protocol_class.config_model  # type: ignore[assignment]
-    validated_config = protocol_config_model.model_validate(
-        cfg.protocol_configuration[protocol_name]
-    )
+    
+    # Merge the global config with the protocol config. Pydantic will ignore 
+    # additional dictionary elements; the syntax below prefers the existing
+    # keys for the protocol over those that are global.
+    merged_config = cfg.model_dump() | cfg.protocol_configuration[protocol_name]
+    
+    validated_config = protocol_config_model.model_validate(merged_config)
     protocol_args = validated_config.model_dump()
 
     # Invoke the protocol's message retrieval function. At this point, any protocol-specific
@@ -192,9 +196,13 @@ def send_message(
 
     # mypy complains about properties as usual
     protocol_config_model: Type[ProtocolConfig] = protocol_class.config_model  # type: ignore[assignment]
-    validated_config = protocol_config_model.model_validate(
-        cfg.protocol_configuration[protocol_name]
-    )
+    
+    # Merge the global config with the protocol config. Pydantic will ignore 
+    # additional dictionary elements; the syntax below prefers the existing
+    # keys for the protocol over those that are global.
+    merged_config = cfg.model_dump() | cfg.protocol_configuration[protocol_name]
+    
+    validated_config = protocol_config_model.model_validate(merged_config)
     protocol_args = validated_config.model_dump()
 
     # Invoke the protocol's message sending function. Again, pass in the Redis
