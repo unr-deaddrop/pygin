@@ -49,8 +49,12 @@ class dddbPeerTubeConfig(ProtocolConfig):
     )
 
     # Implied field taken from merged dictionary. To make it "optional", default
-    # to the null UUID.
-    AGENT_ID: SkipJsonSchema[uuid.UUID] = Field(default=uuid.UUID(int=0))
+    # to the null UUID. It is also excluded in model dumps so that it can be 
+    # replaced by the global configuration object at merge-time.
+    AGENT_ID: SkipJsonSchema[uuid.UUID] = Field(
+        default=uuid.UUID(int=0),
+        exclude=True
+    )
 
     checkin_interval_name: ClassVar[str] = "DDDB_PEERTUBE_CHECKIN_FREQUENCY"
     section_name: ClassVar[str] = "dddb_peertube"
