@@ -1,6 +1,6 @@
 # Download internal libraries.
 deaddrop-meta @ git+https://github.com/unr-deaddrop/deaddrop_meta@v0.3.1
-dddb @ git+https://github.com/unr-deaddrop/dddb@v0.6.0
+dddb @ git+https://github.com/unr-deaddrop/dddb@v0.7.1
 
 # Empyrean code.
 psutil==5.9.8
