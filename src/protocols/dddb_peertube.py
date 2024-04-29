@@ -126,7 +126,7 @@ class dddbPeerTubeProtocol(ProtocolBase):
             f"Getting all messages matching dest={local_cfg.AGENT_ID}, ignoring the read flag"
         )
         for response in peertube_obj.get(
-            dest=str(local_cfg.AGENT_ID), ignore_read=True
+            dest=str(local_cfg.AGENT_ID), ignore_read=False
         ):
             raw_data = dddbDecodeVideo(response["data"]).getBytes()
             try:
